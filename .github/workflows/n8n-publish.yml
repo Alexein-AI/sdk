@@ -1,0 +1,48 @@
+# Publishes packages/n8n to npm with a provenance statement, which n8n requires of every community
+# node it verifies (from 1 May 2026). Runs on a tag n8n-v<version>, such as n8n-v0.1.0, that
+# matches packages/n8n/package.json.
+#
+# One-time setup, on npmjs.com, for package n8n-nodes-twinmemory: Settings > Trusted Publishers >
+# GitHub Actions, owner Alexein-AI, repository twin-memory-integrations, workflow n8n-publish.yml.
+# A trusted publisher can only be added once the package exists, so the first release uses an npm
+# token instead: see packages/n8n/README.md, "Releasing".
+name: n8n publish
+
+on:
+  push:
+    tags: ["n8n-v*.*.*"]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: packages/n8n
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: npm
+          cache-dependency-path: packages/n8n/package-lock.json
+      - name: the tag is the package's version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          test "n8n-v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME is not n8n-v$version"; exit 1; }
+      - run: npm ci
+      - run: npm test
+      # In GitHub Actions, n8n-node release lints, builds and runs npm publish with provenance. With
+      # an NPM_TOKEN secret it publishes with that token (the first publish, before the package has a
+      # trusted publisher); without one, through the trusted publisher.
+      - run: |
+          [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          npm run release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

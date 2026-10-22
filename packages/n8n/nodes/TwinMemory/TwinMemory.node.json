@@ -1,0 +1,12 @@
+{
+	"node": "n8n-nodes-twinmemory.twinMemory",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Data & Storage", "Development"],
+	"resources": {
+		"credentialDocumentation": [
+			{ "url": "https://twinmemory.dev/docs/integrations/n8n#credential" }
+		],
+		"primaryDocumentation": [{ "url": "https://twinmemory.dev/docs/integrations/n8n" }]
+	}
+}
