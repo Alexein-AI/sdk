@@ -1,0 +1,31 @@
+# {name}
+
+A LangGraph.js agent that remembers the people it talks to, with [twin memory](https://twinmemory.dev).
+Made by `twinmemory-cli create langgraph`.
+
+## Run it
+
+1. Fill in `.env`: `TWIN_MEMORY_API_KEY` (the console, under API keys), and the key for the model
+   `MODEL` names.
+2. Talk to it in a terminal, as one of your users:
+
+   ```bash
+   npm run chat -- --user dana
+   ```
+
+   Or open it in LangGraph Studio, passing `{"user_id": "dana"}` as the run's context:
+
+   ```bash
+   npm run dev
+   ```
+
+3. `npx twinmemory-cli doctor` checks the setup.
+
+## What is where
+
+- `src/graph.ts` - the graph: memory is wired in here.
+- `src/memory.ts` - memory's nodes and tools, written by `twinmemory-cli init langgraph`. Yours to
+  edit.
+- `src/chat.ts` - the terminal chat.
+
+Whose memory a run reads is the `user_id` in its context, set by your code and never by the model.

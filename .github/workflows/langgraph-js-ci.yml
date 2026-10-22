@@ -1,0 +1,51 @@
+# twinmemory-cli for LangGraph.js (packages/langgraph-js). Until the twinmemory client is on npm it
+# comes from a checkout of twin-memory-js beside this repository's (package.json, "file:"), so both
+# are checked out side by side, and the client is built first. That repository is private: the
+# TWIN_MEMORY_JS_TOKEN secret is a fine-grained token that can read it. TWIN_MEMORY_JS_REF (a
+# variable) picks the branch, main by default.
+name: langgraph-js
+
+on:
+  pull_request:
+    paths: ["packages/langgraph-js/**", ".github/workflows/langgraph-js-*.yml"]
+  push:
+    branches: [main]
+    paths: ["packages/langgraph-js/**", ".github/workflows/langgraph-js-*.yml"]
+
+concurrency:
+  group: langgraph-js-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["20", "22"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: twin-memory-integrations
+      - uses: actions/checkout@v4
+        with:
+          repository: Alexein-AI/twin-memory-js
+          ref: ${{ vars.TWIN_MEMORY_JS_REF || 'main' }}
+          token: ${{ secrets.TWIN_MEMORY_JS_TOKEN }}
+          path: twin-memory-js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: the client, built
+        working-directory: twin-memory-js
+        run: npm ci && npm run build
+      - working-directory: twin-memory-integrations/packages/langgraph-js
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npx prettier --check .
+          npx vitest run
+          npm run build
+          node dist/bin.js --version

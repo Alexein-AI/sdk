@@ -1,0 +1,48 @@
+# twinmemory-cli for LangGraph (packages/langgraph-python). Until the twinmemory client is on PyPI
+# it comes from a checkout of twin-memory-python beside this repository's
+# (packages/langgraph-python/pyproject.toml, tool.uv.sources), so both are checked out side by side.
+# That repository is private: the TWIN_MEMORY_PYTHON_TOKEN secret is a fine-grained token that can
+# read it. TWIN_MEMORY_PYTHON_REF (a variable) picks the branch, main by default.
+name: langgraph-python
+
+on:
+  pull_request:
+    paths: ["packages/langgraph-python/**", ".github/workflows/langgraph-python-*.yml"]
+  push:
+    branches: [main]
+    paths: ["packages/langgraph-python/**", ".github/workflows/langgraph-python-*.yml"]
+
+concurrency:
+  group: langgraph-python-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.13"]
+    defaults:
+      run:
+        working-directory: twin-memory-integrations/packages/langgraph-python
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: twin-memory-integrations
+      - uses: actions/checkout@v4
+        with:
+          repository: Alexein-AI/twin-memory-python
+          ref: ${{ vars.TWIN_MEMORY_PYTHON_REF || 'main' }}
+          token: ${{ secrets.TWIN_MEMORY_PYTHON_TOKEN }}
+          path: twin-memory-python
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run pyright
+      - run: uv run pytest -q

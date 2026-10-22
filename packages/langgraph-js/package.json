@@ -1,0 +1,55 @@
+{
+  "name": "twinmemory-cli",
+  "version": "0.1.0",
+  "description": "Add twin memory to a LangGraph.js project, as code you own: npx twinmemory-cli init langgraph.",
+  "license": "MIT",
+  "author": "Alexein AI",
+  "homepage": "https://twinmemory.dev/docs/integrations/langgraph",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alexein-AI/twin-memory-integrations.git",
+    "directory": "packages/langgraph-js"
+  },
+  "keywords": [
+    "memory",
+    "llm",
+    "agents",
+    "langgraph",
+    "cli"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "twinmemory-cli": "dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "check": "tsc --noEmit && prettier --check . && vitest run",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "prepublishOnly": "npm run check && npm run build"
+  },
+  "dependencies": {
+    "twinmemory": "file:../../../twin-memory-js"
+  },
+  "devDependencies": {
+    "@langchain/core": "^1.2.0",
+    "@langchain/langgraph": "^1.5.0",
+    "@types/node": "^22.10.0",
+    "langchain": "^1.5.0",
+    "prettier": "^3.4.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "zod": "^4.0.0"
+  }
+}
