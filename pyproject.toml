@@ -21,10 +21,6 @@ classifiers = [
 # httpx alone: sync and async over one pool, timeouts and a mock transport for tests.
 dependencies = ["httpx>=0.27,<1"]
 
-[project.scripts]
-# `uvx twinmemory init langgraph`: writes memory into a project as code its developer owns.
-twinmemory = "twinmemory._cli:main"
-
 [project.urls]
 Homepage = "https://twinmemory.dev"
 Documentation = "https://twinmemory.dev/docs/sdks/python"
@@ -36,8 +32,6 @@ dev = [
     "anyio>=4",
     "ruff>=0.6",
     "pyright>=1.1.380",
-    "langgraph>=1",
-    "langchain>=1",
 ]
 
 [build-system]
