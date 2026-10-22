@@ -1,0 +1,17 @@
+# n8n with this package installed as a community node, for e2e/run.mjs. The package is the build
+# (package.json and dist/) copied to e2e/.package by run.mjs, mounted where `n8n-node dev` links it.
+name: twinmemory-n8n-e2e
+
+services:
+  n8n:
+    image: n8nio/n8n:2.44.6
+    ports:
+      - '${N8N_PORT:-5679}:5678'
+    environment:
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_PERSONALIZATION_ENABLED: 'false'
+      N8N_SECURE_COOKIE: 'false'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./.package:/home/node/.n8n/custom/node_modules/n8n-nodes-twinmemory:ro
