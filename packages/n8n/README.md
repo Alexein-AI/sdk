@@ -4,6 +4,9 @@ An [n8n](https://n8n.io) community node for [twin memory](https://twinmemory.dev
 users and AI agents. Add what people say; search it later in plain words. Each end user has a memory of
 their own.
 
+How it works, in depth: [HOW-IT-WORKS.md](HOW-IT-WORKS.md). Testing and publishing, step by step:
+[TESTING-AND-PUBLISHING.md](TESTING-AND-PUBLISHING.md).
+
 [Installation](#installation) · [Credential](#credential) · [Operations](#operations) ·
 [As an AI Agent tool](#as-an-ai-agent-tool) · [Template](#template) · [MCP instead](#mcp-instead) ·
 [Compatibility](#compatibility) · [Releasing](#releasing)
