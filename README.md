@@ -108,7 +108,7 @@ Every result is a typed object; `.raw` holds the JSON as the API sent it.
 
 `uvx twinmemory-cli init langgraph` writes memory into a LangGraph project as code you own, using
 this client; `twinmemory-cli` lives in
-[twin-memory-integrations](https://github.com/Alexein-AI/twin-memory-integrations/tree/main/packages/python).
+[twin-memory-integrations](https://github.com/Alexein-AI/twin-memory-integrations/tree/main/packages/langgraph-python).
 
 ## Async
 
