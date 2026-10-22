@@ -22,6 +22,13 @@ class TwinMemoryError(Exception):
         self.detail = detail
         self.request_id = request_id
 
+    @property
+    def outage(self) -> bool:
+        """Whether this means memory is unavailable - unreachable, too slow, busy or failing -
+        rather than that the request or the key is wrong. A `fail_open` client rides out an
+        outage; a mistake still raises."""
+        return self.status is not None and (self.status in (429, 503) or self.status >= 500)
+
 
 class AuthenticationError(TwinMemoryError):
     """401: no key, or one the service did not issue."""
@@ -51,6 +58,10 @@ class ServiceUnavailableError(TwinMemoryError):
 
 class APIConnectionError(TwinMemoryError):
     """The service could not be reached. Retried for you."""
+
+    @property
+    def outage(self) -> bool:
+        return True
 
 
 class APITimeoutError(APIConnectionError):

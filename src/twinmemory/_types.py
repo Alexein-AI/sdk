@@ -79,12 +79,14 @@ class AddedItem:
 
 @dataclass(frozen=True)
 class AddResult:
-    """`pending` is how many items are accepted and not yet searchable; zero once they are."""
+    """`pending` is how many items are accepted and not yet searchable; zero once they are.
+    `failed` is True when a `fail_open` client could not reach memory and saved nothing."""
 
     items: list[AddedItem]
     queued: int
     pending: int
     raw: Json = field(default_factory=dict[str, Any], repr=False)
+    failed: bool = False
 
     @classmethod
     def parse(cls, raw: Json) -> AddResult:
@@ -140,7 +142,8 @@ class Fact:
 class SearchResult:
     """What memory holds for a question: `known` lines first, then dated `facts`, then whole
     passages (`hits`). `held` is False when memory says it does not hold the answer; `filtered`
-    is whether the model filter judged what came back."""
+    is whether the model filter judged what came back. `failed` is True when a `fail_open`
+    client could not reach memory, and the result is empty for that reason."""
 
     query: str
     found: int
@@ -152,6 +155,12 @@ class SearchResult:
     held: bool | None
     filtered: bool
     raw: Json = field(default_factory=dict[str, Any], repr=False)
+    failed: bool = False
+
+    @classmethod
+    def unavailable(cls, query: str) -> SearchResult:
+        """What a `fail_open` client answers when memory could not be reached."""
+        return cls(query, 0, [], [], [], [], [], None, False, failed=True)
 
     @classmethod
     def parse(cls, raw: Json) -> SearchResult:
