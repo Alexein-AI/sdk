@@ -12,8 +12,7 @@ import re
 import shutil
 from pathlib import Path
 
-from twinmemory_cli import env, scaffold
-from twinmemory_cli.crews import CREWAI_MINIMUM
+from twinmemory_cli import crews, env, scaffold
 from twinmemory_cli.render import render
 from twinmemory_cli.ui import Console
 
@@ -52,7 +51,8 @@ def create(name: str, cwd: Path, model: str, options: scaffold.Options, console:
     options.parts = ("tools", "tools_only") if options.parts == ("tools",) else ("auto", "tools")
     package = name.replace("-", "_")
     extra, provider_key = PROVIDERS.get(model.split("/", 1)[0], ("", ""))
-    crewai = f"crewai[{extra}]>={CREWAI_MINIMUM}" if extra else f"crewai>={CREWAI_MINIMUM}"
+    floor = crews.CREWAI_MINIMUM
+    crewai = f"crewai[{extra}]>={floor}" if extra else f"crewai>={floor}"
     packages = [*scaffold.requirements(root, options), crewai, "python-dotenv"]
     files = _files(package, provider_key, options.parts)
     if options.dry_run:
@@ -81,6 +81,8 @@ def create(name: str, cwd: Path, model: str, options: scaffold.Options, console:
     scaffold.write(root / "src" / package, options)
     console.step("made", str(root))
     installed = _install(root, packages, options, console)
+    if installed and options.install:
+        crews.require_version(root, console)  # the newest CrewAI, maybe newer than tested
     scaffold.setup_key(root, options, console)
     key, _ = env.resolve(root)
     unset = [k for k in (provider_key,) if k] + ([] if key else [env.KEY])

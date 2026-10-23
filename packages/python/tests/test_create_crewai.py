@@ -195,3 +195,18 @@ def test_the_tools_only_crews_tools_are_for_the_runs_user(
     crew_module, _ = run_created(tmp_path, monkeypatch, ("tools",))
     (agent,) = crew_module.TripCrew("dana").crew().agents
     assert {getattr(t, "user_id", None) for t in agent.tools} == {"dana"}
+
+
+def test_create_checks_the_crewai_it_installed(tmp_path: Path) -> None:
+    """`uv add crewai>=1.15` takes the newest CrewAI, which may be newer than was tested."""
+
+    class Installs(Recorder):
+        def __call__(self, command: Sequence[str], cwd: Path) -> int:
+            site = cwd / ".venv" / "lib" / "python3.12" / "site-packages"
+            (site / "crewai-1.17.0.dist-info").mkdir(parents=True)
+            return super().__call__(command, cwd)
+
+    console = Console(out=lambda _: None)
+    options = Options(run=Installs(), framework="crewai", skip_key=True)
+    assert create("trip-crew", tmp_path, DEFAULT_MODEL, options, console) == 0
+    assert "crewai 1.17.0 is newer than this release was tested with" in said(console)

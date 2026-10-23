@@ -57,6 +57,11 @@ def require_version(root: Path, console: Console) -> None:
     site = project.environment(root)
     version = project.installed(site, "crewai") if site else None
     if version is None:
+        console.step(
+            "warning",
+            "crewai version not checked: no .venv found here; "
+            "run `twinmemory-cli doctor` once it is installed",
+        )
         return
     if project.older(version, CREWAI_MINIMUM):
         tool = project.installer(root, []).name
@@ -69,7 +74,8 @@ def require_version(root: Path, console: Console) -> None:
         console.step(
             "warning",
             f"crewai {version} is newer than this release was tested with ({CREWAI_TESTED}); "
-            "run `twinmemory-cli doctor` after upgrading",
+            "it should work - if tasks stop recalling or saving memory, "
+            "look for warnings on the `twinmemory` logger",
         )
 
 

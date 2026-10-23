@@ -105,7 +105,9 @@ STRICT = False
 MAX_CHARS = 4000
 
 # Seconds a call to memory may take before the crew goes on without it (each call is
-# tried up to three times when memory is busy or unreachable).
+# tried up to three times when memory is busy or unreachable). Recall and save run in
+# the task's own thread, so a task waits for them - and under `akickoff`, so does the
+# event loop.
 TIMEOUT = 10.0
 
 log = logging.getLogger("twinmemory")
@@ -133,10 +135,12 @@ def _lines(found: SearchResult) -> list[tuple[str, str]]:
 
 
 def _within(lines: list[tuple[str, str]], limit: int) -> list[tuple[str, str]]:
-    """At most `limit` lines, whole ones only, within MAX_CHARS in all."""
+    """At most `limit` lines, whole ones only, within MAX_CHARS in all (a single line
+    longer than that is cut)."""
     kept: list[tuple[str, str]] = []
     total = 0
     for text, where in lines[:limit]:
+        text = text[:MAX_CHARS]  # one line longer than all the room there is
         total += len(text)
         if kept and total > MAX_CHARS:
             break
@@ -259,8 +263,13 @@ class TwinMemory(CrewMemory):
     def extract_memories(self, content: str) -> list[str]:
         """No model call: twin memory reads what it is given itself. A task that found
         nothing is not saved."""
-        _, said, result = content.rpartition("\nResult:")
-        return [content] if not said or result.strip() else []
+        # CrewAI writes "...\nExpected result: ...\nResult: <the answer>"; the answer is
+        # what follows the first "Result:" after that line, whatever the answer says.
+        expected = content.find("\nExpected result:")
+        marker = content.find("\nResult:", expected + 1) if expected >= 0 else -1
+        if marker < 0:
+            return [content] if content.strip() else []
+        return [content] if content[marker + len("\nResult:") :].strip() else []
 
     def remember(self, content: str, **fields: Any) -> MemoryRecord | None:
         self._save([content], fields.get("agent_role"))
