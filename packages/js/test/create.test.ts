@@ -267,6 +267,17 @@ describe("the created graph, run", () => {
     }
   });
 
+  it("a run with no user says how to give one", async () => {
+    const { root } = await made({ inside: GENERATED });
+    const { graph } = await import(pathToFileURL(join(root, "src/graph.ts")).href);
+    await expect(
+      graph.invoke(
+        { messages: [new HumanMessage("Where do I live?")] },
+        { configurable: { thread_id: "t-1" } },
+      ),
+    ).rejects.toThrow('context: { user_id: "..." }');
+  });
+
   it("nodes-only: recalls and remembers", async () => {
     const { sent } = await run({ parts: ["nodes"] }, [
       new AIMessage({ content: "Lisbon.", id: "ai-1" }),
