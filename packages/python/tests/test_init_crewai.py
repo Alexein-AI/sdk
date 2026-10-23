@@ -53,6 +53,9 @@ def test_a_json_crew_gets_memory_py_beside_its_definition(project: Project) -> N
     text = said(console)
     assert '"memory": {"python": "memory.twin_memory"}' in text
     assert '"before_kickoff_callbacks": [{"python": "memory.whose"}]' in text
+    assert 'crew, _ = load_crew("crew.jsonc")' in text
+    assert 'crew.kickoff(inputs={"user_id": "dana"' in text
+    assert "MyCrew" not in text  # a JSON crew has no class
 
 
 def test_a_flow_is_refused(project: Project) -> None:

@@ -45,7 +45,7 @@ and, after a run, `save_result(user_id, crew.kickoff(...))` to keep what it foun
 Whose memory is read is decided by your code, never by the model. Pass the end user's
 id with every run:
 
-    MyCrew().crew().kickoff(inputs={"user_id": "dana", ...})
+    crew.kickoff(inputs={"user_id": "dana", ...})
 
 The key is read from TWIN_MEMORY_API_KEY (make one in the console, under API keys),
 and the address from TWIN_MEMORY_BASE_URL, which defaults to the hosted service.

@@ -105,6 +105,12 @@ def next_steps(found: project.Crew, module: str, options: Options) -> str:
             f'    "memory": {{"python": "{name}.twin_memory"}},',
             f'    "before_kickoff_callbacks": [{{"python": "{name}.whose"}}]',
         ]
+        run = [
+            "    from crewai.project.crew_loader import load_crew",
+            "",
+            '    crew, _ = load_crew("crew.jsonc")',
+            '    crew.kickoff(inputs={"user_id": "dana", ...})',
+        ]
     else:
         wiring = [
             "  Wire it in, in crew.py:",
@@ -123,13 +129,14 @@ def next_steps(found: project.Crew, module: str, options: Options) -> str:
             "        def crew(self) -> Crew:",
             "            return Crew(..., memory=self.memory)",
         ]
+        run = ['    MyCrew().crew().kickoff(inputs={"user_id": "dana", ...})']
     return "\n".join(
         [
             *wiring,
             "",
             "  Run with the end user's id; the model never chooses it:",
             "",
-            '    MyCrew().crew().kickoff(inputs={"user_id": "dana", ...})',
+            *run,
             "",
             *_closing(),
         ]

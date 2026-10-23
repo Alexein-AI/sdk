@@ -107,6 +107,7 @@ agent its "Search memory" and "Save to memory" tools:
 ```python
 from my_crew.memory import TwinMemory, whose
 
+
 @CrewBase
 class MyCrew:
     memory = TwinMemory()
@@ -119,6 +120,7 @@ class MyCrew:
     def crew(self) -> Crew:
         return Crew(agents=self.agents, tasks=self.tasks, memory=self.memory)
 
+
 MyCrew().crew().kickoff(inputs={"user_id": "dana", "topic": "..."})
 ```
 
@@ -127,6 +129,15 @@ A JSON crew points `crew.jsonc` at the same two names:
 ```jsonc
 "memory": {"python": "memory.twin_memory"},
 "before_kickoff_callbacks": [{"python": "memory.whose"}]
+```
+
+and runs with:
+
+```python
+from crewai.project.crew_loader import load_crew
+
+crew, _ = load_crew("crew.jsonc")
+crew.kickoff(inputs={"user_id": "dana", "topic": "..."})
 ```
 
 - **Whose memory** is the run's `inputs["user_id"]`, required on every kickoff; the model never
