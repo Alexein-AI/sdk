@@ -34,7 +34,7 @@ export async function doctor(
   }
   console.line(`twinmemory-cli ${VERSION} - checking ${root}`);
   const written = memoryFiles(root, console);
-  const minimums = needed(
+  const minimums = minimumsFor(
     root,
     written.map(([, framework]) => framework),
   );
@@ -74,7 +74,7 @@ function memoryFiles(root: string, console: Console): [string, string][] {
  * What the project needs: for the frameworks its memory files are for, else for those it uses,
  * else for LangGraph's.
  */
-function needed(root: string, frameworks: string[]): Record<string, string> {
+function minimumsFor(root: string, frameworks: string[]): Record<string, string> {
   const used = Object.keys(MINIMUMS).filter((f) => project.uses(root, f));
   const chosen = frameworks.length ? frameworks : used.length ? used : ["langgraph"];
   return Object.assign({}, ...[...new Set(chosen)].map((f) => MINIMUMS[f]));

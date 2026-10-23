@@ -39,8 +39,15 @@ export const PROVIDERS: Record<string, [string, string]> = {
 
 const NAME = /^[a-z][a-z0-9-]{0,63}$/;
 const DEV = ["typescript", "tsx", "@types/node"];
-/** The file each framework's project is built around, beside `memory.ts` and `chat.ts`. */
+/**
+ * The file each framework's project is built around, beside `memory.ts` and `chat.ts`, and what
+ * the project is, for its package.json.
+ */
 const MAIN: Record<string, string> = { langgraph: "graph.ts", "openai-agents": "agent.ts" };
+const DESCRIBED: Record<string, string> = {
+  langgraph: "A LangGraph.js agent",
+  "openai-agents": "An OpenAI Agents SDK agent",
+};
 
 /** Make the project; 0 when it is ready, 1 when something stopped it, 2 a bad command. */
 export async function create(
@@ -148,33 +155,29 @@ function skeleton(
   providerKey: string,
   o: scaffold.Options,
 ): void {
-  const values = { name, model, provider_key: providerKey };
-  const parts = preset(o);
   const langgraph = o.framework === "langgraph";
-  const envParts = langgraph
-    ? providerKey
-      ? ["provider_key"]
-      : []
-    : model
-      ? ["model"]
-      : ["no_model"];
+  const description = `${DESCRIBED[o.framework]} that remembers the people it talks to, with twin memory.`;
+  const values = { name, model, provider_key: providerKey, description };
+  const parts = preset(o);
+  const own = `${o.framework.replace("-", "_")}/project`;
+  const shared = langgraph ? ["langgraph"] : [];
+  const envParts = providerKey && langgraph ? ["provider_key"] : [];
   const files: Record<string, [string, string[]]> = {
-    "package.json": ["package.json.tmpl", []],
-    "tsconfig.json": ["tsconfig.json.tmpl", []],
-    ...(langgraph ? { "langgraph.json": ["langgraph.json.tmpl", []] as [string, string[]] } : {}),
-    ".gitignore": ["gitignore.tmpl", []],
-    "README.md": ["README.md.tmpl", []],
-    ".env.example": ["env.example.tmpl", envParts],
-    [`src/${MAIN[o.framework]}`]: [`${MAIN[o.framework]}.tmpl`, parts],
-    "src/chat.ts": ["chat.ts.tmpl", parts],
+    "package.json": ["project/package.json.tmpl", shared],
+    "tsconfig.json": ["project/tsconfig.json.tmpl", []],
+    ".gitignore": ["project/gitignore.tmpl", shared],
+    "README.md": [`${own}/README.md.tmpl`, []],
+    ".env.example": [`${own}/env.example.tmpl`, envParts],
+    [`src/${MAIN[o.framework]}`]: [`${own}/${MAIN[o.framework]}.tmpl`, parts],
+    "src/chat.ts": [`${own}/chat.ts.tmpl`, parts],
   };
-  const directory = `${o.framework.replace("-", "_")}/project`;
+  if (langgraph) files["langgraph.json"] = [`${own}/langgraph.json.tmpl`, []];
   for (const [path, [template, kept]] of Object.entries(files)) {
     const target = join(root, path);
     mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, render(`${directory}/${template}`, kept, values));
+    writeFileSync(target, render(template, kept, values));
   }
-  const example = render(`${directory}/env.example.tmpl`, envParts, values);
+  const example = render(`${own}/env.example.tmpl`, envParts, values);
   writeFileSync(
     join(root, ".env"),
     example

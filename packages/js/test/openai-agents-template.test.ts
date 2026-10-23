@@ -8,15 +8,15 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { Agent, MemorySession, run, setTracingDisabled } from "@openai/agents";
-import { AuthenticationError, Memory, ServiceUnavailableError } from "twinmemory";
+import { AuthenticationError, ServiceUnavailableError } from "twinmemory";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { render } from "../src/render.js";
 import { calls, says, Scripted } from "./agents.js";
+import { answer, down, loadMemoryFile, type Respond, type Sent } from "./recorded.js";
 import { GENERATED as ALL_GENERATED } from "./helpers.js";
 
 /** This file's own corner, so files running in parallel never remove each other's. */
@@ -24,71 +24,15 @@ const GENERATED = ALL_GENERATED + "openai-agents-template/";
 
 beforeAll(() => setTracingDisabled(true));
 
-interface Sent {
-  path: string;
-  headers: Record<string, string>;
-  body: Record<string, any>;
-}
-
-const SEARCHED = {
-  query: "q",
-  found: 1,
-  known: ["Dana lives in Lisbon."],
-  facts: [],
-  hits: [{ path: "passages/p1.md", id: "p1", text: "Dana: I moved to Lisbon." }],
-};
-
-function answer(path: string): Response {
-  const route = path.split("/").pop();
-  if (route === "search") return Response.json(SEARCHED);
-  if (route === "read")
-    return Response.json({ path: "passages/p1.md", text: "Dana: I moved to Lisbon." });
-  if (route === "add") return Response.json({ items: [], queued: 1, pending: 1 }, { status: 202 });
-  return Response.json({});
-}
-
-const down = () => Response.json({ detail: "rebuilding" }, { status: 503 });
 const wrongKey = () => Response.json({ detail: "bad key" }, { status: 401 });
 
-function client(respond: (path: string, body: any) => Response, failOpen = true) {
-  const sent: Sent[] = [];
-  const memory = new Memory({
-    apiKey: "tm_test",
-    failOpen,
-    integration: "openai-agents",
-    maxRetries: 0,
-    logger: () => {},
-    fetch: async (input, init) => {
-      const path = new URL(String(input)).pathname;
-      const body = init?.body ? JSON.parse(String(init.body)) : {};
-      sent.push({ path, headers: init?.headers as Record<string, string>, body });
-      return respond(path, body);
-    },
-  });
-  return { memory, sent };
-}
-
-type Module = Record<string, any>;
-let counter = 0;
-
 /** The file as `init` writes it, imported fresh, with its client answered by `respond`. */
-async function load(
-  parts = ["nodes", "tools"],
-  respond: (path: string, body: any) => Response = answer,
-  failOpen = true,
-) {
-  const dir = join(GENERATED, `memory-${process.pid}-${counter++}`);
-  mkdirSync(dir, { recursive: true });
-  const path = join(dir, "memory.ts");
-  writeFileSync(
-    path,
-    render("openai_agents/memory.ts.tmpl", parts, { version: "test", fast: "false" }),
-  );
-  const module: Module = await import(pathToFileURL(path).href);
-  const { memory, sent } = client(respond, failOpen);
-  module.useMemory(memory);
-  return { module, sent };
-}
+const load = (parts = ["nodes", "tools"], respond: Respond = answer, failOpen = true) =>
+  loadMemoryFile(GENERATED, "openai_agents/memory.ts.tmpl", parts, respond, {
+    integration: "openai-agents",
+    failOpen,
+  });
+type Module = Record<string, any>;
 
 const routes = (sent: Sent[]) => sent.map((s) => s.path.split("/").pop());
 const bodies = (sent: Sent[], route: string) =>

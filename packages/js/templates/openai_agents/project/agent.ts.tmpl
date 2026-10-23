@@ -40,7 +40,7 @@ export const agent = new Agent<MemoryContext>({
   instructions:
     "You are a helpful assistant. You remember the people you talk to across " +
     "conversations; use what you remember where it helps, and never invent it.",
-  // `MODEL` in .env; unset, the OpenAI Agents SDK's default.
+  // `MODEL` in .env; empty, the OpenAI Agents SDK's default.
   ...(process.env.MODEL ? { model: process.env.MODEL } : {}),
 // >>> both
   // `remember` saves every turn, so the model is only given the tools that read.

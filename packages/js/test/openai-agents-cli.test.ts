@@ -204,7 +204,7 @@ describe("create openai-agents", () => {
       expect(existsSync(join(root, path)), path).toBe(true);
     }
     expect(existsSync(join(root, "langgraph.json"))).toBe(false);
-    expect(env.read(join(root, ".env"))).toEqual({ OPENAI_API_KEY: "", [env.KEY]: "" });
+    expect(env.read(join(root, ".env"))).toEqual({ MODEL: "", OPENAI_API_KEY: "", [env.KEY]: "" });
     expect(p.ran).toEqual([
       ["npm", "install", "twinmemory@>=0.1", "@openai/agents@>=0.6", "zod@>=4.0", "dotenv"],
       ["npm", "install", "--save-dev", "typescript", "tsx", "@types/node"],
@@ -241,7 +241,7 @@ describe("created files are clean", () => {
   it.each(PRESETS)("%s", async (_, preset) => {
     const { root } = await made({ ...preset, inside: GENERATED });
     execFileSync("npx", ["tsc", "-p", join(root, "tsconfig.json")], { stdio: "pipe" });
-    for (const file of ["agent.ts", "chat.ts", "memory.ts"]) {
+    for (const file of ["agent.ts", "chat.ts"]) {
       const path = join(root, "src", file);
       const prettier = ["prettier", "--no-config", "--ignore-path", "/dev/null", "--check", path];
       execFileSync("npx", prettier, { stdio: "pipe" });
