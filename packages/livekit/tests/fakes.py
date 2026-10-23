@@ -174,6 +174,7 @@ class MemoryService:
 
     hits: list[str] = field(default_factory=list[str])
     known: list[str] = field(default_factory=list[str])
+    recent: list[str] = field(default_factory=list[str])  # what `latest` answers, newest first
     delay: float = 0.0
     status: int | None = None
     new_user: bool = False
@@ -181,6 +182,7 @@ class MemoryService:
     reject: str | None = None  # refuse, 422, any add with an item holding this text
     flaky: str | None = None  # the first add of this item id alone answers 503
     searches: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
+    latests: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     added: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     users: list[str] = field(default_factory=list[str])
 
@@ -200,6 +202,8 @@ class MemoryService:
         route = request.url.path.rsplit("/", 1)[-1]
         if route == "search":
             self.searches.append(body)
+        if route == "latest":
+            self.latests.append(body)
         if self.delay:
             await asyncio.sleep(self.delay)
         if self.status is not None:
@@ -214,6 +218,12 @@ class MemoryService:
             return httpx.Response(422, json={"detail": "an author that says self needs a role"})
         if route == "add" and self.reject and any(self.reject in i["text"] for i in body["items"]):
             return httpx.Response(422, json={"detail": "an item is too long"})
+        if route == "latest":
+            passages = [
+                {"path": f"passages/memory/r{n}", "id": f"r{n}", "text": t}
+                for n, t in enumerate(self.recent)
+            ]
+            return httpx.Response(200, json={"passages": passages})
         if route == "add":
             self.added.extend(body["items"])
             self.new_user = False

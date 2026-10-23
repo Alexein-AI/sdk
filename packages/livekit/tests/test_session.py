@@ -182,8 +182,8 @@ async def test_a_tools_follow_up_reuses_the_turns_recall() -> None:
         await _say(session, "Where do I live now?")
     assert len(fake.calls) == 2
     assert [len(_memory_shown(call)) for call in fake.calls] == [1, 1]
-    recalls = [s for s in service.searches if s.get("scope")]
-    tools = [s for s in service.searches if not s.get("scope") and s["query"] == "home"]
+    recalls = [s for s in service.searches if s["query"] == "Where do I live now?"]
+    tools = [s for s in service.searches if s["query"] == "home"]
     assert len(recalls) == 1 and len(tools) == 1
     await memory.aclose()
 

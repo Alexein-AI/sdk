@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from livekit import rtc
 from livekit.agents import llm
-from twinmemory import AsyncMemory, AsyncUser, Item
+from twinmemory import AsyncMemory, AsyncUser, Hit, Item
 
 from twinmemory_livekit import _identity, _tools
 from twinmemory_livekit._capture import Redact, Writer, item
@@ -142,9 +142,24 @@ class TwinMemory:
 
     @property
     def guide(self) -> str:
-        """What the model is told about its memory, after your instructions: in tools mode, when
-        to search and when to save; in auto mode nothing, since recall says so itself."""
-        return _tools.GUIDE if self.mode == "tools" else ""
+        """What a model given `tools()` is told about its memory, after your instructions: in tools
+        mode when to search and when to save, in auto mode that memory is given to it already."""
+        return _tools.GUIDE if self.mode == "tools" else _tools.AUTO_GUIDE
+
+    @property
+    def since(self) -> str:
+        """When this call began: what is saved from then on is this call's, and not searched."""
+        return self._recall.since
+
+    @property
+    def known(self) -> list[str]:
+        """What memory holds as true about the user now, looked up once when they were bound."""
+        return list(self._recall.known)
+
+    @property
+    def recent(self) -> list[Hit]:
+        """The user's last calls' passages, newest first, looked up once when they were bound."""
+        return list(self._recall.recent)
 
     def bind(
         self,
@@ -175,8 +190,7 @@ class TwinMemory:
             return user_id
         self._user = self.client.user(user_id)
         self._writer.start(self._user)
-        if self.mode == "auto":
-            self._recall.prime(self._user)
+        self._recall.prime(self._user)
         return user_id
 
     def attach(self, session: AgentSession[Any]) -> None:

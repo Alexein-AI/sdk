@@ -33,40 +33,64 @@ UNAVAILABLE = "I couldn't reach my memory just now."
 NOTHING = "Nothing remembered about that."
 UNKNOWN = "I don't know who I'm talking to yet, so I have no memory to use."
 
+# Said to the model in auto mode, after your instructions. Told nothing, gpt-4.1-mini searched on
+# every statement a caller made in a real voice test, a model round trip of 1 to 1.5 s each, for
+# what recall had put in front of it already.
+AUTO_GUIDE = (
+    "Before each reply you are given, as a quoted memory block, what you remember of this caller's "
+    "earlier calls. Call memory_search only when they ask about something from before that is "
+    "not in it - never to save or to check what they have just told you."
+)
+
 # Said to the model in tools mode, after your instructions: the tools are its only memory there,
 # and a model that is not told when to save rarely does (n8n's Add tool says as much).
 GUIDE = (
     "You have a long-term memory of this caller, across calls. Before you answer anything about "
     "them, their plans or what was said before, call memory_search. Whenever they tell you "
-    "something new about themselves - a preference, a fact, a plan, a name, a date, a number - "
-    "call memory_add on your own, without being asked and without saying so, one fact per call, "
-    "in their words. Never save passwords, card numbers or other secrets."
+    "something new - about themselves (a preference, a fact, a plan, a name, a date, a number), or "
+    "the details of what they ask you to do (a booking, an order, an appointment: what, when, for "
+    "whom, its number) - call memory_add on your own, without being asked and without saying so, "
+    "one fact per call, in their words. When something they told you before changes, save the new "
+    "value. Never save passwords, card numbers or other secrets."
+)
+
+
+_SEARCH = (
+    "Search your long-term memory of this caller: what they said, did and decided in earlier "
+    'calls. Ask in plain words, for example "where do they live". Ends with the sources it '
+    "found, to read one whole with memory_read."
+)
+_SEARCH_FURTHER = (
+    "Look further into your memory of this caller's earlier calls, when they ask about "
+    "something from before that the memory block you were given does not hold. Ask in plain words. "
+    "Ends with the sources it found, to read one whole with memory_read."
 )
 
 
 def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
     """`memory_search` and `memory_read`, and `memory_add` with `write`."""
 
-    @llm.function_tool
     async def memory_search(query: str) -> str:
-        """Search your long-term memory of this caller: what they said, did and decided in
-        earlier calls. Ask in plain words, for example "where do they live". Ends with the
-        sources it found, to read one whole with memory_read."""
         user = memory.user
         if user is None:
             return UNKNOWN
+        # Earlier calls only, as recall: the model has this one, and its own words back are noise.
+        search = user.search(
+            query[:1000], fast=memory.fast, scope="passages/memory", before=memory.since
+        )
         try:
-            found = await asyncio.wait_for(user.search(query[:1000], fast=memory.fast), _SECONDS)
+            found = await asyncio.wait_for(search, _SECONDS)
         except NotFoundError:
             return NOTHING
         except Exception:
             return UNAVAILABLE
         if found.failed:
             return UNAVAILABLE
-        lines = said(found.known, found.hits, query, agent=True, max_chars=memory.max_chars)
+        hits = [*found.hits, *memory.recent]  # the last calls too: a search by words misses much
+        lines = said(memory.known, hits, query, agent=True, max_chars=memory.max_chars)
         if not lines:
             return NOTHING
-        sources = "\n".join(f"- {hit.path}" for hit in found.hits if hit.path)
+        sources = "\n".join(f"- {path}" for path in dict.fromkeys(h.path for h in hits if h.path))
         return "\n".join(f"- {line}" for line in lines) + (
             f"\n\nSources:\n{sources}" * bool(sources)
         )
@@ -110,7 +134,8 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
             memory.note(note)  # its id makes a second landing of the first attempt a no-op
         return "Saved."
 
-    return [memory_search, memory_read, memory_add] if write else [memory_search, memory_read]
+    search = llm.function_tool(memory_search, description=_SEARCH if write else _SEARCH_FURTHER)
+    return [search, memory_read, memory_add] if write else [search, memory_read]
 
 
 def _note(text: str, session: str) -> Item:

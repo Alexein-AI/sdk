@@ -41,7 +41,7 @@ def shown(chat_ctx: llm.ChatContext) -> list[str]:
     """The lines recall put in front of the model this turn."""
     for message in chat_ctx.messages():
         text = message.text_content or ""
-        if "<memory>" in text:
+        if message.role == "assistant" and "<memory>" in text:
             inside = text.split("<memory>\n", 1)[1].split("\n</memory>", 1)[0]
             return [line.removeprefix("- ") for line in inside.splitlines() if line.strip()]
     return []

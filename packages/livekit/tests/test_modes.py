@@ -46,10 +46,29 @@ async def test_auto_recalls_what_was_said_and_lends_only_read_tools() -> None:
         await session.start(agent)
         await session.run(user_input="What is my locker code at the gym?")
         assert await memory.flush(5) == 0
-    shown = next(t for _, t in fake.calls[-1] if "<memory>" in t)
+    shown = next(t for r, t in fake.calls[-1] if r == "assistant" and "<memory>" in t)
     assert "2 Oct 2026 18:02, they said: My locker code at the Alfama gym is 4417." in shown
     assert "2 Oct 2026 18:02, you said: Got it, your locker code is 4417." in shown
     assert [role for role, _ in service.texts()] == ["user", "assistant"]
+    await memory.aclose()
+
+
+async def test_the_last_call_is_recalled_even_where_words_do_not_match() -> None:
+    # "suggest a dinner" shares no word with "I'm vegetarian": a search by words finds nothing,
+    # and the call before this one says it.
+    diet = (
+        "Context: messages (memory), 2 Oct 2026. user and assistant, in “diet”. Turns 1-2. "
+        "**user** 19:00 · By the way, I'm vegetarian. **assistant** 19:00 · Noted!"
+    )
+    service = MemoryService(recent=[diet])
+    memory, fake = _memory(service), FakeLLM()
+    async with AgentSession(llm=fake) as session:
+        await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+        await session.run(user_input="Can you suggest a dinner for me tonight?")
+    shown = next(t for r, t in fake.calls[-1] if r == "assistant" and "<memory>" in t)
+    assert "they said: By the way, I'm vegetarian." in shown
+    # Once for the call, and earlier calls only: this call's own words are not handed back.
+    assert len(service.latests) == 1 and service.latests[0]["before"] == memory.since
     await memory.aclose()
 
 
@@ -59,7 +78,7 @@ async def test_auto_can_leave_out_the_agents_own_words() -> None:
     async with AgentSession(llm=fake) as session:
         await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
         await session.run(user_input="What is my locker code at the gym?")
-    shown = next(t for _, t in fake.calls[-1] if "<memory>" in t)
+    shown = next(t for r, t in fake.calls[-1] if r == "assistant" and "<memory>" in t)
     assert "they said: My locker code" in shown and "Got it" not in shown
     await memory.aclose()
 
@@ -74,7 +93,9 @@ async def test_tools_does_nothing_by_itself() -> None:
         await session.start(agent)
         await session.run(user_input="What is my locker code at the gym?")
         assert await memory.flush(5) == 0
-    assert service.searches == [] and service.added == []  # no recall, no turn saved
+    # No recall and no turn saved: only the one look, at bind, at what is known about them.
+    assert [s["query"] for s in service.searches] == ["What should I know about this person?"]
+    assert service.added == []
     assert not any("<memory>" in t for _, t in fake.calls[-1])
     await memory.aclose()
 

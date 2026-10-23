@@ -35,10 +35,9 @@ class TwinMemoryAgent(Agent):
     ) -> None:
         if memory_tools:
             tools = [*(tools or []), *memory.tools()]
+            instructions = f"{instructions}\n\n{memory.guide}"
         elif memory.mode == "tools":
             raise ValueError('memory_tools=False leaves a mode="tools" memory nothing to do')
-        if memory.guide:
-            instructions = f"{instructions}\n\n{memory.guide}"
         super().__init__(instructions=instructions, tools=tools, **kwargs)
         self.memory = memory
 
