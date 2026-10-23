@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import re
 from collections.abc import Callable
 from datetime import datetime, timezone
 
@@ -35,13 +36,35 @@ _BATCH = 20
 # A write that takes longer than this is tried again; ids make the second attempt replace the first.
 _WRITE_SECONDS = 5.0
 _BACKOFF = (0.5, 1.0, 2.0, 4.0, 8.0)
+# A card number, said over the phone: 13 to 19 digits, spaced or dashed as people read them out.
+_CARD = re.compile(r"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)")
+
+
+def _luhn(digits: str) -> bool:
+    total = 0
+    for i, d in enumerate(reversed(digits)):
+        n = int(d) * (2 if i % 2 else 1)
+        total += n - 9 if n > 9 else n
+    return total % 10 == 0
+
+
+def masked(text: str) -> str:
+    """`text` with every card number in it - its checksum holds, so an order number or a phone
+    number does not - as "[card number]". Before any `redact` of yours, in both modes: a model told
+    never to save one saved one (tools mode, gpt-4.1-mini), and a transcript keeps what was said."""
+
+    def card(found: re.Match[str]) -> str:
+        digits = re.sub(r"\D", "", found.group())
+        return "[card number]" if _luhn(digits) else found.group()
+
+    return _CARD.sub(card, text)
 
 
 def item(
     message: llm.ChatMessage, *, session: str, room: str | None, redact: Redact | None = None
 ) -> Item | None:
     """`message` as an item of the call `session`; None for what is not a turn worth keeping."""
-    text = (message.text_content or "").strip()
+    text = masked((message.text_content or "").strip())
     if message.role not in ("user", "assistant") or not text or MARK in message.extra:
         return None
     if redact is not None:

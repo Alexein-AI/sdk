@@ -51,7 +51,8 @@ _ABOUT = "What should I know about this person?"
 # The last calls' passages, newest first, shown after what the search matched: a search by words
 # cannot tie "suggest a dinner" to "I'm vegetarian", nor see that an appointment moved, but the
 # call before this one usually holds both. Fetched once a call, so no turn waits for it.
-_RECENT = 3
+# Six: a call is one passage, but in tools mode each fact the model saved is a passage of its own.
+_RECENT = 6
 
 # The marker on what recall adds to a prompt, so capture never saves it as something said.
 MARK = "twinmemory"

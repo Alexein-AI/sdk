@@ -151,6 +151,22 @@ async def test_a_fact_memory_is_too_slow_for_is_saved_behind_the_reply() -> None
     await memory.aclose()
 
 
+async def test_a_card_number_never_reaches_memory_in_either_mode() -> None:
+    for mode in ("auto", "tools"):
+        service = MemoryService()
+        memory = _memory(service, mode=mode)
+        fake = _tool_then_text("memory_add", '{"fact": "My card number is 4111 1111 1111 1111"}')
+        async with AgentSession(llm=fake if mode == "tools" else FakeLLM()) as session:
+            await session.start(TwinMemoryAgent(memory, instructions="x"))
+            await session.run(
+                user_input="My card number is 4111 1111 1111 1111, window seat please."
+            )
+            assert await memory.flush(5) == 0
+        saved = " ".join(i["text"] for i in service.added)
+        assert "4111" not in saved and "[card number]" in saved, (mode, saved)
+        await memory.aclose()
+
+
 def test_a_mode_is_one_of_two_and_tools_mode_needs_its_tools() -> None:
     with pytest.raises(ValueError, match="auto"):
         TwinMemory("dana", mode="always")  # pyright: ignore[reportArgumentType]

@@ -231,6 +231,10 @@ class TwinMemory:
         when memory is down."""
         return _tools.tools(self, write=self.mode == "tools")
 
+    def redacted(self, role: str, text: str) -> str:
+        """`text` as your `redact` lets it be saved; empty for nothing."""
+        return (self._redact(role, text) or "") if self._redact is not None else text
+
     def note(self, fact: Item) -> None:
         """Queue `fact` to be saved, after the turns before it."""
         self._writer.put(fact)

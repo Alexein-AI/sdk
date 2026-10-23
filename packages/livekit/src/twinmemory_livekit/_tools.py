@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from livekit.agents import llm
 from twinmemory import Item, NotFoundError, TwinMemoryError
 
+from twinmemory_livekit._capture import masked
 from twinmemory_livekit._lines import said
 
 if TYPE_CHECKING:
@@ -50,7 +51,8 @@ GUIDE = (
     "or preferences, what was said before - call memory_search first. Whenever they tell you "
     "something new - about themselves (a preference, a fact, a plan, a name, a date, a number), or "
     "the details of what they ask you to do (a booking, an order, an appointment: what, when, for "
-    "whom, its number) - call memory_add on your own, without being asked and without saying so, "
+    "how many, its number), saved as soon as they ask, before it is confirmed - call memory_add "
+    "on your own, without being asked and without saying so, "
     "one fact per call, in their words. When something they told you before changes, save the new "
     "value. Never save passwords, card numbers or other secrets."
 )
@@ -119,7 +121,7 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
         user = memory.user
         if user is None:
             return UNKNOWN
-        text = " ".join(fact.split())[:_NOTE_CHARS]
+        text = memory.redacted("user", masked(" ".join(fact.split())))[:_NOTE_CHARS]
         if not text:
             return "There was nothing to save."
         note = _note(text, memory.session_id)

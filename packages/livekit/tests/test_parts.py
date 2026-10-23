@@ -12,6 +12,7 @@ from livekit.agents import llm
 from twinmemory import Hit
 
 from twinmemory_livekit import account_id
+from twinmemory_livekit._capture import masked
 from twinmemory_livekit._identity import from_metadata, from_participant
 from twinmemory_livekit._lines import said
 from twinmemory_livekit._recall import place, question, wrap
@@ -208,3 +209,12 @@ def test_memory_goes_just_before_the_users_words_and_only_once() -> None:
         ("assistant", "MEM"),
         ("user", "Where do I live?"),
     ]
+
+
+def test_a_card_number_is_masked_and_other_numbers_are_not() -> None:
+    said_ = "Card 4111 1111 1111 1111, order A-7781, call me on +1 415 555 0132, code 4417."
+    assert masked(said_) == (
+        "Card [card number], order A-7781, call me on +1 415 555 0132, code 4417."
+    )
+    assert masked("5555-5555-5555-4444 and 378282246310005") == "[card number] and [card number]"
+    assert masked("1234 5678 9012 3456") == "1234 5678 9012 3456"  # not a card: no checksum
