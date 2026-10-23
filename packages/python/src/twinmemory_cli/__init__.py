@@ -89,6 +89,7 @@ def _parser() -> argparse.ArgumentParser:
 def _options(args: argparse.Namespace) -> Options:
     parts = ("nodes",) if args.nodes_only else ("tools",) if args.tools_only else PARTS
     return Options(
+        framework=args.framework,
         directory=getattr(args, "dir", None),
         filename=getattr(args, "file", "memory.py"),
         graph=getattr(args, "graph", None),
@@ -116,7 +117,7 @@ def main(argv: Sequence[str] | None = None, console: Console | None = None) -> i
             console.fail(f"no template for {args.framework!r}; there is: langgraph")
             return 2
         return creating.create(args.name, cwd, args.model, _options(args), console)
-    return init(args.framework, cwd, _options(args), console)
+    return init(cwd, _options(args), console)
 
 
 if __name__ == "__main__":

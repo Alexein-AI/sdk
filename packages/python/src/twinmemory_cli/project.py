@@ -1,5 +1,5 @@
 """What the CLI finds out about the project it is run in: where its root is, which graphs it
-has, where generated code should go, whether it uses LangGraph, which versions are installed,
+has, where generated code should go, whether it uses a framework, which versions are installed,
 and how it adds a dependency. It only reads; the commands do the writing.
 
 Not a general project detector: the checks are the few files that decide those answers, in the
@@ -114,18 +114,22 @@ def target_dir(root: Path, graph: Path | None = None) -> Path:
 
 # Directories that hold other people's code, never the project's own.
 _SKIPPED = {".venv", "venv", "env", ".git", "node_modules", "site-packages", "__pycache__", ".tox"}
-_USES = re.compile(r"^\s*(from|import)\s+langgraph\b", re.M)
+# What each framework's package is imported as.
+_IMPORTED_AS = {"langgraph": "langgraph"}
 
 
-def uses_langgraph(root: Path, limit: int = 2000) -> bool:
-    """Whether the project depends on LangGraph or imports it anywhere of its own."""
-    if declares(root, "langgraph") or (root / "langgraph.json").exists():
+def uses(root: Path, framework: str, limit: int = 2000) -> bool:
+    """Whether the project depends on the framework or imports it anywhere of its own."""
+    if declares(root, framework):
         return True
+    if framework == "langgraph" and (root / "langgraph.json").exists():
+        return True
+    imports = re.compile(rf"^\s*(from|import)\s+{_IMPORTED_AS[framework]}\b", re.M)
     for n, path in enumerate(sources(root)):
         if n >= limit:
             break
         try:
-            if _USES.search(path.read_text(errors="ignore")):
+            if imports.search(path.read_text(errors="ignore")):
                 return True
         except OSError:
             continue

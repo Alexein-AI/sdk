@@ -67,7 +67,8 @@ class Project:
     ) -> tuple[int, Console]:
         console = console or Console(out=lambda _: None)
         options.setdefault("skip_key", True)
-        code = init(framework, cwd or self.root, Options(run=self._run, **options), console)
+        told = Options(framework=framework, run=self._run, **options)
+        code = init(cwd or self.root, told, console)
         return code, console
 
     def text(self, path: str) -> str:

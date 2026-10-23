@@ -1,8 +1,7 @@
-"""`twinmemory-cli init langgraph`: write memory into a LangGraph project as code its developer
-owns.
+"""`twinmemory-cli init <framework>`: write memory into a project as code its developer owns.
 
 The steps, in order, each of which can stop the command before anything is written: find the
-project, make sure it is a LangGraph one (or that adding LangGraph is wanted), make sure what is
+project, make sure it uses the framework (or that adding it is wanted), make sure what is
 installed is new enough, and pick the graph the file goes beside. Then: write the file, add the
 packages it imports, and set up the key - which can be skipped, and added later.
 """
@@ -19,9 +18,14 @@ from twinmemory_cli._version import __version__
 from twinmemory_cli.render import render
 from twinmemory_cli.ui import Console
 
-# What the written file needs, at least: `Runtime`, `context_schema` and `ToolRuntime` are
-# LangGraph 1 and LangChain 1, and `fail_open` and `integration` are this package's 0.2.
-MINIMUMS = {"twinmemory": "0.2", "langgraph": "1.0", "langchain": "1.0"}
+# What each framework's file needs, at least. Every one needs `fail_open` and `integration`,
+# this package's 0.2. LangGraph's: `Runtime`, `context_schema` and `ToolRuntime` are LangGraph 1
+# and LangChain 1.
+MINIMUMS = {
+    "langgraph": {"twinmemory": "0.2", "langgraph": "1.0", "langchain": "1.0"},
+}
+# How each is named to the developer.
+NAMES = {"langgraph": "LangGraph"}
 PARTS = ("nodes", "tools")
 
 Runner = Callable[[Sequence[str], Path], int]
@@ -36,6 +40,7 @@ class Options:
     """Everything `init` can be told. `parts` are what the file holds; `sdk` installs this
     package from somewhere other than PyPI (a path, while it is not published)."""
 
+    framework: str = "langgraph"
     directory: Path | None = None
     filename: str = "memory.py"
     graph: str | None = None
@@ -60,10 +65,10 @@ class Stop(Exception):
         self.code = code
 
 
-def init(framework: str, cwd: Path, options: Options, console: Console) -> int:
+def init(cwd: Path, options: Options, console: Console) -> int:
     """Run `init`; the exit code: 0 done, 1 stopped or the install failed, 2 a bad command."""
     try:
-        root, target = _prepare(framework, cwd, options, console)
+        root, target = _prepare(cwd, options, console)
     except Stop as stop:
         console.fail(str(stop))
         return stop.code
@@ -79,10 +84,11 @@ def init(framework: str, cwd: Path, options: Options, console: Console) -> int:
     return 0 if installed else 1
 
 
-def _prepare(framework: str, cwd: Path, options: Options, console: Console) -> tuple[Path, Path]:
+def _prepare(cwd: Path, options: Options, console: Console) -> tuple[Path, Path]:
     """The project's root and where the file goes, or `Stop` with why not."""
-    if framework != "langgraph":
-        raise Stop(f"no template for {framework!r}; there is: langgraph", code=2)
+    framework = options.framework
+    if framework not in MINIMUMS:
+        raise Stop(f"no template for {framework!r}; there is: {', '.join(MINIMUMS)}", code=2)
     if options.filename and not options.filename.endswith(".py"):
         raise Stop(f"--file must name a Python file: {options.filename!r}", code=2)
     root = project.find_root(cwd)
@@ -90,11 +96,11 @@ def _prepare(framework: str, cwd: Path, options: Options, console: Console) -> t
         raise Stop(
             "no Python project here (no pyproject.toml, requirements.txt or langgraph.json at "
             "or above this directory). Run it from your project, or start one with "
-            "`twinmemory-cli create langgraph <name>`."
+            f"`twinmemory-cli create {framework} <name>`."
         )
     console.step("found", f"{project.installer(root, ['twinmemory']).name} project at {root}")
-    _require_langgraph(root, console)
-    _require_versions(root)
+    _require_framework(root, framework, console)
+    _require_versions(root, framework)
     target = (
         (cwd / options.directory).resolve()
         if options.directory
@@ -106,24 +112,25 @@ def _prepare(framework: str, cwd: Path, options: Options, console: Console) -> t
     return root, target
 
 
-def _require_langgraph(root: Path, console: Console) -> None:
-    if project.uses_langgraph(root):
+def _require_framework(root: Path, framework: str, console: Console) -> None:
+    if project.uses(root, framework):
         return
-    console.step("note", "this project does not use LangGraph yet")
-    if not console.confirm("Add LangGraph to it and go on?"):
+    name = NAMES[framework]
+    console.step("note", f"this project does not use {name} yet")
+    if not console.confirm(f"Add {name} to it and go on?"):
         raise Stop(
-            "not a LangGraph project; run again with --yes to add LangGraph to it, or start a "
-            "new one with `twinmemory-cli create langgraph <name>`. Nothing changed."
+            f"not a {name} project; run again with --yes to add {name} to it, or start a "
+            f"new one with `twinmemory-cli create {framework} <name>`. Nothing changed."
         )
 
 
-def _require_versions(root: Path) -> None:
+def _require_versions(root: Path, framework: str) -> None:
     site = project.environment(root)
     if site is None:
         return
     stale = [
         (package, version, minimum)
-        for package, minimum in MINIMUMS.items()
+        for package, minimum in MINIMUMS[framework].items()
         if package != "twinmemory"
         and (version := project.installed(site, package))
         and project.older(version, minimum)
@@ -197,9 +204,10 @@ def write(target: Path, options: Options) -> Path:
 
 def requirements(root: Path, options: Options) -> list[str]:
     """What still has to be added for the file to import, each with its minimum."""
-    missing = [p for p in MINIMUMS if not project.declares(root, p)]
+    minimums = MINIMUMS[options.framework]
+    missing = [p for p in minimums if not project.declares(root, p)]
     return [
-        options.sdk if p == "twinmemory" and options.sdk else f"{p}>={MINIMUMS[p]}" for p in missing
+        options.sdk if p == "twinmemory" and options.sdk else f"{p}>={minimums[p]}" for p in missing
     ]
 
 
@@ -207,7 +215,7 @@ def install(root: Path, options: Options, console: Console) -> bool:
     """Add what the project does not depend on yet, with its own tool; True unless that failed."""
     packages = requirements(root, options)
     if not packages:
-        console.step("kept", f"{', '.join(MINIMUMS)}: already dependencies")
+        console.step("kept", f"{', '.join(MINIMUMS[options.framework])}: already dependencies")
         return True
     found = project.installer(root, packages)
     if found.requirements is not None:
