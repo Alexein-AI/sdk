@@ -288,6 +288,32 @@ def test_the_created_graph_recalls_searches_and_remembers(created: Any, asynchro
     assert routes(recorded) == ["search", "search", "add"]  # recall, the tool, remember
 
 
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+def test_the_chat_ends_quietly_when_its_input_does(
+    created: Any,
+    asynchronous: bool,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Ctrl-D, or piped input with no empty line at the end, ends the conversation."""
+    import asyncio
+    import io
+
+    created(
+        {"asynchronous": asynchronous},
+        [AIMessage("Lisbon.", id="ai-1"), AIMessage("Dana.", id="ai-2")],
+    )
+    chat = importlib.import_module("my_agent.chat")
+    monkeypatch.setattr(sys, "argv", ["chat", "--user", "dana"])
+    monkeypatch.setattr(sys, "stdin", io.StringIO("Where do I live?\nWho am I?\n"))
+    if asynchronous:
+        asyncio.run(chat.main())
+    else:
+        chat.main()
+    out = capsys.readouterr().out
+    assert "agent> Lisbon." in out and "agent> Dana." in out
+
+
 def test_the_nodes_only_graph(created: Any) -> None:
     graph, recorded = created({"parts": ("nodes",)}, [AIMessage("Lisbon.", id="ai-1")])
     run(graph, False)

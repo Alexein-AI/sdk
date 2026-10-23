@@ -32,9 +32,16 @@ async def main() -> None:
     user = parser.parse_args().user
     thread = uuid.uuid4().hex
     config = {"configurable": {"thread_id": thread}}
-    print(f"Talking as {user}. An empty line ends the conversation.")
+    print(f"Talking as {user}. An empty line, or Ctrl-D, ends the conversation.")
     messages: list = []
-    while line := input("you> ").strip():
+    while True:
+        try:
+            line = input("you> ").strip()
+        except EOFError:  # Ctrl-D, or the end of piped input
+            print()
+            break
+        if not line:
+            break
         messages.append(HumanMessage(line))
         inputs = {"messages": messages}
 # >>> sync
