@@ -14,22 +14,25 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from twinmemory_cli import env, project
+from twinmemory_cli import crews, env, project
 from twinmemory_cli._version import __version__
 from twinmemory_cli.render import render
+from twinmemory_cli.stop import Stop
 from twinmemory_cli.ui import Console
 from twinmemory_cli.wiring import next_steps
 
 # What each framework's file needs, at least. Every one needs `fail_open` and `integration`,
 # this package's 0.2. LangGraph's: `Runtime`, `context_schema` and `ToolRuntime` are LangGraph 1
 # and LangChain 1. The OpenAI Agents SDK's: `call_model_input_filter` is 0.3, and the file was
-# run on 0.3.0 as well as the newest.
+# run on 0.3.0 as well as the newest. CrewAI's: nothing beyond CrewAI, which the crew has
+# already and `crews.py` checks.
 MINIMUMS = {
     "langgraph": {"twinmemory": "0.2", "langgraph": "1.0", "langchain": "1.0"},
     "openai-agents": {"twinmemory": "0.2", "openai-agents": "0.3"},
+    "crewai": {"twinmemory": "0.2"},
 }
 # How each is named to the developer.
-NAMES = {"langgraph": "LangGraph", "openai-agents": "the OpenAI Agents SDK"}
+NAMES = {"langgraph": "LangGraph", "openai-agents": "the OpenAI Agents SDK", "crewai": "CrewAI"}
 PARTS = ("nodes", "tools")
 
 Runner = Callable[[Sequence[str], Path], int]
@@ -61,14 +64,6 @@ class Options:
     run: Runner = field(default=run_command)
 
 
-class Stop(Exception):
-    """Why `init` stopped before writing anything, with the exit code to stop with."""
-
-    def __init__(self, why: str, code: int = 1) -> None:
-        super().__init__(why)
-        self.code = code
-
-
 def init(cwd: Path, options: Options, console: Console) -> int:
     """Run `init`; the exit code: 0 done, 1 stopped or the install failed, 2 a bad command."""
     try:
@@ -84,7 +79,11 @@ def init(cwd: Path, options: Options, console: Console) -> int:
     installed = install(root, options, console)
     setup_key(root, options, console)
     console.line()
-    console.line(next_steps(_module(written, root), options))
+    module = _module(written, root)
+    if options.framework == "crewai":
+        console.line(crews.next_steps(crews.crew(root), module, options))
+    else:
+        console.line(next_steps(module, options))
     return 0 if installed else 1
 
 
@@ -93,7 +92,7 @@ def _prepare(cwd: Path, options: Options, console: Console) -> tuple[Path, Path]
     framework = options.framework
     if framework not in MINIMUMS:
         raise Stop(f"no template for {framework!r}; there is: {', '.join(MINIMUMS)}", code=2)
-    if framework != "langgraph" and (options.graph or options.asynchronous):
+    if framework == "openai-agents" and (options.graph or options.asynchronous):
         flag = "--graph" if options.graph else "--async"
         raise Stop(f"{flag} is for langgraph; the {framework} file is async already", code=2)
     if options.filename and not options.filename.endswith(".py"):
@@ -106,6 +105,8 @@ def _prepare(cwd: Path, options: Options, console: Console) -> tuple[Path, Path]
             f"`twinmemory-cli create {framework} <name>`."
         )
     console.step("found", f"{project.installer(root, ['twinmemory']).name} project at {root}")
+    if framework == "crewai":
+        return root, _crew_dir(root, cwd, options, console)
     _require_framework(root, framework, console)
     _require_versions(root, framework)
     if options.directory:
@@ -118,6 +119,18 @@ def _prepare(cwd: Path, options: Options, console: Console) -> tuple[Path, Path]
     if written.exists() and not options.force:
         raise Stop(f"{_relative(written, root)} exists; --force replaces it. Nothing changed.")
     return root, target
+
+
+def _crew_dir(root: Path, cwd: Path, options: Options, console: Console) -> Path:
+    """Where a CrewAI crew's file goes - beside its crew - once `crews.py` has checked it."""
+    options.parts = crews.parts(options)
+    found = crews.crew(root)
+    crews.require_version(root, console)
+    target = (cwd / options.directory).resolve() if options.directory else found.home
+    written = target / options.filename
+    if written.exists() and not options.force:
+        raise Stop(f"{_relative(written, root)} exists; --force replaces it. Nothing changed.")
+    return target
 
 
 def _require_framework(root: Path, framework: str, console: Console) -> None:
@@ -224,8 +237,8 @@ def planned(root: Path, packages: list[str], options: Options, console: Console)
 
 
 def write(target: Path, options: Options) -> Path:
-    if options.framework == "openai-agents":
-        template = "openai_agents/memory.py.tmpl"
+    if options.framework in ("openai-agents", "crewai"):
+        template = f"{options.framework.replace('-', '_')}/memory.py.tmpl"
     elif options.asynchronous:
         template = "langgraph/memory_async.py.tmpl"
     else:
@@ -305,7 +318,9 @@ def _check_key(key: str, base_url: str | None, options: Options, console: Consol
         console.step("warning", f"the key did not check out: {checked.detail}")
         return
     console.step("checked", f"key: {checked.detail}")
-    if checked.writes is False and "nodes" in options.parts:
+    if checked.writes is False and options.framework == "crewai":
+        console.step("warning", "this key only reads: saving to memory needs one that writes")
+    elif checked.writes is False and "nodes" in options.parts:
         console.step("warning", "this key only reads: remember and memory_add need one that writes")
 
 

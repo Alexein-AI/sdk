@@ -228,6 +228,56 @@ describe("the created graph, run", () => {
     expect(sent).toEqual(["search", "search", "add"]);
   });
 
+  it("chat: piped input, or Ctrl-D, ends the conversation after every line is answered", async () => {
+    const { root } = await made({ inside: GENERATED });
+    replies.splice(
+      0,
+      replies.length,
+      new AIMessage({ content: "Lisbon.", id: "ai-1" }),
+      new AIMessage({ content: "Dana.", id: "ai-2" }),
+    );
+    const memoryModule = await import(pathToFileURL(join(root, "src/memory.ts")).href);
+    memoryModule.useMemory(
+      new Memory({
+        apiKey: "tm_test",
+        fetch: async () => Response.json({ items: [], queued: 1, pending: 1 }, { status: 202 }),
+      }),
+    );
+    const { Readable, Writable } = await import("node:stream");
+    vi.doMock("node:process", async (original) => {
+      const actual = await original<typeof import("node:process")>();
+      return {
+        ...actual,
+        default: actual,
+        stdin: Readable.from(["Where do I live?\nWho am I?\n"]),
+        stdout: new Writable({ write: (_chunk, _encoding, done) => done() }),
+      };
+    });
+    vi.doMock("dotenv/config", () => ({})); // the created project installs it; this one need not
+    const logged = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      await import(pathToFileURL(join(root, "src/chat.ts")).href);
+      const lines = logged.mock.calls.map((call) => String(call[0]));
+      expect(lines).toContain("agent> Lisbon.");
+      expect(lines).toContain("agent> Dana.");
+    } finally {
+      logged.mockRestore();
+      vi.doUnmock("node:process");
+      vi.doUnmock("dotenv/config");
+    }
+  });
+
+  it("a run with no user says how to give one", async () => {
+    const { root } = await made({ inside: GENERATED });
+    const { graph } = await import(pathToFileURL(join(root, "src/graph.ts")).href);
+    await expect(
+      graph.invoke(
+        { messages: [new HumanMessage("Where do I live?")] },
+        { configurable: { thread_id: "t-1" } },
+      ),
+    ).rejects.toThrow('context: { user_id: "..." }');
+  });
+
   it("nodes-only: recalls and remembers", async () => {
     const { sent } = await run({ parts: ["nodes"] }, [
       new AIMessage({ content: "Lisbon.", id: "ai-1" }),

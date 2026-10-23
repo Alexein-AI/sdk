@@ -1,3 +1,5 @@
+# pyright: reportMissingImports=false
+# CrewAI and the OpenAI Agents SDK are never installed together (see pyproject.toml).
 """The `memory.py` that `twinmemory-cli init openai-agents` writes, run inside the OpenAI Agents
 SDK's own `Runner` - with its scripted model standing in for OpenAI - against a recorded memory
 API."""

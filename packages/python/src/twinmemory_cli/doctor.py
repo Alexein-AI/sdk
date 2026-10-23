@@ -8,9 +8,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from twinmemory_cli import env, project
+from twinmemory_cli import crews, env, project
 from twinmemory_cli._version import __version__
-from twinmemory_cli.scaffold import MINIMUMS
+from twinmemory_cli.scaffold import MINIMUMS, NAMES
 from twinmemory_cli.ui import Console
 
 _GENERATED = re.compile(
@@ -25,8 +25,14 @@ def doctor(cwd: Path, console: Console) -> int:
         console.fail("no Python project here; run it from your project.")
         return 1
     console.line(f"twinmemory-cli {__version__} - checking {root}")
-    written = _written(root, console)
-    minimums = _minimums_for(root, [framework for _, framework in written])
+    found = project.crew(root)
+    if found is not None and found.kind == "flow":
+        console.fail("this is a CrewAI Flow; Flows are not supported yet.")
+        return 1
+    used = (f for f in ("langgraph", "openai-agents") if project.uses(root, f))
+    framework = "crewai" if found is not None else next(used, "langgraph")
+    written = _written(root, framework, console)
+    minimums = _minimums_for({f for _, f in written} or {framework})
     results = [bool(written), _dependencies(root, minimums, console)]
     results.append(_versions(root, minimums, console))
     results.append(_key(root, console, writes=any(_saves(path) for path, _ in written)))
@@ -43,33 +49,42 @@ def _mark(console: Console, ok: bool | None, what: str, fix: str = "") -> bool:
     return ok is not False
 
 
-def _written(root: Path, console: Console) -> list[tuple[Path, str]]:
-    """The memory files `init` wrote here, each with its framework, and marked; none is a
-    failure."""
+def _written(root: Path, framework: str, console: Console) -> list[tuple[Path, str]]:
+    """The memory files `init` wrote here, each marked with what it is for; none is a failure."""
     found = [
         (path, match.group(1), match.group(2))
         for path in project.sources(root)
         if (match := _GENERATED.search(path.read_text(errors="ignore")[:2000]))
     ]
     if not found:
-        commands = " or ".join(f"`twinmemory-cli init {f}`" for f in MINIMUMS)
-        _mark(console, False, "no memory file", f"run {commands}")
-    for path, _, version in found:
-        _mark(console, True, f"memory file {path.relative_to(root)} (written by {version})")
-    return [(path, framework) for path, framework, _ in found if framework in MINIMUMS]
+        _mark(console, False, "no memory file", f"run `twinmemory-cli init {framework}`")
+    found = [(path, kind, version) for path, kind, version in found if kind in MINIMUMS]
+    for path, kind, version in found:
+        where = path.relative_to(root)
+        _mark(console, True, f"memory file {where} (written by {version}, for {NAMES[kind]})")
+    return [(path, kind) for path, kind, _ in found]
 
 
-def _minimums_for(root: Path, frameworks: list[str]) -> dict[str, str]:
-    """What the project needs: for the frameworks its memory files are for, else for those it
-    uses, else for LangGraph's."""
-    chosen = frameworks or [f for f in MINIMUMS if project.uses(root, f)] or ["langgraph"]
-    return {p: v for f in dict.fromkeys(chosen) for p, v in MINIMUMS[f].items()}
+def _minimums_for(frameworks: set[str]) -> dict[str, str]:
+    """What the memory files here need installed: each framework's, together, and CrewAI
+    itself for a crew's."""
+    needed = {p: v for f in sorted(frameworks) for p, v in MINIMUMS[f].items()}
+    if "crewai" in frameworks:
+        needed["crewai"] = crews.CREWAI_MINIMUM
+    return needed
 
 
 def _saves(path: Path) -> bool:
-    """Whether a memory file writes to memory: `remember`, or the `memory_add` tool."""
+    """Whether a memory file writes to memory: LangGraph's `remember` or `memory_add` tool, or
+    CrewAI's `TwinMemory` or Save to memory tool."""
     text = path.read_text(errors="ignore")
-    return "def remember(" in text or "def memory_add(" in text
+    marks = (
+        "def remember(",
+        "def memory_add(",
+        "class TwinMemory(",
+        'name: str = "Save to memory"',
+    )
+    return any(mark in text for mark in marks)
 
 
 def _dependencies(root: Path, minimums: dict[str, str], console: Console) -> bool:
@@ -107,6 +122,15 @@ def _versions(root: Path, minimums: dict[str, str], console: Console) -> bool:
                     f"upgrade it to >={minimum}",
                 )
                 and ok
+            )
+        elif package == "crewai" and crews.newer_than_tested(version):
+            tested = crews.CREWAI_TESTED
+            _mark(
+                console,
+                None,
+                f"crewai {version} is newer than this release was tested with ({tested}); "
+                "it should work - if tasks stop recalling or saving memory, "
+                "look for warnings on the `twinmemory` logger",
             )
         else:
             _mark(console, True, f"{package} {version}")

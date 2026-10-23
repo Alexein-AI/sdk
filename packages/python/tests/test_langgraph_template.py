@@ -4,6 +4,7 @@ against a recorded memory API."""
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -134,6 +135,25 @@ def test_the_user_id_can_come_from_config_and_must_come_from_somewhere(
 
     with pytest.raises(ValueError, match="whose memory"):
         module.recall(state, no_context, {"configurable": {}})
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+def test_a_run_with_no_user_says_so_before_anything_else(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, asynchronous: bool
+) -> None:
+    """Even with no key set yet: whose memory is the first thing a run must say."""
+    import asyncio
+
+    module, _ = load(tmp_path, monkeypatch, answer, asynchronous=asynchronous)
+    monkeypatch.undo()  # the file's own client, which needs a key
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    monkeypatch.delenv("TWIN_MEMORY_API_KEY", raising=False)
+    state = {"messages": [HumanMessage("hi")]}
+    no_context = type("R", (), {"context": None})()
+    with pytest.raises(ValueError, match="whose memory"):
+        result = module.recall(state, no_context, {"configurable": {}})
+        if asynchronous:
+            asyncio.run(result)
 
 
 def test_tool_calls_and_tool_results_are_not_saved(generated: tuple[ModuleType, Any]) -> None:

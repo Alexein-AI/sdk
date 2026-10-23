@@ -13,9 +13,9 @@ import os
 import re
 import shutil
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 # A directory holding any of these is a Python project's root.
 _MARKERS = ("pyproject.toml", "langgraph.json", "requirements.txt", "setup.py", "setup.cfg")
@@ -44,17 +44,19 @@ def find_root(start: Path) -> Path | None:
 
 @dataclass(frozen=True)
 class Pyproject:
-    """The two things read from `pyproject.toml`: the project's name, and which tools configure
-    themselves in it (`[tool.uv]`, `[tool.poetry]`, ...)."""
+    """What is read from `pyproject.toml`: the project's name, which tools configure themselves in
+    it (`[tool.uv]`, `[tool.poetry]`, ...), and CrewAI's own table, `[tool.crewai]`."""
 
     name: str
     tools: frozenset[str]
+    crewai: dict[str, str] = field(default_factory=dict[str, str])
 
 
 # Line by line rather than tomllib, which Python 3.10 does not have; these two shapes are all
 # that is read, and both are one line in any pyproject a tool writes.
 _TABLE = re.compile(r"^\[([A-Za-z0-9_.-]+)\]\s*$")
 _NAME = re.compile(r"""^name\s*=\s*["']([^"']+)["']""")
+_SETTING = re.compile(r"""^([A-Za-z_][\w-]*)\s*=\s*["']([^"']*)["']""")
 
 
 def pyproject(root: Path) -> Pyproject:
@@ -62,7 +64,7 @@ def pyproject(root: Path) -> Pyproject:
         lines = (root / "pyproject.toml").read_text().splitlines()
     except OSError:
         return Pyproject("", frozenset())
-    name, tools, table = "", set[str](), ""
+    name, tools, table, crewai = "", set[str](), "", dict[str, str]()
     for line in lines:
         header = _TABLE.match(line.strip())
         if header:
@@ -73,7 +75,53 @@ def pyproject(root: Path) -> Pyproject:
         named = _NAME.match(line.strip())
         if table == "project" and named and not name:
             name = named.group(1)
-    return Pyproject(name, frozenset(tools))
+        setting = _SETTING.match(line.strip())
+        if table == "tool.crewai" and setting:
+            crewai[setting.group(1)] = setting.group(2)
+    return Pyproject(name, frozenset(tools), crewai)
+
+
+@dataclass(frozen=True)
+class Crew:
+    """A CrewAI project: `classic` (a `@CrewBase` class in `src/<pkg>/crew.py`), `json` (a crew
+    defined in `crew.jsonc`), or a `flow`. `home` is where the memory file goes: beside `crew.py`,
+    beside the JSON definition, or the root for a flow."""
+
+    kind: Literal["classic", "json", "flow"]
+    home: Path
+
+
+_CREW_BASE = re.compile(r"^\s*@CrewBase\b", re.M)
+
+
+def crew(root: Path) -> Crew | None:
+    """The CrewAI crew at `root`, from `[tool.crewai]` and the files it names; None when the
+    project is not a CrewAI one."""
+    table = pyproject(root).crewai
+    if table.get("type") == "flow":
+        return Crew("flow", root)
+    if table.get("definition"):
+        return Crew("json", (root / table["definition"]).parent)
+    if table or declares(root, "crewai"):
+        home = _crew_package(root)
+        if home is not None:
+            return Crew("classic", home)
+    return None
+
+
+def _crew_package(root: Path) -> Path | None:
+    """The package whose `crew.py` holds a `@CrewBase` class: the project's own first, else the
+    only one under `src/`."""
+    name = pyproject(root).name.replace("-", "_")
+    candidates = [root / "src" / name] if name else []
+    candidates += sorted(p.parent for p in root.glob("src/*/crew.py"))
+    for home in dict.fromkeys(candidates):
+        try:
+            if _CREW_BASE.search((home / "crew.py").read_text(errors="ignore")):
+                return home
+        except OSError:
+            continue
+    return None
 
 
 def graphs(root: Path) -> dict[str, Path]:

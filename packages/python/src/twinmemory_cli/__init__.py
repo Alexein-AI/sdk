@@ -3,6 +3,7 @@ then on, readable and editable, and nothing in this package reaches back into it
 
     twinmemory-cli init langgraph            memory for a LangGraph project you have
     twinmemory-cli init openai-agents        ... or an OpenAI Agents SDK one
+    twinmemory-cli init crewai               ... or a CrewAI crew
     twinmemory-cli create <framework> X      a new project with memory wired in
     twinmemory-cli doctor                    whether a project is set up for memory
 
@@ -20,6 +21,7 @@ from pathlib import Path
 # The modules, not their functions: `create` and `doctor` are names of both, and binding the
 # function here would hide the module of the same name from `twinmemory_cli.create`.
 from twinmemory_cli import create as creating
+from twinmemory_cli import create_crewai
 from twinmemory_cli import doctor as checking
 from twinmemory_cli._version import __version__
 from twinmemory_cli.scaffold import MINIMUMS, PARTS, Options, init
@@ -66,7 +68,7 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     start = commands.add_parser("init", help="write memory into this project, as code you own")
-    start.add_argument("framework", help="langgraph or openai-agents")
+    start.add_argument("framework", help="langgraph, openai-agents or crewai")
     start.add_argument("--dir", type=Path, help="where to write the file (default: found)")
     start.add_argument("--file", default="memory.py", help="the file's name (default: memory.py)")
     start.add_argument("--graph", help="which graph in langgraph.json it is for (langgraph)")
@@ -74,13 +76,13 @@ def _parser() -> argparse.ArgumentParser:
     _setup_flags(start)
 
     new = commands.add_parser("create", help="a new project with memory wired in")
-    new.add_argument("framework", help="langgraph or openai-agents")
+    new.add_argument("framework", help="langgraph, openai-agents or crewai")
     new.add_argument("name", help="the project's directory and name")
     new.add_argument(
         "--model",
         help=(
-            f"the model: init_chat_model's name for it with langgraph (default: "
-            f"{creating.DEFAULT_MODEL}); with openai-agents, the SDK's (default: its own)"
+            f"the model, as the framework names it (LangGraph: {creating.DEFAULT_MODEL}; "
+            f"CrewAI: {create_crewai.DEFAULT_MODEL}; the OpenAI Agents SDK: its own default)"
         ),
     )
     _setup_flags(new)
@@ -119,6 +121,9 @@ def main(argv: Sequence[str] | None = None, console: Console | None = None) -> i
         if args.framework not in MINIMUMS:
             console.fail(f"no template for {args.framework!r}; there is: {', '.join(MINIMUMS)}")
             return 2
+        if args.framework == "crewai":
+            model = args.model or create_crewai.DEFAULT_MODEL
+            return create_crewai.create(args.name, cwd, model, _options(args), console)
         model = args.model or (creating.DEFAULT_MODEL if args.framework == "langgraph" else "")
         return creating.create(args.name, cwd, model, _options(args), console)
     return init(cwd, _options(args), console)

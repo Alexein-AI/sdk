@@ -379,7 +379,7 @@ def test_outside_a_project_nothing_is_written(project: Project) -> None:
 
 
 def test_an_unknown_framework_names_the_known_one(project: Project) -> None:
-    code, console = project.init(framework="crewai")
+    code, console = project.init(framework="autogen")
     assert code == 2 and "langgraph" in said(console)
 
 

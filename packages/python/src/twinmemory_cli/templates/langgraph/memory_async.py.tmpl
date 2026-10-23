@@ -136,7 +136,8 @@ def _user_id(context: Any, config: RunnableConfig | None) -> str:
 
 
 def _user(context: Any, config: RunnableConfig | None = None) -> AsyncUser:
-    return _memory().user(_user_id(context, config))
+    user_id = _user_id(context, config)  # first: a run with no user says so
+    return _memory().user(user_id)
 
 
 def _thread_id(config: RunnableConfig | None) -> str | None:

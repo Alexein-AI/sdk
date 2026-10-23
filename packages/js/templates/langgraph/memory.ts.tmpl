@@ -93,9 +93,11 @@ export const TIMEOUT = 10_000;
 
 /**
  * Whose memory a run reads. Pass it as the context schema of your graph, or add
- * `user_id: z.string()` to a context schema you already have.
+ * `user_id: z.string().optional()` to a context schema you already have. Optional so
+ * that a run without it reaches the check below, which says how to give one, instead
+ * of failing LangGraph's schema check; every run that reads or saves memory needs it.
  */
-export const MemoryContext = z.object({ user_id: z.string() });
+export const MemoryContext = z.object({ user_id: z.string().optional() });
 // >>> nodes
 
 /**
@@ -148,7 +150,8 @@ function userId(config: RunConfig | undefined): string {
 }
 
 function user(config: RunConfig | undefined): User {
-  return memory().user(userId(config));
+  const id = userId(config); // first: a run with no user says so, whatever else is missing
+  return memory().user(id);
 }
 
 function threadId(config: RunConfig | undefined): string | undefined {

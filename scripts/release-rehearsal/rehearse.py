@@ -401,6 +401,131 @@ def typescript(run: Run) -> None:
     )
 
 
+# ------------------------------------------------------------------------------------- crewai --
+
+STAND_PY = """
+import os
+os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
+os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+from crewai.llms.base_llm import BaseLLM
+
+
+SHOWN = []  # every prompt the model was shown
+
+
+class Stand(BaseLLM):
+    def call(self, messages, *args, **kwargs):
+        text = messages if isinstance(messages, str) else "\\n".join(str(m.get("content")) for m in messages)
+        SHOWN.append(text)
+        return "Final Answer: Noted."
+
+    def supports_function_calling(self):
+        return False
+"""
+
+CONVERSE_CREW_PY = """
+import sys, time, uuid
+from dotenv import load_dotenv
+
+load_dotenv(".env")
+from stand import SHOWN, Stand
+from trip_crew import crew as c, main, memory as m
+
+c.MODEL = Stand(model="stand-in")
+user = "rehearsal-crew-" + uuid.uuid4().hex[:6]
+main.ask(user, "I just moved to Lisbon for a job at Acme.")
+for _ in range(60):
+    try:
+        if m._memory().user(user).search("Lisbon Acme", fast=True).found:
+            break
+    except Exception:
+        pass
+    time.sleep(0.5)
+main.ask(user, "Where do I live these days, Lisbon or Porto?")
+print("user:", user)
+print("second run saw the first:", "moved to Lisbon" in SHOWN[-1])
+"""
+
+OUTAGE_CREW_PY = """
+import logging
+from dotenv import load_dotenv
+
+load_dotenv(".env", override=False)
+logging.basicConfig(level=logging.WARNING, format="log: %(name)s %(message)s")
+from stand import Stand
+from trip_crew import crew as c, main
+
+c.MODEL = Stand(model="stand-in")
+print("reply:", main.ask("rehearsal-outage", "Hi"))
+"""
+
+# Answers to `crewai create crew`'s questions for a JSON crew: one agent, one task, no memory of
+# CrewAI's own.
+JSON_CREW_ANSWERS = (
+    "Personal assistant\\nHelp the user\\nYou work for one person.\\n\\nn\\nn\\nn\\n"
+    "The user says: {question}\\nA short reply.\\nn\\nn\\n"
+)
+
+
+def crewai(run: Run) -> None:
+    key, url, read = run.args.key, run.args.base_url, run.args.read_key
+    cli = "uvx twinmemory-cli"
+    crewai_cli = "uvx --from 'crewai>=1.15,<1.16' crewai"
+    work = run.work / "crewai"
+    work.mkdir()
+    bot = work / "trip-crew"
+    run.step(
+        "C1",
+        "create crewai trip-crew",
+        "/docs/integrations/crewai#create",
+        f"{cli} create crewai trip-crew --key {key} --base-url {url}",
+        work,
+        contains=("ran      uv add", "checked  key: ", "reads and writes", "uv run run_crew --user dana"),
+        files=("trip-crew/src/trip_crew/memory.py", "trip-crew/src/trip_crew/crew.py", "trip-crew/.env"),
+    )
+    run.step("C2", "doctor in the new crew", "/docs/integrations/crewai#doctor", f"{cli} doctor", bot, contains=("for CrewAI", "✓ crewai 1.15", "reads and writes", "All good."))
+    (bot / "stand.py").write_text(STAND_PY)
+    (bot / "converse.py").write_text(CONVERSE_CREW_PY)
+    run.step("C3", "two runs: the second recalls the first", "/docs/integrations/crewai#what-it-writes", "uv run python converse.py", bot, contains=("second run saw the first: True",))
+
+    run.step("C4a", "a classic crew made by crewai create --classic", "/docs/integrations/crewai#what-init-does", f"{crewai_cli} create crew classic_crew --classic --skip-provider < /dev/null", work, contains=("created successfully",))
+    run.step(
+        "C4b",
+        "init crewai into the classic crew",
+        "/docs/integrations/crewai#what-init-does",
+        f"{cli} init crewai --key {key} --base-url {url}",
+        work / "classic_crew",
+        contains=("wrote    ./src/classic_crew/memory.py", "memory = TwinMemory()", "@before_kickoff", "checked  key: "),
+        files=("src/classic_crew/memory.py",),
+    )
+    run.step("C5a", "a JSON crew made by crewai create", "/docs/integrations/crewai#what-init-does", f"printf '{JSON_CREW_ANSWERS}' | {crewai_cli} create crew json_crew --skip-provider", work, contains=("created successfully",))
+    run.step(
+        "C5b",
+        "init crewai into the JSON crew",
+        "/docs/integrations/crewai#what-init-does",
+        f"{cli} init crewai --skip-key",
+        work / "json_crew",
+        contains=("wrote    ./memory.py", '"memory": {"python": "memory.twin_memory"}', '"before_kickoff_callbacks": [{"python": "memory.whose"}]'),
+        files=("memory.py",),
+    )
+    flow = work / "flow"
+    flow.mkdir()
+    (flow / "pyproject.toml").write_text('[project]\nname = "flow"\n\n[tool.crewai]\ntype = "flow"\n')
+    run.step("C6", "a Flow is refused", "/docs/integrations/crewai#what-init-does", f"{cli} init crewai --skip-key", flow, expect_code=1, contains=("Flows are not supported",))
+    if read:
+        run.step("C7", "a key that only reads is called out", "/docs/integrations/crewai#what-init-does", f"{cli} init crewai --force --key {read} --base-url {url}", work / "classic_crew", contains=("reads only", "this key only reads"))
+    (bot / "outage.py").write_text(OUTAGE_CREW_PY)
+    run.step(
+        "C8",
+        "memory down: the crew still answers",
+        "/docs/integrations/crewai#when-memory-is-down",
+        "uv run python outage.py",
+        bot,
+        env={"TWIN_MEMORY_BASE_URL": "http://127.0.0.1:9"},
+        contains=("unavailable", "reply: Noted."),
+    )
+
+
 # ------------------------------------------------------------------------------------- report --
 
 
@@ -441,7 +566,8 @@ def report(run: Run, out: Path, seen: dict) -> None:
         "| --- | --- | --- | --- | --- |",
     ]
     for s in run.steps:
-        lines.append(f"| {s.id} | {s.title} | [{s.docs}]({DOCS}{s.docs}) | {'PASS' if s.passed else 'FAIL'} | {s.seconds}s |")
+        page = s.docs if s.docs.startswith("/") else DOCS + s.docs
+        lines.append(f"| {s.id} | {s.title} | [{s.docs}]({page}) | {'PASS' if s.passed else 'FAIL'} | {s.seconds}s |")
     if seen:
         lines += ["", "## What the memory API recorded for this run's key", "", "```json", json.dumps(seen, indent=2), "```"]
     for s in run.steps:
@@ -457,7 +583,7 @@ def main() -> int:
     parser.add_argument("--read-key", default=os.environ.get("REHEARSAL_READ_KEY", ""), help="a key that only reads")
     parser.add_argument("--base-url", default="http://localhost:8210")
     parser.add_argument("--control-secret", default=os.environ.get("MEMORY_CONTROL_SECRET", ""), help="to read the request log back")
-    parser.add_argument("--only", choices=["python", "typescript"])
+    parser.add_argument("--only", choices=["python", "typescript", "crewai"])
     parser.add_argument("--keep", action="store_true", help="keep the projects it made")
     args = parser.parse_args()
     if not args.key:
@@ -471,6 +597,9 @@ def main() -> int:
         if args.only in (None, "typescript"):
             print("typescript")
             typescript(run)
+        if args.only in (None, "crewai"):
+            print("crewai")
+            crewai(run)
     finally:
         out = HERE / "runs" / time.strftime("%Y%m%d-%H%M%S")
         out.mkdir(parents=True)

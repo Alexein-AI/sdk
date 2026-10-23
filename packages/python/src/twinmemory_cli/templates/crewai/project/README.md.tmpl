@@ -1,0 +1,28 @@
+# {name}
+
+A CrewAI crew that remembers the people it works for, with [twin memory](https://twinmemory.dev).
+Made by `twinmemory-cli create crewai`.
+
+## Run it
+
+1. Fill in `.env`: `TWIN_MEMORY_API_KEY` (the console, under API keys), and the key for the model
+   `MODEL` names.
+2. Ask it something, as one of your users:
+
+   ```bash
+   uv run run_crew --user dana "I just moved to Lisbon for a job at Acme."
+   uv run run_crew --user dana "Where do I live these days?"
+   ```
+
+   The second run remembers the first.
+
+3. `uvx twinmemory-cli doctor` checks the setup.
+
+## What is where
+
+- `src/{package}/crew.py` - the crew: memory is wired in here.
+- `src/{package}/memory.py` - memory, written by `twinmemory-cli init crewai`. Yours to edit.
+- `src/{package}/config/` - the agent and the task.
+- `src/{package}/main.py` - `run_crew`.
+
+Whose memory a run reads is the `user_id` in its inputs, set by your code and never by the model.

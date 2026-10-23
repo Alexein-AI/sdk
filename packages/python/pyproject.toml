@@ -1,13 +1,13 @@
 [project]
 name = "twinmemory-cli"
 version = "0.1.0"
-description = "Add twin memory to a LangGraph or OpenAI Agents SDK project, as code you own: uvx twinmemory-cli init langgraph."
+description = "Add twin memory to a LangGraph project, a CrewAI crew or an OpenAI Agents SDK agent, as code you own: uvx twinmemory-cli init langgraph | crewai | openai-agents."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Alexein AI" }]
-keywords = ["memory", "llm", "agents", "langgraph", "openai-agents", "cli"]
+keywords = ["memory", "llm", "agents", "langgraph", "crewai", "openai-agents", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -31,9 +31,20 @@ Documentation = "https://twinmemory.dev/docs/integrations/langgraph"
 Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
 
 [dependency-groups]
-# LangGraph, LangChain and the OpenAI Agents SDK only to run the written files in tests; the CLI
-# never imports them. The SDK's 0.24 for its scripted model, `agents.testing`.
-dev = ["pytest>=8", "anyio>=4", "ruff>=0.6", "pyright>=1.1.380", "langgraph>=1", "langchain>=1", "openai-agents>=0.24"]
+# The frameworks only to run the written files in tests; the CLI never imports them. CrewAI 1.15
+# needs openai<3 and the OpenAI Agents SDK since 0.21 needs openai>=3, so the two are groups that
+# never share an environment: CI runs the tests once with each (`--group crewai`, `--group
+# openai-agents`). The SDK's 0.24 for its scripted model, `agents.testing`.
+dev = ["pytest>=8", "anyio>=4", "ruff>=0.6", "pyright>=1.1.380", "langgraph>=1", "langchain>=1"]
+crewai = ["crewai>=1.15,<1.16"]
+openai-agents = ["openai-agents>=0.24"]
+
+[tool.uv]
+default-groups = ["dev", "crewai"]
+conflicts = [[{ group = "crewai" }, { group = "openai-agents" }]]
+# CrewAI (a dev dependency, for the tests) pulls in onnxruntime, whose releases after
+# 1.23 have no wheel for Python 3.10 on Linux, so CI's 3.10 job could not install.
+constraint-dependencies = ["onnxruntime<1.24; python_version < '3.11'"]
 
 # Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it from the
 # twin-memory-python checkout). Then this goes, and the dependency above is met from PyPI.
