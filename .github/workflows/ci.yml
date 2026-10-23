@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["20", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx prettier --check .
+      - run: npx vitest run
+      - run: npm run build
+      # The built package, both ways it is loaded.
+      - run: |
+          node --input-type=module -e "import { Memory } from './dist/index.js'; new Memory({ apiKey: 'tm_x' })"
+          node -e "const { Memory } = require('./dist/index.cjs'); new Memory({ apiKey: 'tm_x' })"

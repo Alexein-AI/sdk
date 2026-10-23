@@ -1,0 +1,38 @@
+# Publishes to npm when a tag like v0.1.0 is pushed, with provenance. Before the first release, add
+# an NPM_TOKEN secret (an automation token for the `twinmemory` package), and create the
+# `npm` environment. A manual run (workflow_dispatch) packs it and publishes nothing.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+      - name: the tag is the package's version
+        if: github.event_name == 'push'
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - run: npm pack --dry-run
+      - if: github.event_name == 'push'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
