@@ -45,8 +45,9 @@ AUTO_GUIDE = (
 # Said to the model in tools mode, after your instructions: the tools are its only memory there,
 # and a model that is not told when to save rarely does (n8n's Add tool says as much).
 GUIDE = (
-    "You have a long-term memory of this caller, across calls. Before you answer anything about "
-    "them, their plans or what was said before, call memory_search. Whenever they tell you "
+    "You have a long-term memory of this caller, across calls. Before you answer anything where "
+    "what you know of them could matter - a suggestion, a recommendation, their plans, bookings "
+    "or preferences, what was said before - call memory_search first. Whenever they tell you "
     "something new - about themselves (a preference, a fact, a plan, a name, a date, a number), or "
     "the details of what they ask you to do (a booking, an order, an appointment: what, when, for "
     "whom, its number) - call memory_add on your own, without being asked and without saying so, "
