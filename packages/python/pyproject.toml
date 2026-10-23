@@ -44,6 +44,11 @@ dev = [
 
 # Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it from the
 # twin-memory-python checkout). Then this goes, and the dependency above is met from PyPI.
+[tool.uv]
+# CrewAI (a dev dependency, for the tests) pulls in onnxruntime, whose releases after
+# 1.23 have no wheel for Python 3.10 on Linux, so CI's 3.10 job could not install.
+constraint-dependencies = ["onnxruntime<1.24; python_version < '3.11'"]
+
 [tool.uv.sources]
 twinmemory = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
 
