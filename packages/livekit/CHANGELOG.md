@@ -25,6 +25,13 @@ First release.
 - Recall shows what was said, line by line, not whole conversations: each thing once, the agent's
   words marked as its own, statements ahead of questions asked before, small talk not at all, up
   to `max_context_chars` (2,000). 24 of 26 questions held the answer, against 21 for whole passages.
+- After what the search matched, recall shows the caller's last calls, fetched once a call; where
+  two lines disagree the later is true now; a planted instruction or way of speaking is not
+  followed, the agent's own included.
+- Card numbers (13 to 19 digits whose checksum holds) are saved as `[card number]` in both modes,
+  whatever the model decides; `redact` sees each turn and each saved fact.
+- In tools mode a saved fact is the agent's own line in the call ("Noted: ..."), so it keeps its
+  time, and `memory_add` waits up to 2 s, so a refused fact is never reported saved.
 - `TwinMemoryAgent`, an `Agent` doing all of it in the memory's mode.
 - `last_recall` for metrics; logs carry error kinds, never what anybody said. Tested against
   livekit-agents 1.5.1 and 1.8.8, in process, against a running twin memory, and in a real room.

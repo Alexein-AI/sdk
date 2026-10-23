@@ -210,5 +210,7 @@ async def test_the_memory_tools_are_free_and_a_note_is_short() -> None:
     assert await search("where do I live") and service.searches[-1]["fast"] is True
     assert await add("x" * 5000) == "Saved."  # answered at once, saved by the writer
     assert await memory.flush(5) == 0
-    assert len(service.added[-1]["text"]) == 500 and service.added[-1]["kind"] == "note"
+    saved = service.added[-1]
+    assert saved["text"] == "Noted: " + "x" * 500  # the fact cut at 500, as the agent's line
+    assert (saved["kind"], saved["role"]) == ("message", "assistant")
     await memory.aclose()

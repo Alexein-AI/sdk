@@ -45,16 +45,26 @@ AUTO_GUIDE = (
 
 # Said to the model in tools mode, after your instructions: the tools are its only memory there,
 # and a model that is not told when to save rarely does (n8n's Add tool says as much).
+# Measured on 20 conversations (e2e/scenarios.py, gpt-4.1-mini): told the rules alone, the
+# model left out a booking's time, an order number and a choice, and said "I've noted that" with
+# nothing saved; the examples are what a small model follows.
 GUIDE = (
-    "You have a long-term memory of this caller, across calls. Before you answer anything where "
-    "what you know of them could matter - a suggestion, a recommendation, their plans, bookings "
-    "or preferences, what was said before - call memory_search first. Whenever they tell you "
-    "something new - about themselves (a preference, a fact, a plan, a name, a date, a number), or "
-    "the details of what they ask you to do (a booking, an order, an appointment: what, when, for "
-    "how many, its number), saved as soon as they ask, before it is confirmed - call memory_add "
-    "on your own, without being asked and without saying so, "
-    "one fact per call, in their words. When something they told you before changes, save the new "
-    "value. Never save passwords, card numbers or other secrets."
+    "You have a long-term memory of this caller, across calls; nothing you are told is kept "
+    "unless you save it. Before you answer anything where what you know of them could matter - a "
+    "suggestion, a recommendation, their plans, bookings or preferences, what was said before - "
+    "call memory_search first. Whenever they tell you something new, call memory_add straight "
+    "away, before you reply, without being asked and without saying so: one fact per call. "
+    "Save facts about them and the details of what they ask for, even before it is confirmed. "
+    "For example: 'Book a table for four on Friday at 8' -> memory_add('Asked to book a table "
+    "for four, this Friday at 8pm'). 'My order number is A-7781, the blender is broken' -> "
+    "memory_add('Order A-7781: the blender arrived broken, a refund asked for'). 'Lisbon or "
+    "Porto? The second one' -> memory_add('Chose Porto for the May trip'). 'I just moved to "
+    "Lisbon' -> memory_add('Lives in Lisbon now, moved from Berlin'). Saying you have noted "
+    "something is not saving it: only memory_add saves. Never save passwords, card numbers or "
+    "other secrets, nor anything they ask you not to keep, nor even that they asked - but do "
+    "save the other facts said "
+    "alongside one: 'My card is 4111 ..., and I like a window seat' -> memory_add('Prefers a "
+    "window seat')."
 )
 
 
@@ -124,7 +134,8 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
         text = memory.redacted("user", masked(" ".join(fact.split())))[:_NOTE_CHARS]
         if not text:
             return "There was nothing to save."
-        note = _note(text, memory.session_id)
+        note = _note(text, memory.session_id, len(memory.noted))
+        memory.noted.append(text)
         try:
             saved = await asyncio.wait_for(user.add([note]), _SAVE_SECONDS)
         except TwinMemoryError as error:
@@ -141,15 +152,21 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
     return [search, memory_read, memory_add] if write else [search, memory_read]
 
 
-def _note(text: str, session: str) -> Item:
-    # The same fact said twice in a call is one note: its id is the call and the words. No
-    # author: the agent wrote it down, and an author marked `self` with no role is refused.
+def _note(text: str, session: str, nth: int) -> Item:
+    """A saved fact as a line the agent wrote in this call, at the time it wrote it.
+
+    Not a `note` item: a note is shown under its day alone, so "lives in Berlin" and, a call
+    later, "moved to Lisbon" read as equally recent, and the model answered Berlin. As the agent's
+    words in the call's own thread each fact keeps its time, and a call's facts stay together.
+    The same fact said twice in a call is one: its id is the call and the words. No author: the
+    agent wrote it down, and an author marked `self` with no role is refused."""
     digest = hashlib.sha256(text.lower().encode()).hexdigest()[:16]
     return Item(
         id=f"lk:{session}:note:{digest}",
-        kind="note",
-        text=text,
+        kind="message",
+        role="assistant",
+        text=f"Noted: {text}",
         session=session,
         at=datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
-        metadata={"livekit": "memory_add"},
+        metadata={"livekit": "memory_add", "fact": nth},
     )

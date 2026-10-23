@@ -108,9 +108,12 @@ async def test_tools_saves_what_the_model_decides_to() -> None:
         await session.start(TwinMemoryAgent(memory, instructions="x"))
         await session.run(user_input="My favourite colour is teal.")
         assert await memory.flush(5) == 0
-    assert [(i["kind"], i["text"]) for i in service.added] == [
-        ("note", "Their favourite colour is teal.")
+    # The agent's own line in the call, so it keeps its time: "lives in Berlin" and, a call
+    # later, "moved to Lisbon" are then told apart by when, not shown as equally recent.
+    assert [(i["kind"], i["role"], i["text"]) for i in service.added] == [
+        ("message", "assistant", "Noted: Their favourite colour is teal.")
     ]
+    assert service.added[0]["at"] and service.added[0]["session"] == "call-2"
     assert (
         "author" not in service.added[0]
     )  # the agent wrote it down; the service refuses a bare self
@@ -136,7 +139,7 @@ async def test_a_refused_fact_is_never_reported_saved() -> None:
     _search, _read, add = memory.tools()
     assert await add("Their favourite colour is teal.") == "I couldn't save that just now."
     assert await add("They train on Tuesdays.") == "Saved."
-    assert [i["text"] for i in service.added] == ["They train on Tuesdays."]
+    assert [i["text"] for i in service.added] == ["Noted: They train on Tuesdays."]
     await memory.aclose()
 
 
@@ -147,7 +150,7 @@ async def test_a_fact_memory_is_too_slow_for_is_saved_behind_the_reply() -> None
     assert await add("They train on Tuesdays.") == "Saved."  # within the 2 s it may wait
     service.delay = 0
     assert await memory.flush(10) == 0
-    assert [i["text"] for i in service.added].count("They train on Tuesdays.") >= 1
+    assert [i["text"] for i in service.added].count("Noted: They train on Tuesdays.") >= 1
     await memory.aclose()
 
 

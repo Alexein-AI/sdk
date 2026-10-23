@@ -102,6 +102,7 @@ class TwinMemory:
             timeout=recall_timeout, max_chars=max_context_chars, fast=fast, agent=recall_agent_turns
         )
         self._redact = redact
+        self.noted: list[str] = []  # the facts memory_add saved in this call, in order
         self._writer = Writer()
         self._user: AsyncUser | None = None
         self._session: AgentSession[Any] | None = None

@@ -39,7 +39,7 @@ def emit(event: str, **fields: Any) -> None:
 
 
 def memory_blocks(context: list[tuple[str, str]]) -> list[str]:
-    return [t for _, t in context if "<memory>" in t]
+    return [t for r, t in context if r == "assistant" and "<memory>" in t]
 
 
 server = AgentServer(num_idle_processes=2, port=0)
