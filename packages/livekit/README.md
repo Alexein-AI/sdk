@@ -44,6 +44,26 @@ if __name__ == "__main__":
 That is the whole integration. A caller who said last week that they moved to Lisbon gets an agent
 that knows it today.
 
+## Two modes
+
+| | `mode="auto"` (the default) | `mode="tools"` |
+|---|---|---|
+| Before each reply | what memory holds for the caller's words is put in front of the model | nothing |
+| After each turn | the turn is saved | nothing |
+| The model's tools | `memory_search`, `memory_read`, for a deeper look | `memory_search`, `memory_read`, `memory_add` |
+| What the model is told | nothing more: the recalled block says what it is | when to search and when to save, after your instructions |
+
+**auto** is memory that is always there: no turn waits for the model to think of it, and every
+call is kept whole. **tools** lets the model decide, as an n8n agent's tools do: it searches when a
+question needs the past and saves the facts it judges worth keeping, one per call, so memory holds
+only what it chose - and nothing else of the call. A search the model makes costs a model round trip
+(LiveKit plays a thinking sound if you give it one); a save never does, since `memory_add` answers at
+once and the fact is saved behind the reply.
+
+```python
+memory = TwinMemory.from_job(ctx, mode="tools")
+```
+
 ## Whose memory a call is
 
 A call reads and writes one end user's memory, and your code decides whose; nothing said in the call
@@ -67,9 +87,23 @@ bound, or None. Turns said before `bind` wait, and are saved under the user once
 
 ## How it works
 
+In auto mode:
+
 **Recall, before each reply.** The user's latest words are searched for in their memory of earlier
 calls, and what is found goes into the prompt just before those words, inside `<memory>`, for this
-reply only:
+reply only - as what was said, line by line, not whole conversations:
+
+```
+- 2 Oct 2026 18:02, they said: My locker code at the Alfama gym is 4417.
+- 2 Oct 2026 18:03, you asked “Should I book Lisbon or Porto?”, they said: the second one
+- 2 Oct 2026 18:04, you said: Booked the Memmo Alfama for 3 to 5 May.
+```
+
+- Each thing said once; a question asked before after every statement, and the question being
+  asked now not at all; the agent's own words marked as its own, since they hold what it booked and
+  found. Measured over 26 questions about a caller's earlier calls, this block held the answer for
+  24 at 2,000 characters, where whole passages held it for 21 (20 on a 30-call history), and the
+  caller's lines alone for 17.
 
 - It runs in `llm_node`, so it keeps LiveKit's preemptive generation (on by default, and lost when
   `on_user_turn_completed` changes the turn) and it covers typed turns, which that hook never sees.
@@ -79,8 +113,8 @@ reply only:
   the reply makes. A fast search answers in tens of milliseconds, so the limit only cuts in during an
   outage, and then the reply goes ahead without memory. Nothing memory does, or answers, can stop
   a reply.
-- Small talk ("thanks", "okay") is not searched. A short answer ("the second one") is searched with
-  the question it answers.
+- Small talk ("thanks", "okay") is not searched, and not recalled. A short answer ("the second one")
+  is searched, and recalled, with the question it answers.
 - What memory holds is quoted, not obeyed: the block says so, and nothing in it can read as markup
   (every angle bracket, entity, look-alike and invisible character is neutralised), so a stored
   `</memory>` closes nothing.
@@ -106,7 +140,8 @@ memory = TwinMemory.from_job(ctx, redact=redact)
 ## Your own agent
 
 `TwinMemoryAgent` takes every keyword an `Agent` does. With an agent class of your own, call
-`memory.attach(session)` in the entrypoint as above, and add recall to its `llm_node`:
+`memory.attach(session)` in the entrypoint as above, give its model `memory.tools()` (and, in tools
+mode, `memory.guide` after its instructions), and add recall to its `llm_node`:
 
 ```python
 class Receptionist(Agent):
@@ -125,13 +160,15 @@ agent is speaking.
 
 ## Tools
 
-`TwinMemoryAgent` gives the model two tools, which act on the bound user only (`memory_tools=False`
-leaves them out):
+The model's tools act on the bound user only, and when memory is down they answer in a sentence
+the agent can say, rather than fail (`memory_tools=False` leaves them out, in auto mode):
 
-- `memory_search(query)`, a deeper look when the recalled context is not enough;
-- `memory_remember(note)`, to save something the user asks to be remembered (500 characters at most).
-
-When memory is down they answer in a sentence the agent can say, rather than fail.
+- `memory_search(query)`: what memory holds for a question, as the lines recall shows, with the
+  sources it found them in;
+- `memory_read(path)`: one of those sources whole;
+- `memory_add(fact)`, in tools mode: one fact about the caller, saved behind the reply (500
+  characters at most). Its description, like n8n's Add tool's, tells the model to save on its own,
+  one fact at a time, and never a password or card number.
 
 ## Settings
 
@@ -141,9 +178,12 @@ TwinMemory(
     client=None,  # a twinmemory.AsyncMemory of your own; else one from api_key and base_url
     api_key=None,  # else TWIN_MEMORY_API_KEY
     base_url=None,  # else TWIN_MEMORY_BASE_URL, else the hosted service
+    mode="auto",  # or "tools": the model decides when to search and save
     session_id=None,  # the call's name in memory; from_job uses the job id
     recall_timeout=0.5,  # seconds a reply waits for memory at most
-    fast=True,  # False: memory's model filter judges each recall (paid, slower)
+    max_context_chars=2000,  # what a reply is shown at most, about 500 tokens
+    recall_agent_turns=True,  # False: only what the caller said, not the agent's own words
+    fast=True,  # False: memory's model filter judges each search (paid, slower)
     redact=None,  # (role, text) -> text to save, or None
 )
 ```

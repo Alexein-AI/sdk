@@ -18,6 +18,13 @@ First release.
   rather than duplicate; turns wait out an outage, a refused turn is set aside alone, a turn is cut
   at 8,000 characters, `redact` may change or drop any, and what is left is saved within 5 s when
   the session closes.
-- `TwinMemoryAgent`, an `Agent` doing both, with `memory_search` and `memory_remember` tools.
+- Two modes. `mode="auto"`, the default, recalls and saves on every turn, and lends the model
+  `memory_search` and `memory_read`; `mode="tools"` does neither by itself, and gives the model
+  `memory_search`, `memory_read` and `memory_add` with a guide to when to use them. `memory_add`
+  answers at once and the fact is saved behind the reply.
+- Recall shows what was said, line by line, not whole conversations: each thing once, the agent's
+  words marked as its own, statements ahead of questions asked before, small talk not at all, up
+  to `max_context_chars` (2,000). 24 of 26 questions held the answer, against 21 for whole passages.
+- `TwinMemoryAgent`, an `Agent` doing all of it in the memory's mode.
 - `last_recall` for metrics; logs carry error kinds, never what anybody said. Tested against
   livekit-agents 1.5.1 and 1.8.8, in process, against a running twin memory, and in a real room.
