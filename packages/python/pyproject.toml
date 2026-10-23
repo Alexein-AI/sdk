@@ -34,10 +34,10 @@ Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
 # LangGraph and LangChain only to run the written files in tests; the CLI never imports them.
 dev = ["pytest>=8", "anyio>=4", "ruff>=0.6", "pyright>=1.1.380", "langgraph>=1", "langchain>=1"]
 
-# Until twinmemory is on PyPI, from the twin-memory-python checkout beside this repository's.
-# CI checks it out there (.github/workflows/python-ci.yml).
+# Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it from the
+# twin-memory-python checkout). Then this goes, and the dependency above is met from PyPI.
 [tool.uv.sources]
-twinmemory = { path = "../../../twin-memory-python", editable = true }
+twinmemory = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
 
 [build-system]
 requires = ["hatchling>=1.26"]

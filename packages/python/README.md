@@ -92,7 +92,7 @@ request) and that `.env` is not committed. Each failure says how to fix it.
 ## Development
 
 ```bash
-uv sync                  # twinmemory comes from ../../../twin-memory-python until it is on PyPI
+uv sync                  # twinmemory comes from ../../vendor until it is on PyPI
 uv run pytest            # the CLI, and every file it writes run inside real LangGraph graphs
 uv run ruff check . && uv run pyright
 ```

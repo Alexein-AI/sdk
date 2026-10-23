@@ -39,7 +39,7 @@
     "prepublishOnly": "npm run check && npm run build"
   },
   "dependencies": {
-    "twinmemory": "file:../../../twin-memory-js"
+    "twinmemory": "file:../../vendor/twinmemory-0.1.0.tgz"
   },
   "devDependencies": {
     "@langchain/core": "^1.2.0",

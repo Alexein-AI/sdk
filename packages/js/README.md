@@ -94,7 +94,7 @@ request) and that `.env` is not committed. Each failure says how to fix it.
 ## Development
 
 ```bash
-npm install          # twinmemory comes from ../../../twin-memory-js until it is on npm
+npm install          # twinmemory comes from ../../vendor until it is on npm
 npm run check        # types, formatting, and the tests: the CLI, and every file it writes run
                      # inside real LangGraph.js graphs, type-checked and formatted as written
 npm run build        # dist/bin.js

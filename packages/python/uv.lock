@@ -1154,21 +1154,16 @@ wheels = [
 [[package]]
 name = "twinmemory"
 version = "0.2.0"
-source = { editable = "../../../twin-memory-python" }
+source = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
 dependencies = [
     { name = "httpx" },
+]
+wheels = [
+    { filename = "twinmemory-0.2.0-py3-none-any.whl", hash = "sha256:581679ea1acf0fa2610d4c9053315fd73abf27a5f024721ef1b29036dba11000" },
 ]
 
 [package.metadata]
 requires-dist = [{ name = "httpx", specifier = ">=0.27,<1" }]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "anyio", specifier = ">=4" },
-    { name = "pyright", specifier = ">=1.1.380" },
-    { name = "pytest", specifier = ">=8" },
-    { name = "ruff", specifier = ">=0.6" },
-]
 
 [[package]]
 name = "twinmemory-cli"
@@ -1189,7 +1184,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "twinmemory", editable = "../../../twin-memory-python" }]
+requires-dist = [{ name = "twinmemory", path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }]
 
 [package.metadata.requires-dev]
 dev = [
