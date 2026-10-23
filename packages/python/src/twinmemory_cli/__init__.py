@@ -19,6 +19,7 @@ from pathlib import Path
 # The modules, not their functions: `create` and `doctor` are names of both, and binding the
 # function here would hide the module of the same name from `twinmemory_cli.create`.
 from twinmemory_cli import create as creating
+from twinmemory_cli import create_crewai
 from twinmemory_cli import doctor as checking
 from twinmemory_cli._version import __version__
 from twinmemory_cli.scaffold import PARTS, Options, init
@@ -73,12 +74,14 @@ def _parser() -> argparse.ArgumentParser:
     _setup_flags(start)
 
     new = commands.add_parser("create", help="a new project with memory wired in")
-    new.add_argument("framework", help="langgraph")
+    new.add_argument("framework", help="langgraph or crewai")
     new.add_argument("name", help="the project's directory and name")
     new.add_argument(
         "--model",
-        default=creating.DEFAULT_MODEL,
-        help=f"init_chat_model's name for it (default: {creating.DEFAULT_MODEL})",
+        help=(
+            f"the model, as the framework names it (LangGraph: {creating.DEFAULT_MODEL}; "
+            f"CrewAI: {create_crewai.DEFAULT_MODEL})"
+        ),
     )
     _setup_flags(new)
 
@@ -112,10 +115,14 @@ def main(argv: Sequence[str] | None = None, console: Console | None = None) -> i
         return checking.doctor(cwd, console or Console.for_terminal(yes=True))
     console = console or Console.for_terminal(yes=args.yes)
     if args.command == "create":
+        if args.framework == "crewai":
+            model = args.model or create_crewai.DEFAULT_MODEL
+            return create_crewai.create(args.name, cwd, model, _options(args), console)
         if args.framework != "langgraph":
-            console.fail(f"no template for {args.framework!r}; there is: langgraph")
+            console.fail(f"no template for {args.framework!r}; there is: langgraph, crewai")
             return 2
-        return creating.create(args.name, cwd, args.model, _options(args), console)
+        model = args.model or creating.DEFAULT_MODEL
+        return creating.create(args.name, cwd, model, _options(args), console)
     return init(args.framework, cwd, _options(args), console)
 
 
