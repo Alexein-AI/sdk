@@ -21,6 +21,7 @@ from twinmemory_livekit._agent import TwinMemoryAgent
 from twinmemory_livekit._identity import account_id
 from twinmemory_livekit._memory import TwinMemory
 from twinmemory_livekit._recall import RecallInfo
+from twinmemory_livekit._settings import Settings
 
-__all__ = ["RecallInfo", "TwinMemory", "TwinMemoryAgent", "account_id"]
+__all__ = ["RecallInfo", "Settings", "TwinMemory", "TwinMemoryAgent", "account_id"]
 __version__ = "0.1.0"

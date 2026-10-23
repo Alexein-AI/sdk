@@ -15,23 +15,19 @@ import asyncio
 import contextlib
 import logging
 import re
-from collections.abc import Callable
 from datetime import datetime, timezone
 
 from livekit.agents import llm
 from twinmemory import AsyncUser, Author, InvalidRequestError, Item, TwinMemoryError
 
 from twinmemory_livekit._recall import MARK, how
+from twinmemory_livekit._settings import Settings
 
 log = logging.getLogger("twinmemory.livekit")
 
-Redact = Callable[[str, str], "str | None"]
-
-# Turns wait here while memory is down or the user is not yet known; past this the oldest go, with
-# a warning, so a long outage cannot grow a call's memory use without bound.
-MAX_BUFFER = 500
-# A dictated paragraph is a few hundred characters; a turn past this is cut, not refused whole.
-MAX_TURN_CHARS = 8000
+# Turns wait while memory is down or the user is not yet known, up to `capture_buffer`; past it
+# the oldest go, with a warning, so a long outage cannot grow a call's memory use without bound.
+# A turn past `capture_max_chars` (a dictated paragraph is a few hundred) is cut, not refused.
 _BATCH = 20
 # A write that takes longer than this is tried again; ids make the second attempt replace the first.
 _WRITE_SECONDS = 5.0
@@ -48,6 +44,15 @@ def _luhn(digits: str) -> bool:
     return total % 10 == 0
 
 
+def saved_text(role: str, text: str, settings: Settings) -> str:
+    """`text` as the settings let it be saved - card numbers masked, then your `redact` - or
+    empty for nothing."""
+    text = masked(text) if settings.mask_cards else text
+    if settings.redact is not None:
+        text = settings.redact(role, text) or ""
+    return text.strip()
+
+
 def masked(text: str) -> str:
     """`text` with every card number in it - its checksum holds, so an order number or a phone
     number does not - as "[card number]". Before any `redact` of yours, in both modes: a model told
@@ -61,16 +66,15 @@ def masked(text: str) -> str:
 
 
 def item(
-    message: llm.ChatMessage, *, session: str, room: str | None, redact: Redact | None = None
+    message: llm.ChatMessage, *, session: str, room: str | None, settings: Settings
 ) -> Item | None:
     """`message` as an item of the call `session`; None for what is not a turn worth keeping."""
-    text = masked((message.text_content or "").strip())
-    if message.role not in ("user", "assistant") or not text or MARK in message.extra:
+    roles = ("user", "assistant") if settings.capture_agent_turns else ("user",)
+    if message.role not in roles or MARK in message.extra:
         return None
-    if redact is not None:
-        text = (redact(message.role, text) or "").strip()
-        if not text:
-            return None
+    text = saved_text(message.role, (message.text_content or "").strip(), settings)
+    if not text:
+        return None
     metadata: dict[str, object] = {"livekit_item": message.id}
     if message.interrupted:
         metadata["interrupted"] = True
@@ -81,7 +85,7 @@ def item(
         id=f"lk:{session}:{message.id}",
         kind="message",
         role=message.role,
-        text=text[:MAX_TURN_CHARS],
+        text=text[: settings.capture_max_chars],
         session=session,
         at=at.isoformat(timespec="milliseconds"),
         metadata=metadata,
@@ -95,7 +99,8 @@ def item(
 class Writer:
     """One queue of a call's turns and the one task that saves them."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_buffer: int = 500) -> None:
+        self.max_buffer = max_buffer
         self._waiting: list[Item] = []
         self._sending: list[Item] = []
         self._user: AsyncUser | None = None
@@ -109,7 +114,7 @@ class Writer:
         self.dropped = 0
 
     def put(self, turn: Item) -> None:
-        if len(self._waiting) >= MAX_BUFFER:
+        if len(self._waiting) >= self.max_buffer:
             # The oldest turn not on its way already: one being sent may still land.
             oldest = next((t for t in self._waiting if not _among(t, self._sending)), None)
             if oldest is not None:
@@ -117,7 +122,7 @@ class Writer:
                 self.dropped += 1
                 if self.dropped == 1:
                     log.warning(
-                        "twin memory unreachable for %d turns, dropping the oldest", MAX_BUFFER
+                        "twin memory unreachable for %d turns, dropping the oldest", self.max_buffer
                     )
         self._waiting.append(turn)
         self._idle.clear()

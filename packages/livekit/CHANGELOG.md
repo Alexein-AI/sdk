@@ -24,7 +24,7 @@ First release.
   answers at once and the fact is saved behind the reply.
 - Recall shows what was said, line by line, not whole conversations: each thing once, the agent's
   words marked as its own, statements ahead of questions asked before, small talk not at all, up
-  to `max_context_chars` (2,000). 24 of 26 questions held the answer, against 21 for whole passages.
+  to `recall_max_chars` (2,000). 24 of 26 questions held the answer, against 21 for whole passages.
 - After what the search matched, recall shows the caller's last calls, fetched once a call; where
   two lines disagree the later is true now; a planted instruction or way of speaking is not
   followed, the agent's own included.
@@ -32,6 +32,13 @@ First release.
   whatever the model decides; `redact` sees each turn and each saved fact.
 - In tools mode a saved fact is the agent's own line in the call ("Noted: ..."), so it keeps its
   time, and `memory_add` waits up to 2 s, so a refused fact is never reported saved.
+- Every choice is a keyword of `TwinMemory`, kept read-only as `memory.settings` (`Settings`):
+  recall (`recall_fast`, `recall_timeout`, `recall_max_chars`, `recall_agent_turns`,
+  `recall_recent`, `recall_known`, `recall_skip_small_talk`, `recall_reuse_seconds`,
+  `recall_header`, `search_current_call`), the tools (`tool_fast`, `tool_timeout`,
+  `save_timeout`, `note_max_chars`, `tool_guide`) and saving (`capture_agent_turns`,
+  `capture_max_chars`, `capture_buffer`, `mask_cards`, `redact`, `flush_timeout`). One that makes
+  no sense is refused when the memory is made.
 - `TwinMemoryAgent`, an `Agent` doing all of it in the memory's mode.
 - `last_recall` for metrics; logs carry error kinds, never what anybody said. Tested against
   livekit-agents 1.5.1 and 1.8.8, in process, against a running twin memory, and in a real room.

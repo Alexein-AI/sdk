@@ -14,42 +14,22 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from livekit import rtc
 from livekit.agents import llm
 from twinmemory import AsyncMemory, AsyncUser, Hit, Item
 
 from twinmemory_livekit import _identity, _tools
-from twinmemory_livekit._capture import Redact, Writer, item
+from twinmemory_livekit._capture import Writer, item
 from twinmemory_livekit._recall import Recall, RecallInfo, how, place, question
+from twinmemory_livekit._settings import HEADER, Mode, Redact, Settings
 
 if TYPE_CHECKING:
     from livekit.agents import AgentSession, JobContext
     from livekit.agents.voice.events import CloseEvent, ConversationItemAddedEvent
 
 log = logging.getLogger("twinmemory.livekit")
-
-Mode = Literal["auto", "tools"]
-
-# Recall shares the reply's critical path. A fast search of earlier calls took 12 ms at p50 and
-# 25 ms at p95 on a local stack, with 60 to 120 ms expected hosted: half a second only ever cuts off
-# an outage or a hung connection, and it overlaps the wait for the user to finish anyway.
-RECALL_SECONDS = 0.5
-# A tool call has a thinking pause around it already, so it gets longer than a turn's recall.
-TOOL_SECONDS = 4.0
-# A save the caller hears confirmed: past this it is left to the writer, which retries it.
-SAVE_SECONDS = 2.0
-# LiveKit gives a job's shutdown callbacks 10 s in all; the last turns get half of it.
-FLUSH_SECONDS = 5.0
-# About 500 tokens of lines. Measured over 26 questions about a caller's earlier calls (fast
-# search, no model filter), the block holding the answer, on 3 calls / on 30:
-#                      1,500 chars   2,000 chars   3,000 chars
-#   whole passages        15 / 15       21 / 20       22 / 15
-#   caller's lines only   16 / 16       17 / 16       17 / 16
-#   lines, agent's too    20 / 19       24 / 24       24 / 25
-# The agent's own words hold what it booked and found; without them a third of answers go.
-CONTEXT_CHARS = 2000
 
 
 class TwinMemory:
@@ -66,16 +46,11 @@ class TwinMemory:
 
     By default the client is made from `api_key` and `base_url`, else TWIN_MEMORY_API_KEY and
     TWIN_MEMORY_BASE_URL, and closed with the call; `client` is one of your own (make it with
-    `max_retries=0`). `session_id` names the call in memory. `fast=False` lets memory's model
-    filter judge each search: more precise, one paid model call and a few hundred milliseconds more.
-    The waits: `recall_timeout`, the most a reply waits for memory; `tool_timeout`, the most
-    `memory_search` and `memory_read` wait; `save_timeout`, how long `memory_add` waits to confirm
-    a save before leaving it to the writer; `flush_timeout`, what the last turns get when the call
-    ends, under LiveKit's 10 s shutdown window.
-    `max_context_chars` caps what a reply is shown. `recall_agent_turns=False` shows only what the
-    caller said, not the agent's own earlier words (what it booked or found, marked as its own).
-    `redact(role, text)` sees each turn before it is saved, and returns the text to save, changed
-    or not, or None to save nothing of it.
+    `max_retries=0`). `session_id` names the call in memory. Every other keyword is a field of
+    `Settings`, which says what each does and why its default is what it is; they are kept, read
+    only, as `memory.settings`. Measured defaults (README, "Settings"): recall in tens of
+    milliseconds, waited for at most half a second; 2,000 characters of what was said, the agent's
+    words too, which held 24 of 26 answers where whole passages held 21.
     """
 
     def __init__(
@@ -87,18 +62,52 @@ class TwinMemory:
         api_key: str | None = None,
         base_url: str | None = None,
         session_id: str | None = None,
-        recall_timeout: float = RECALL_SECONDS,
-        tool_timeout: float = TOOL_SECONDS,
-        save_timeout: float = SAVE_SECONDS,
-        flush_timeout: float = FLUSH_SECONDS,
-        max_context_chars: int = CONTEXT_CHARS,
+        recall_fast: bool = True,
+        recall_timeout: float = 0.5,
+        recall_max_chars: int = 2000,
         recall_agent_turns: bool = True,
-        fast: bool = True,
+        recall_recent: int = 6,
+        recall_known: bool = True,
+        recall_skip_small_talk: bool = True,
+        recall_reuse_seconds: float = 30.0,
+        recall_header: str = HEADER,
+        search_current_call: bool = False,
+        tool_fast: bool = True,
+        tool_timeout: float = 4.0,
+        save_timeout: float = 2.0,
+        note_max_chars: int = 500,
+        tool_guide: str | None = None,
+        capture_agent_turns: bool = True,
+        capture_max_chars: int = 8000,
+        capture_buffer: int = 500,
+        mask_cards: bool = True,
         redact: Redact | None = None,
+        flush_timeout: float = 5.0,
     ) -> None:
-        if mode not in ("auto", "tools"):
-            raise ValueError(f'mode is "auto" or "tools", not {mode!r}')
-        self.mode: Mode = mode
+        self.settings = Settings(
+            mode=mode,
+            recall_fast=recall_fast,
+            recall_timeout=recall_timeout,
+            recall_max_chars=recall_max_chars,
+            recall_agent_turns=recall_agent_turns,
+            recall_recent=recall_recent,
+            recall_known=recall_known,
+            recall_skip_small_talk=recall_skip_small_talk,
+            recall_reuse_seconds=recall_reuse_seconds,
+            recall_header=recall_header,
+            search_current_call=search_current_call,
+            tool_fast=tool_fast,
+            tool_timeout=tool_timeout,
+            save_timeout=save_timeout,
+            note_max_chars=note_max_chars,
+            tool_guide=tool_guide,
+            capture_agent_turns=capture_agent_turns,
+            capture_max_chars=capture_max_chars,
+            capture_buffer=capture_buffer,
+            mask_cards=mask_cards,
+            redact=redact,
+            flush_timeout=flush_timeout,
+        )
         self._own_client = client is None
         # No retries of the client's own: its back-off would turn a dead host into seconds of
         # silence on a turn, and capture retries writes itself.
@@ -107,19 +116,9 @@ class TwinMemory:
         )
         self.session_id = session_id or uuid.uuid4().hex
         self.room: str | None = None
-        if flush_timeout >= 10:
-            raise ValueError("flush_timeout must leave room in LiveKit's 10 s shutdown window")
-        self.fast = fast
-        self.max_chars = max_context_chars
-        self.tool_timeout = tool_timeout
-        self.save_timeout = save_timeout
-        self.flush_timeout = flush_timeout
-        self._recall = Recall(
-            timeout=recall_timeout, max_chars=max_context_chars, fast=fast, agent=recall_agent_turns
-        )
-        self._redact = redact
+        self._recall = Recall(self.settings)
         self.noted: list[str] = []  # the facts memory_add saved in this call, in order
-        self._writer = Writer()
+        self._writer = Writer(max_buffer=capture_buffer)
         self._user: AsyncUser | None = None
         self._session: AgentSession[Any] | None = None
         self._closed = False
@@ -158,10 +157,19 @@ class TwinMemory:
         return self._recall.last
 
     @property
+    def mode(self) -> Mode:
+        return self.settings.mode
+
+    @property
     def guide(self) -> str:
-        """What a model given `tools()` is told about its memory, after your instructions: in tools
-        mode when to search and when to save, in auto mode that memory is given to it already."""
-        return _tools.GUIDE if self.mode == "tools" else _tools.AUTO_GUIDE
+        """What a model given `tools()` is told about its memory, after your instructions:
+        `tool_guide`, else in tools mode when to search and save, in auto mode that memory is
+        given to it already."""
+        return self.settings.guide
+
+    def where(self) -> dict[str, str]:
+        """What a search is narrowed to: earlier calls, unless `search_current_call`."""
+        return self._recall.where()
 
     @property
     def since(self) -> str:
@@ -228,7 +236,7 @@ class TwinMemory:
         `recall_timeout`."""
         if self.mode != "auto" or self._user is None or self._closed:
             return
-        asked = question(chat_ctx)
+        asked = question(chat_ctx, skip_small_talk=self.settings.recall_skip_small_talk)
         if asked is None:
             return
         said, query = asked
@@ -248,17 +256,14 @@ class TwinMemory:
         when memory is down."""
         return _tools.tools(self, write=self.mode == "tools")
 
-    def redacted(self, role: str, text: str) -> str:
-        """`text` as your `redact` lets it be saved; empty for nothing."""
-        return (self._redact(role, text) or "") if self._redact is not None else text
-
     def note(self, fact: Item) -> None:
         """Queue `fact` to be saved, after the turns before it."""
         self._writer.put(fact)
 
     async def flush(self, timeout: float | None = None) -> int:
         """Wait up to `timeout` seconds for the call's turns to be saved; how many were not."""
-        return await self._writer.flush(self.flush_timeout if timeout is None else timeout)
+        wait = self.settings.flush_timeout if timeout is None else timeout
+        return await self._writer.flush(wait)
 
     async def aclose(self) -> None:
         """Save what is left, within `flush_timeout`, and stop. Safe to call more than once: every
@@ -277,14 +282,14 @@ class TwinMemory:
                 self._session.off("conversation_item_added", self._on_item)
             self._session.off("close", self._on_close)
         self._recall.cancel()
-        await self._writer.aclose(self.flush_timeout)
+        await self._writer.aclose(self.settings.flush_timeout)
         if self._own_client:
             await self.client.close()
 
     def _on_item(self, event: ConversationItemAddedEvent) -> None:
         if self._closed or not isinstance(event.item, llm.ChatMessage):
             return
-        turn = item(event.item, session=self.session_id, room=self.room, redact=self._redact)
+        turn = item(event.item, session=self.session_id, room=self.room, settings=self.settings)
         if turn is not None:
             self._writer.put(turn)
 

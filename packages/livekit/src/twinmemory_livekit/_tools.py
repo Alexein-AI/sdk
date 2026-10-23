@@ -17,13 +17,12 @@ from typing import TYPE_CHECKING
 from livekit.agents import llm
 from twinmemory import Item, NotFoundError, TwinMemoryError
 
-from twinmemory_livekit._capture import masked
+from twinmemory_livekit._capture import saved_text
 from twinmemory_livekit._lines import said
 
 if TYPE_CHECKING:
     from twinmemory_livekit._memory import TwinMemory
 
-_NOTE_CHARS = 500
 NOT_SAVED = "I couldn't save that just now."
 _READ_CHARS = 3000
 UNAVAILABLE = "I couldn't reach my memory just now."
@@ -79,16 +78,16 @@ _SEARCH_FURTHER = (
 def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
     """`memory_search` and `memory_read`, and `memory_add` with `write`."""
 
+    s = memory.settings
+
     async def memory_search(query: str) -> str:
         user = memory.user
         if user is None:
             return UNKNOWN
-        # Earlier calls only, as recall: the model has this one, and its own words back are noise.
-        search = user.search(
-            query[:1000], fast=memory.fast, scope="passages/memory", before=memory.since
-        )
+        # Earlier calls only, as recall, unless search_current_call: the model has this one.
+        search = user.search(query[:1000], fast=s.tool_fast, **memory.where())
         try:
-            found = await asyncio.wait_for(search, memory.tool_timeout)
+            found = await asyncio.wait_for(search, s.tool_timeout)
         except NotFoundError:
             return NOTHING
         except Exception:
@@ -96,7 +95,7 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
         if found.failed:
             return UNAVAILABLE
         hits = [*found.hits, *memory.recent]  # the last calls too: a search by words misses much
-        lines = said(memory.known, hits, query, agent=True, max_chars=memory.max_chars)
+        lines = said(memory.known, hits, query, agent=True, max_chars=s.recall_max_chars)
         if not lines:
             return NOTHING
         sources = "\n".join(f"- {path}" for path in dict.fromkeys(h.path for h in hits if h.path))
@@ -111,7 +110,7 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
         if user is None:
             return UNKNOWN
         try:
-            found = await asyncio.wait_for(user.read(path), memory.tool_timeout)
+            found = await asyncio.wait_for(user.read(path), s.tool_timeout)
         except NotFoundError:
             return NOTHING
         except Exception:
@@ -127,13 +126,13 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
         user = memory.user
         if user is None:
             return UNKNOWN
-        text = memory.redacted("user", masked(" ".join(fact.split())))[:_NOTE_CHARS]
+        text = saved_text("user", " ".join(fact.split()), s)[: s.note_max_chars]
         if not text:
             return "There was nothing to save."
         note = _note(text, memory.session_id, len(memory.noted))
         memory.noted.append(text)
         try:
-            saved = await asyncio.wait_for(user.add([note]), memory.save_timeout)
+            saved = await asyncio.wait_for(user.add([note]), s.save_timeout)
         except TwinMemoryError as error:
             if not error.outage:
                 return NOT_SAVED  # refused: saying "Saved." would be a lie the caller hears

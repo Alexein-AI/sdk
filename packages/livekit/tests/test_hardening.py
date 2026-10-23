@@ -17,7 +17,6 @@ from livekit.agents import AgentSession, llm
 from twinmemory import Item
 
 from twinmemory_livekit import TwinMemory, TwinMemoryAgent
-from twinmemory_livekit import _capture as capture
 from twinmemory_livekit._capture import Writer
 
 LISBON = "user, 2 Oct 2026: I moved to Lisbon for the job at Acme."
@@ -73,10 +72,9 @@ async def test_a_reply_with_a_tool_call_waits_for_a_hung_memory_once_not_twice()
     await memory.aclose()
 
 
-async def test_a_full_buffer_never_drops_a_turn_on_its_way(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(capture, "MAX_BUFFER", 5)
+async def test_a_full_buffer_never_drops_a_turn_on_its_way() -> None:
     service = MemoryService(delay=0.3)
-    writer = Writer()
+    writer = Writer(max_buffer=5)
     writer.start(service.client().user("dana"))
     for n in range(5):
         writer.put(Item(id=f"t{n}", text=f"t{n}"))

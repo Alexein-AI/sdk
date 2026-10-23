@@ -63,7 +63,7 @@ def _key(text: str) -> str:
     return " ".join(_WORDS.findall(text.lower()))
 
 
-def _lines(hit: Hit, rank: int, agent: bool) -> list[Line]:
+def _lines(hit: Hit, rank: int, agent: bool, skip_small_talk: bool = True) -> list[Line]:
     day = (m.group(1) + " ") if (m := _DAY.match(hit.text)) else ""
     turns = _turns(" ".join(hit.text.split()))
     out: list[Line] = []
@@ -80,7 +80,11 @@ def _lines(hit: Hit, rank: int, agent: bool) -> list[Line]:
         if not said_by_agent and answering and len(words.split()) < _SHORT:
             assert before is not None
             line = f"{when}, you asked “{before[2][-_ASKED_CHARS:]}”, they said: {words}"
-        elif not said_by_agent and set(_WORDS.findall(words.lower())) <= _SMALL_TALK:
+        elif (
+            skip_small_talk
+            and not said_by_agent
+            and set(_WORDS.findall(words.lower())) <= _SMALL_TALK
+        ):
             small_talk = True
             continue
         if not said_by_agent:
@@ -90,7 +94,13 @@ def _lines(hit: Hit, rank: int, agent: bool) -> list[Line]:
 
 
 def said(
-    known: list[str], hits: list[Hit], query: str, *, agent: bool, max_chars: int
+    known: list[str],
+    hits: list[Hit],
+    query: str,
+    *,
+    agent: bool,
+    max_chars: int,
+    skip_small_talk: bool = True,
 ) -> list[str]:
     """What is known, then the lines of `hits` that tell something, best first, as many as fit
     in `max_chars`: each distinct thing said once, a question asked before after every
@@ -98,7 +108,7 @@ def said(
     seen = {_key(query)}
     lines: list[Line] = []
     for rank, hit in enumerate(hits):
-        for line in _lines(hit, rank, agent):
+        for line in _lines(hit, rank, agent, skip_small_talk):
             key = _key(line.text.split(": ", 1)[-1])
             if key and key not in seen:
                 seen.add(key)

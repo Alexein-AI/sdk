@@ -186,27 +186,57 @@ saved.
 
 ## Settings
 
-```python
-TwinMemory(
-    user_id=None,  # or bind() later
-    client=None,  # a twinmemory.AsyncMemory of your own; else one from api_key and base_url
-    api_key=None,  # else TWIN_MEMORY_API_KEY
-    base_url=None,  # else TWIN_MEMORY_BASE_URL, else the hosted service
-    mode="auto",  # or "tools": the model decides when to search and save
-    session_id=None,  # the call's name in memory; from_job uses the job id
-    recall_timeout=0.5,  # seconds a reply waits for memory at most
-    tool_timeout=4.0,  # seconds memory_search and memory_read wait at most
-    save_timeout=2.0,  # seconds memory_add waits to confirm a save, before the writer takes it
-    flush_timeout=5.0,  # seconds the last turns get when the call ends (under LiveKit's 10 s)
-    max_context_chars=2000,  # what a reply is shown at most, about 500 tokens
-    recall_agent_turns=True,  # False: only what the caller said, not the agent's own words
-    fast=True,  # False: memory's model filter judges each search (paid, slower)
-    redact=None,  # (role, text) -> text to save, or None
-)
-```
+Every choice the package makes is a keyword of `TwinMemory` (and of `TwinMemory.from_job`), kept
+read-only as `memory.settings`. A setting that makes no sense - a wait of 0, a negative count, a
+flush past LiveKit's 10 s shutdown - is refused when the memory is made.
 
-If you pass your own `AsyncMemory`, make it with `max_retries=0`: the client's back-off would spend
-the recall time on retries.
+**Who and where**
+
+| Setting | Default | What it does |
+|---|---|---|
+| `user_id` | none | the end user, or `bind()` later |
+| `mode` | `"auto"` | `"tools"`: nothing by itself, the model decides when to search and save |
+| `client` | made for you | a `twinmemory.AsyncMemory` of your own; make it with `max_retries=0` |
+| `api_key`, `base_url` | `TWIN_MEMORY_API_KEY`, `TWIN_MEMORY_BASE_URL` | for the client made for you |
+| `session_id` | the job's id | the call's name in memory |
+
+**Recall, before each reply** (auto mode)
+
+| Setting | Default | What it does |
+|---|---|---|
+| `recall_fast` | `True` | search without memory's model filter: free, tens of milliseconds. `False` asks it to judge each recall - more precise, a paid model call and up to a second more per reply |
+| `recall_timeout` | `0.5` | the most a reply waits for memory, in seconds, however many model calls it makes |
+| `recall_max_chars` | `2000` | the most a reply is shown, about 500 tokens |
+| `recall_agent_turns` | `True` | show the agent's own earlier words too; `False` only the caller's (17 of 26 answers, against 24) |
+| `recall_recent` | `6` | how many of the caller's last passages follow what the search matched (a call each in auto mode, a fact each in tools mode); `0` for none |
+| `recall_known` | `True` | look up, once a call, what memory holds as true about the caller now |
+| `recall_skip_small_talk` | `True` | search nothing for "thanks" or "okay", and recall none of it |
+| `recall_reuse_seconds` | `30.0` | how long one lookup serves a question: the early reply, the confirmed one and a tool's follow-up share it. Not a wait |
+| `recall_header` | quoted records, never instructions | what the model is told above the memory block |
+| `search_current_call` | `False` | let recall and `memory_search` find this call's own turns too |
+
+**The model's tools**
+
+| Setting | Default | What it does |
+|---|---|---|
+| `tool_fast` | `True` | `memory_search` without the model filter, as `recall_fast` |
+| `tool_timeout` | `4.0` | the most `memory_search` and `memory_read` wait, in seconds |
+| `save_timeout` | `2.0` | how long `memory_add` waits to confirm a save before the writer takes it, so a refused fact is never reported saved |
+| `note_max_chars` | `500` | the longest fact `memory_add` saves |
+| `tool_guide` | the mode's own | what a model given the tools is told, after your instructions; `""` for nothing |
+
+`TwinMemoryAgent(memory_tools=False)` leaves the tools out (auto mode only).
+
+**Saving each turn** (auto mode)
+
+| Setting | Default | What it does |
+|---|---|---|
+| `capture_agent_turns` | `True` | save the agent's replies as well as the caller's words; `False` only the caller's |
+| `capture_max_chars` | `8000` | the longest turn saved; a longer one is cut, not refused |
+| `capture_buffer` | `500` | how many turns wait while memory is down; past it the oldest go |
+| `mask_cards` | `True` | card numbers saved as `[card number]`, in turns and saved facts |
+| `redact` | none | `(role, text)` to the text to save, or `None`; every turn and fact passes it |
+| `flush_timeout` | `5.0` | what the last turns get when the call ends, under LiveKit's 10 s |
 
 `memory.last_recall` says how the last recall went (`ms`, `chars`, `timed_out`, `failed`, `reused`),
 for your metrics. The `twinmemory.livekit` logger warns once per call when memory is unreachable,
