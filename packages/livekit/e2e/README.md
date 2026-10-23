@@ -120,7 +120,8 @@ Then open http://localhost:8765 and press **Start call**.
 - What the agent heard and said, its tool calls and its recalls are printed in the terminal.
 - `--port` serves somewhere other than 8765. Ctrl-C stops the page server and the worker.
 - Tested headless with Playwright and Chrome's fake microphone fed a `say` WAV (`--use-fake-ui-for-media-stream --use-file-for-fake-audio-capture=q.wav%noloop`). The page connected in 1.4 s, the agent heard "Hi there, what can you help me with today?" and answered aloud, and both lines showed in the page.
-- Users made this way stay in memory. Delete one with the control route above.
+- Users made this way stay in memory, under `participant_id(<identity>)` (`lk-` and a hash): the
+  page binds the participant. Delete one with the control route above.
 
 ## Results (2026-10-23, OpenRouter, local LiveKit and twin memory)
 - **4 full runs**, about 3 minutes each.

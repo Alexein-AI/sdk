@@ -10,7 +10,7 @@ pip install twinmemory-livekit          # not yet on PyPI: see "Install from thi
 export TWIN_MEMORY_API_KEY=tm_...       # a key that writes, from the console's API keys
 ```
 
-Python 3.10 or newer, `livekit-agents` 1.5.1 or newer.
+Python 3.10 or newer, `livekit-agents` 1.5.1 or newer and below 2.
 
 ## Quickstart
 
@@ -23,9 +23,11 @@ server = AgentServer()
 
 @server.rtc_session()
 async def entrypoint(ctx: JobContext) -> None:
-    memory = TwinMemory.from_job(ctx)
+    # Your own id for the caller, which your backend names when it dispatches the agent.
+    memory = TwinMemory.from_job(ctx, metadata_key="twinmemory_user_id")
     await ctx.connect()
-    memory.bind(participant=await ctx.wait_for_participant())
+    if memory.user_id is None:  # none dispatched: one memory per LiveKit identity
+        memory.bind(participant=await ctx.wait_for_participant())
 
     session = AgentSession(
         stt=inference.STT("deepgram/nova-3"),
@@ -51,7 +53,7 @@ that knows it today.
 | Before each reply | what memory holds for the caller's words is put in front of the model | nothing |
 | After each turn | the turn is saved | nothing |
 | The model's tools | `memory_search`, `memory_read`, for a deeper look | `memory_search`, `memory_read`, `memory_add` |
-| What the model is told | nothing more: the recalled block says what it is | when to search and when to save, after your instructions |
+| What the model is told | that memory comes before each reply, and to search only for what is not in it | when to search and when to save, with examples |
 
 **auto** is memory that is always there: no turn waits for the model to think of it, and every
 call is kept whole. **tools** lets the model decide, as an n8n agent's tools do: it searches when a
@@ -69,16 +71,20 @@ memory = TwinMemory.from_job(ctx, mode="tools")
 A call reads and writes one end user's memory, and your code decides whose; nothing said in the call
 can change it, and the model's tools act on that user only.
 
-- **From the participant**: `memory.bind(participant=...)` uses the identity your token server gave
-  them. An identity twin memory can use as an id (letters, digits, `.`, `_` and `-`, up to 64, such
-  as `dana` or a UUID) is the end user id as it is, so it is the same memory your backend writes to;
-  any other (`dana@acme.dev`) becomes `lk-` and a hash of it, which names no address or number and
-  which no other identity can be made to match.
-- **From your own records**: `memory.bind(user_id="...")`.
-- **From the job's metadata**, when your own backend dispatches the agent with
-  `metadata=json.dumps({"twinmemory_user_id": "dana"})`: `TwinMemory.from_job(ctx,
-  metadata_key="twinmemory_user_id")`. Only where your server writes that metadata; a token server
-  that copies it from a client's request would let the caller choose whose memory they get.
+- **Your own id for the caller** is the one to use - the id your app already knows them by:
+  - in the job's metadata, from your backend's dispatch (`metadata=json.dumps({"twinmemory_user_id":
+    "dana"})`), read with `TwinMemory.from_job(ctx, metadata_key="twinmemory_user_id")`, as in the
+    quickstart. Only where your server writes that metadata: a token server that copies it from a
+    client's request would let the caller choose whose memory they get;
+  - or `memory.bind(user_id="...")`, from your own records.
+- **The participant**, `memory.bind(participant=...)`, when you have nothing better. A LiveKit
+  identity is only as good as the token server that issued it - LiveKit asks only that it be unique
+  within its room - so it gets a namespace of its own: `participant_id(identity)`, `lk-` and a hash,
+  which no id your backend writes can meet. Your backend can call `participant_id` to reach the same
+  memory. `bind(participant=..., share_identity=True)` uses the identity itself instead, where it is
+  a usable id, so the agent shares memory with ids your backend writes - only where your token
+  server issues the identity from your own user ids. Either way, an identity every caller is given
+  ("guest", "user") is one memory for all of them.
 
 A phone caller's identity (SIP, or a connector such as WhatsApp) is a number, which a caller can
 spoof, so `bind(participant=...)` leaves such a call unbound: it goes on without memory, and you can
@@ -131,15 +137,21 @@ LiveKit's id for the message, so a retry replaces rather than duplicates. While 
 turns wait and are retried; one turn the service refuses does not take the others with it. When the
 session closes, what is left is saved within 5 seconds, inside LiveKit's shutdown window.
 
-**Card numbers never reach memory**, in either mode: 13 to 19 digits whose checksum holds (so an
-order or phone number is left alone) are saved as `[card number]`, whatever the model decides. To
-keep anything else out, pass `redact`: it sees each turn's role and text, and each fact
-`memory_add` saves, before it is saved, and returns the text to save, changed or not, or None to
-save nothing of it.
+**Card numbers are masked**, in both modes, whatever the model decides (`mask_cards`): 13 to 19
+digits that begin like a card (2 to 6) and pass the card checksum are saved as `[card number]`,
+found inside a longer run of digits too, with an expiry or security code read straight after. It
+errs on the safe side: about one in ten long numbers that begin like a card also pass the checksum,
+and those are masked as well, though most order and phone numbers are not. To keep anything else
+out, pass `redact`: it sees each turn's role and text, and each fact `memory_add` saves, before it is
+saved, and returns the text to save, changed or not, or None to save nothing of it.
 
 ```python
+import re
+
+
 def redact(role: str, text: str) -> str | None:
-    return re.sub(r"\d{12,19}", "[card number]", text)
+    # Email addresses, which mask_cards does not cover.
+    return re.sub(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", "[email]", text)
 
 
 memory = TwinMemory.from_job(ctx, redact=redact)
@@ -148,13 +160,15 @@ memory = TwinMemory.from_job(ctx, redact=redact)
 ## Your own agent
 
 `TwinMemoryAgent` takes every keyword an `Agent` does. With an agent class of your own, call
-`memory.attach(session)` in the entrypoint as above, give its model `memory.tools()` (and, in tools
-mode, `memory.guide` after its instructions), and add recall to its `llm_node`:
+`memory.attach(session)` in the entrypoint as above, give its model `memory.tools()` with
+`memory.guide` after its instructions - in both modes: in auto mode it is what keeps a model from
+searching on every statement, a model round trip (1 to 1.5 s) each - and add recall to its
+`llm_node`:
 
 ```python
 class Receptionist(Agent):
     def __init__(self, memory: TwinMemory) -> None:
-        super().__init__(instructions="...", tools=memory.tools())
+        super().__init__(instructions=f"...\n\n{memory.guide}", tools=memory.tools())
         self.memory = memory
 
     async def llm_node(self, chat_ctx, tools, model_settings):
@@ -250,6 +264,7 @@ ours. The model then decides when to look things up, and nothing is saved unless
 `memory_add`:
 
 ```python
+# pip install "livekit-agents[mcp]"
 from livekit.agents import mcp
 
 tools = [
@@ -282,11 +297,11 @@ tools = [
 
 ## Install from this repository
 
-Until it is on PyPI, together with the `twinmemory` client it uses:
+Until it is on PyPI, with access to the two private repositories, and once this package is merged:
 
 ```bash
-pip install "twinmemory @ git+https://github.com/Alexein-AI/twin-memory-python" \
-  "twinmemory-livekit @ git+https://github.com/Alexein-AI/twin-memory-integrations#subdirectory=packages/livekit"
+pip install "twinmemory @ git+ssh://git@github.com/Alexein-AI/twin-memory-python" \
+  "twinmemory-livekit @ git+ssh://git@github.com/Alexein-AI/twin-memory-integrations#subdirectory=packages/livekit"
 ```
 
 ## Development

@@ -39,6 +39,13 @@ First release.
   `save_timeout`, `note_max_chars`, `tool_guide`) and saving (`capture_agent_turns`,
   `capture_max_chars`, `capture_buffer`, `mask_cards`, `redact`, `flush_timeout`). One that makes
   no sense is refused when the memory is made.
+- A participant's memory is its own namespace, `participant_id(identity)` (`lk-` and a hash), apart
+  from the ids your backend writes, unless `bind(participant=..., share_identity=True)`; the
+  quickstart binds your own user id from the job's metadata first.
+- Recall works in every script: words are Unicode, and a question ends with `?`, `？` or `؟`.
+  Urdu, Russian and Chinese turns were not searched and were dropped from recall before.
+- A card number read with its expiry or security code after it, or after an order number, is
+  masked too: windows of 13 to 19 digits inside a longer run are checked.
 - `TwinMemoryAgent`, an `Agent` doing all of it in the memory's mode.
 - `last_recall` for metrics; logs carry error kinds, never what anybody said. Tested against
   livekit-agents 1.5.1 and 1.8.8, in process, against a running twin memory, and in a real room.
