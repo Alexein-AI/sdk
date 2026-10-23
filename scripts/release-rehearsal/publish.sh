@@ -22,9 +22,13 @@ say() { printf '\n== %s\n' "$*"; }
 curl -sf "${npm_registry}-/ping" >/dev/null || { echo "the registries are not up: docker compose up -d in $here"; exit 1; }
 
 # --- npm: a throwaway user on the local registry, and an npmrc that only this script reads --------
-token=$(curl -sf -X PUT "${npm_registry}-/user/org.couchdb.user:rehearsal" \
-  -H 'content-type: application/json' \
-  -d '{"name":"rehearsal","password":"rehearsal-only-local"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+# Made on the first run; on every later one the same user signs in, with its password as Basic auth.
+user_url="${npm_registry}-/user/org.couchdb.user:rehearsal"
+user_body='{"name":"rehearsal","password":"rehearsal-only-local"}'
+answer=$(curl -sf -X PUT "$user_url" -H 'content-type: application/json' -d "$user_body" ||
+  curl -sf -X PUT "$user_url" -H 'content-type: application/json' -d "$user_body" \
+    -H "Authorization: Basic $(printf 'rehearsal:rehearsal-only-local' | base64)")
+token=$(printf '%s' "$answer" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
 npmrc="$work/npmrc"
 printf '//localhost:4873/:_authToken=%s\n' "$token" > "$npmrc"
 npm_publish() { npm publish --registry "$npm_registry" --userconfig "$npmrc" --access public "$@"; }

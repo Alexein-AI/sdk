@@ -1,13 +1,13 @@
 [project]
 name = "twinmemory-cli"
 version = "0.1.0"
-description = "Add twin memory to a LangGraph project, as code you own: uvx twinmemory-cli init langgraph."
+description = "Add twin memory to a LangGraph project or a CrewAI crew, as code you own: uvx twinmemory-cli init langgraph | crewai."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Alexein AI" }]
-keywords = ["memory", "llm", "agents", "langgraph", "cli"]
+keywords = ["memory", "llm", "agents", "langgraph", "crewai", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -32,10 +32,23 @@ Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
 
 [dependency-groups]
 # LangGraph and LangChain only to run the written files in tests; the CLI never imports them.
-dev = ["pytest>=8", "anyio>=4", "ruff>=0.6", "pyright>=1.1.380", "langgraph>=1", "langchain>=1"]
+dev = [
+    "pytest>=8",
+    "anyio>=4",
+    "ruff>=0.6",
+    "pyright>=1.1.380",
+    "langgraph>=1",
+    "langchain>=1",
+    "crewai>=1.15,<1.16",
+]
 
 # Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it from the
 # twin-memory-python checkout). Then this goes, and the dependency above is met from PyPI.
+[tool.uv]
+# CrewAI (a dev dependency, for the tests) pulls in onnxruntime, whose releases after
+# 1.23 have no wheel for Python 3.10 on Linux, so CI's 3.10 job could not install.
+constraint-dependencies = ["onnxruntime<1.24; python_version < '3.11'"]
+
 [tool.uv.sources]
 twinmemory = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
 

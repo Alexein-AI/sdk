@@ -1,14 +1,18 @@
 # twinmemory-cli
 
-Memory from [twin memory](https://twinmemory.dev) in a LangGraph project, as code you own: one command
-writes it, and from then on it is your file, in the manner of shadcn. The written code uses the
-[`twinmemory`](https://github.com/Alexein-AI/twin-memory-python) client.
+Memory from [twin memory](https://twinmemory.dev) in a LangGraph project or a CrewAI crew, as code
+you own: one command writes it, and from then on it is your file, in the manner of shadcn. The written
+code uses the [`twinmemory`](https://github.com/Alexein-AI/twin-memory-python) client.
 
 ```bash
 uvx twinmemory-cli init langgraph                 # a project you have
+uvx twinmemory-cli init crewai                    # a crew you have
 uvx twinmemory-cli create langgraph my-agent      # a new one, with memory wired in
+uvx twinmemory-cli create crewai my-crew
 uvx twinmemory-cli doctor                         # is it all set up?
 ```
+
+The LangGraph sections come first; [CrewAI](#crewai) has its own.
 
 ## `init`
 
@@ -88,6 +92,66 @@ adds.
 
 Checks the memory file, the dependencies and their installed versions, the key (with one free
 request) and that `.env` is not committed. Each failure says how to fix it.
+
+## CrewAI
+
+`init crewai` writes `memory.py` beside a crew - classic (`@CrewBase` in `src/<pkg>/crew.py`) or JSON
+(`crew.jsonc`, what `crewai create` makes by default) - and installs `twinmemory`. It needs CrewAI 1.15
+or newer; a newer minor than the one this release was tested with works, with a warning. Flows are
+not supported yet.
+
+By default the file holds `TwinMemory`, CrewAI's own memory kept in twin memory. Give it to the crew
+and CrewAI recalls the user's memory before every task, saves what each task found, and gives every
+agent its "Search memory" and "Save to memory" tools:
+
+```python
+from my_crew.memory import TwinMemory, whose
+
+
+@CrewBase
+class MyCrew:
+    memory = TwinMemory()
+
+    @before_kickoff
+    def whose_memory(self, inputs):
+        return whose(inputs)
+
+    @crew
+    def crew(self) -> Crew:
+        return Crew(agents=self.agents, tasks=self.tasks, memory=self.memory)
+
+
+MyCrew().crew().kickoff(inputs={"user_id": "dana", "topic": "..."})
+```
+
+A JSON crew points `crew.jsonc` at the same two names:
+
+```jsonc
+"memory": {"python": "memory.twin_memory"},
+"before_kickoff_callbacks": [{"python": "memory.whose"}]
+```
+
+and runs with:
+
+```python
+from crewai.project.crew_loader import load_crew
+
+crew, _ = load_crew("crew.jsonc")
+crew.kickoff(inputs={"user_id": "dana", "topic": "..."})
+```
+
+- **Whose memory** is the run's `inputs["user_id"]`, required on every kickoff; the model never
+  chooses it. It is held per run, so one `TwinMemory` serves concurrent runs for different users.
+- **The key is checked at kickoff**, once per process, because CrewAI swallows memory's errors: a wrong
+  key stops the run there instead of quietly turning memory off.
+- **Memory being down** costs a task its memory, not the run; every failure is logged on the
+  `twinmemory` logger.
+- `--tools-only` writes `memory_tools(user_id)` and `save_result(user_id, output)` instead, for a crew
+  that does not use CrewAI's memory.
+
+`create crewai <name>` makes a classic crew with memory wired in: one assistant agent, its task, and
+`uv run run_crew --user dana "..."`. `--model` takes CrewAI's `provider/model` name (default
+`anthropic/claude-sonnet-5-5`) and adds the CrewAI extra that provider needs.
 
 ## Development
 

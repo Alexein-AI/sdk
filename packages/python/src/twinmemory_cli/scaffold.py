@@ -14,15 +14,19 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from twinmemory_cli import env, project
+from twinmemory_cli import crews, env, project
 from twinmemory_cli._version import __version__
 from twinmemory_cli.render import render
+from twinmemory_cli.stop import Stop
 from twinmemory_cli.ui import Console
 
 # What the written file needs, at least: `Runtime`, `context_schema` and `ToolRuntime` are
 # LangGraph 1 and LangChain 1, and `fail_open` and `integration` are this package's 0.2.
 MINIMUMS = {"twinmemory": "0.2", "langgraph": "1.0", "langchain": "1.0"}
 PARTS = ("nodes", "tools")
+FRAMEWORKS = ("langgraph", "crewai")
+# What `init crewai`'s file imports beyond CrewAI, which the crew has already.
+CREWAI_MINIMUMS = {"twinmemory": "0.2"}
 
 Runner = Callable[[Sequence[str], Path], int]
 
@@ -49,19 +53,13 @@ class Options:
     skip_key: bool = False
     sdk: str | None = None
     dry_run: bool = False
+    framework: str = "langgraph"
     run: Runner = field(default=run_command)
-
-
-class Stop(Exception):
-    """Why `init` stopped before writing anything, with the exit code to stop with."""
-
-    def __init__(self, why: str, code: int = 1) -> None:
-        super().__init__(why)
-        self.code = code
 
 
 def init(framework: str, cwd: Path, options: Options, console: Console) -> int:
     """Run `init`; the exit code: 0 done, 1 stopped or the install failed, 2 a bad command."""
+    options.framework = framework
     try:
         root, target = _prepare(framework, cwd, options, console)
     except Stop as stop:
@@ -75,14 +73,18 @@ def init(framework: str, cwd: Path, options: Options, console: Console) -> int:
     installed = install(root, options, console)
     setup_key(root, options, console)
     console.line()
-    console.line(next_steps(_module(written, root), options))
+    module = _module(written, root)
+    if framework == "crewai":
+        console.line(crews.next_steps(crews.crew(root), module, options))
+    else:
+        console.line(next_steps(module, options))
     return 0 if installed else 1
 
 
 def _prepare(framework: str, cwd: Path, options: Options, console: Console) -> tuple[Path, Path]:
     """The project's root and where the file goes, or `Stop` with why not."""
-    if framework != "langgraph":
-        raise Stop(f"no template for {framework!r}; there is: langgraph", code=2)
+    if framework not in FRAMEWORKS:
+        raise Stop(f"no template for {framework!r}; there is: {', '.join(FRAMEWORKS)}", code=2)
     if options.filename and not options.filename.endswith(".py"):
         raise Stop(f"--file must name a Python file: {options.filename!r}", code=2)
     root = project.find_root(cwd)
@@ -90,9 +92,18 @@ def _prepare(framework: str, cwd: Path, options: Options, console: Console) -> t
         raise Stop(
             "no Python project here (no pyproject.toml, requirements.txt or langgraph.json at "
             "or above this directory). Run it from your project, or start one with "
-            "`twinmemory-cli create langgraph <name>`."
+            f"`twinmemory-cli create {framework} <name>`."
         )
     console.step("found", f"{project.installer(root, ['twinmemory']).name} project at {root}")
+    if framework == "crewai":
+        options.parts = crews.parts(options)
+        found = crews.crew(root)
+        crews.require_version(root, console)
+        target = (cwd / options.directory).resolve() if options.directory else found.home
+        written = target / options.filename
+        if written.exists() and not options.force:
+            raise Stop(f"{_relative(written, root)} exists; --force replaces it. Nothing changed.")
+        return root, target
     _require_langgraph(root, console)
     _require_versions(root)
     target = (
@@ -185,9 +196,12 @@ def planned(root: Path, packages: list[str], options: Options, console: Console)
 
 
 def write(target: Path, options: Options) -> Path:
-    template = (
-        "langgraph/memory_async.py.tmpl" if options.asynchronous else "langgraph/memory.py.tmpl"
-    )
+    if options.framework == "crewai":
+        template = "crewai/memory.py.tmpl"
+    elif options.asynchronous:
+        template = "langgraph/memory_async.py.tmpl"
+    else:
+        template = "langgraph/memory.py.tmpl"
     values = {"version": __version__, "fast": str(options.fast)}
     target.mkdir(parents=True, exist_ok=True)
     written = target / options.filename
@@ -197,17 +211,22 @@ def write(target: Path, options: Options) -> Path:
 
 def requirements(root: Path, options: Options) -> list[str]:
     """What still has to be added for the file to import, each with its minimum."""
-    missing = [p for p in MINIMUMS if not project.declares(root, p)]
+    minimums = _minimums(options)
+    missing = [p for p in minimums if not project.declares(root, p)]
     return [
-        options.sdk if p == "twinmemory" and options.sdk else f"{p}>={MINIMUMS[p]}" for p in missing
+        options.sdk if p == "twinmemory" and options.sdk else f"{p}>={minimums[p]}" for p in missing
     ]
+
+
+def _minimums(options: Options) -> dict[str, str]:
+    return CREWAI_MINIMUMS if options.framework == "crewai" else MINIMUMS
 
 
 def install(root: Path, options: Options, console: Console) -> bool:
     """Add what the project does not depend on yet, with its own tool; True unless that failed."""
     packages = requirements(root, options)
     if not packages:
-        console.step("kept", f"{', '.join(MINIMUMS)}: already dependencies")
+        console.step("kept", f"{', '.join(_minimums(options))}: already dependencies")
         return True
     found = project.installer(root, packages)
     if found.requirements is not None:
@@ -262,7 +281,9 @@ def _check_key(key: str, base_url: str | None, options: Options, console: Consol
         console.step("warning", f"the key did not check out: {checked.detail}")
         return
     console.step("checked", f"key: {checked.detail}")
-    if checked.writes is False and "nodes" in options.parts:
+    if checked.writes is False and options.framework == "crewai":
+        console.step("warning", "this key only reads: saving to memory needs one that writes")
+    elif checked.writes is False and "nodes" in options.parts:
         console.step("warning", "this key only reads: remember and memory_add need one that writes")
 
 

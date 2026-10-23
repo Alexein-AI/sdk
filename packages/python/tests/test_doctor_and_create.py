@@ -64,7 +64,7 @@ def test_doctor_passes_a_project_that_is_set_up(tmp_path: Path) -> None:
     console = quiet()
     assert doctor(healthy(tmp_path), console) == 0
     text = said(console)
-    assert "✓ memory file app/memory.py (written by 0.2.0)" in text
+    assert "✓ memory file app/memory.py (written by 0.2.0, for LangGraph)" in text
     assert "✓ langgraph 1.2.16" in text
     assert "✓ key at the hosted service: scratch/demo, reads and writes" in text
     assert "All good." in text
@@ -286,6 +286,32 @@ def test_the_created_graph_recalls_searches_and_remembers(created: Any, asynchro
     out = run(graph, asynchronous)
     assert out["messages"][-1].text == "Lisbon."
     assert routes(recorded) == ["search", "search", "add"]  # recall, the tool, remember
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+def test_the_chat_ends_quietly_when_its_input_does(
+    created: Any,
+    asynchronous: bool,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Ctrl-D, or piped input with no empty line at the end, ends the conversation."""
+    import asyncio
+    import io
+
+    created(
+        {"asynchronous": asynchronous},
+        [AIMessage("Lisbon.", id="ai-1"), AIMessage("Dana.", id="ai-2")],
+    )
+    chat = importlib.import_module("my_agent.chat")
+    monkeypatch.setattr(sys, "argv", ["chat", "--user", "dana"])
+    monkeypatch.setattr(sys, "stdin", io.StringIO("Where do I live?\nWho am I?\n"))
+    if asynchronous:
+        asyncio.run(chat.main())
+    else:
+        chat.main()
+    out = capsys.readouterr().out
+    assert "agent> Lisbon." in out and "agent> Dana." in out
 
 
 def test_the_nodes_only_graph(created: Any) -> None:
