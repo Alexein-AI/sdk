@@ -32,7 +32,15 @@ Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
 
 [dependency-groups]
 # LangGraph and LangChain only to run the written files in tests; the CLI never imports them.
-dev = ["pytest>=8", "anyio>=4", "ruff>=0.6", "pyright>=1.1.380", "langgraph>=1", "langchain>=1"]
+dev = [
+    "pytest>=8",
+    "anyio>=4",
+    "ruff>=0.6",
+    "pyright>=1.1.380",
+    "langgraph>=1",
+    "langchain>=1",
+    "crewai>=1.15,<1.16",
+]
 
 # Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it from the
 # twin-memory-python checkout). Then this goes, and the dependency above is met from PyPI.
