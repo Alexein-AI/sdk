@@ -140,7 +140,7 @@ request log shows where requests came from.
 
 `npx twinmemory-cli init langgraph` writes memory into a LangGraph.js project as code you own,
 using this client; `twinmemory-cli` lives in
-[twin-memory-integrations](https://github.com/Alexein-AI/twin-memory-integrations/tree/main/packages/langgraph-js).
+[twin-memory-integrations](https://github.com/Alexein-AI/twin-memory-integrations/tree/main/packages/js).
 
 ## Development
 
