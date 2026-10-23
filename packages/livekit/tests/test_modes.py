@@ -170,6 +170,26 @@ async def test_a_card_number_never_reaches_memory_in_either_mode() -> None:
         await memory.aclose()
 
 
+async def test_the_tools_wait_as_long_as_they_are_told_to() -> None:
+    import time
+
+    service = MemoryService(delay=3.0)
+    memory = _memory(service, mode="tools", tool_timeout=0.3, save_timeout=0.3)
+    search, read, add = memory.tools()
+    for tool, argument in ((search, "locker code"), (read, "passages/memory/p0")):
+        started = time.monotonic()
+        assert await tool(argument) == "I couldn't reach my memory just now."
+        assert time.monotonic() - started < 1.0
+    started = time.monotonic()
+    assert await add("Prefers aisle seats.") == "Saved."  # left to the writer, which retries
+    assert time.monotonic() - started < 1.0
+    service.delay = 0
+    assert await memory.flush(10) == 0
+    with pytest.raises(ValueError, match="shutdown"):
+        _memory(service, flush_timeout=12)
+    await memory.aclose()
+
+
 def test_a_mode_is_one_of_two_and_tools_mode_needs_its_tools() -> None:
     with pytest.raises(ValueError, match="auto"):
         TwinMemory("dana", mode="always")  # pyright: ignore[reportArgumentType]

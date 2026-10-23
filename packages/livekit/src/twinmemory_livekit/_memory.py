@@ -36,6 +36,10 @@ Mode = Literal["auto", "tools"]
 # 25 ms at p95 on a local stack, with 60 to 120 ms expected hosted: half a second only ever cuts off
 # an outage or a hung connection, and it overlaps the wait for the user to finish anyway.
 RECALL_SECONDS = 0.5
+# A tool call has a thinking pause around it already, so it gets longer than a turn's recall.
+TOOL_SECONDS = 4.0
+# A save the caller hears confirmed: past this it is left to the writer, which retries it.
+SAVE_SECONDS = 2.0
 # LiveKit gives a job's shutdown callbacks 10 s in all; the last turns get half of it.
 FLUSH_SECONDS = 5.0
 # About 500 tokens of lines. Measured over 26 questions about a caller's earlier calls (fast
@@ -64,6 +68,10 @@ class TwinMemory:
     TWIN_MEMORY_BASE_URL, and closed with the call; `client` is one of your own (make it with
     `max_retries=0`). `session_id` names the call in memory. `fast=False` lets memory's model
     filter judge each search: more precise, one paid model call and a few hundred milliseconds more.
+    The waits: `recall_timeout`, the most a reply waits for memory; `tool_timeout`, the most
+    `memory_search` and `memory_read` wait; `save_timeout`, how long `memory_add` waits to confirm
+    a save before leaving it to the writer; `flush_timeout`, what the last turns get when the call
+    ends, under LiveKit's 10 s shutdown window.
     `max_context_chars` caps what a reply is shown. `recall_agent_turns=False` shows only what the
     caller said, not the agent's own earlier words (what it booked or found, marked as its own).
     `redact(role, text)` sees each turn before it is saved, and returns the text to save, changed
@@ -80,6 +88,9 @@ class TwinMemory:
         base_url: str | None = None,
         session_id: str | None = None,
         recall_timeout: float = RECALL_SECONDS,
+        tool_timeout: float = TOOL_SECONDS,
+        save_timeout: float = SAVE_SECONDS,
+        flush_timeout: float = FLUSH_SECONDS,
         max_context_chars: int = CONTEXT_CHARS,
         recall_agent_turns: bool = True,
         fast: bool = True,
@@ -96,8 +107,13 @@ class TwinMemory:
         )
         self.session_id = session_id or uuid.uuid4().hex
         self.room: str | None = None
+        if flush_timeout >= 10:
+            raise ValueError("flush_timeout must leave room in LiveKit's 10 s shutdown window")
         self.fast = fast
         self.max_chars = max_context_chars
+        self.tool_timeout = tool_timeout
+        self.save_timeout = save_timeout
+        self.flush_timeout = flush_timeout
         self._recall = Recall(
             timeout=recall_timeout, max_chars=max_context_chars, fast=fast, agent=recall_agent_turns
         )
@@ -240,12 +256,12 @@ class TwinMemory:
         """Queue `fact` to be saved, after the turns before it."""
         self._writer.put(fact)
 
-    async def flush(self, timeout: float = FLUSH_SECONDS) -> int:
+    async def flush(self, timeout: float | None = None) -> int:
         """Wait up to `timeout` seconds for the call's turns to be saved; how many were not."""
-        return await self._writer.flush(timeout)
+        return await self._writer.flush(self.flush_timeout if timeout is None else timeout)
 
     async def aclose(self) -> None:
-        """Save what is left, within `FLUSH_SECONDS`, and stop. Safe to call more than once: every
+        """Save what is left, within `flush_timeout`, and stop. Safe to call more than once: every
         caller returns once the one close is done."""
         if self._closing is None:
             self._closed = True
@@ -261,7 +277,7 @@ class TwinMemory:
                 self._session.off("conversation_item_added", self._on_item)
             self._session.off("close", self._on_close)
         self._recall.cancel()
-        await self._writer.aclose(FLUSH_SECONDS)
+        await self._writer.aclose(self.flush_timeout)
         if self._own_client:
             await self.client.close()
 

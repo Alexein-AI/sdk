@@ -195,6 +195,9 @@ TwinMemory(
     mode="auto",  # or "tools": the model decides when to search and save
     session_id=None,  # the call's name in memory; from_job uses the job id
     recall_timeout=0.5,  # seconds a reply waits for memory at most
+    tool_timeout=4.0,  # seconds memory_search and memory_read wait at most
+    save_timeout=2.0,  # seconds memory_add waits to confirm a save, before the writer takes it
+    flush_timeout=5.0,  # seconds the last turns get when the call ends (under LiveKit's 10 s)
     max_context_chars=2000,  # what a reply is shown at most, about 500 tokens
     recall_agent_turns=True,  # False: only what the caller said, not the agent's own words
     fast=True,  # False: memory's model filter judges each search (paid, slower)

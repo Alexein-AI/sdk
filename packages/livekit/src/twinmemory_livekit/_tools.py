@@ -23,10 +23,6 @@ from twinmemory_livekit._lines import said
 if TYPE_CHECKING:
     from twinmemory_livekit._memory import TwinMemory
 
-# A tool call has a thinking pause around it already, so it gets longer than a turn's recall.
-_SECONDS = 4.0
-# A save the caller hears confirmed: past this it is left to the writer, which retries it.
-_SAVE_SECONDS = 2.0
 _NOTE_CHARS = 500
 NOT_SAVED = "I couldn't save that just now."
 _READ_CHARS = 3000
@@ -92,7 +88,7 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
             query[:1000], fast=memory.fast, scope="passages/memory", before=memory.since
         )
         try:
-            found = await asyncio.wait_for(search, _SECONDS)
+            found = await asyncio.wait_for(search, memory.tool_timeout)
         except NotFoundError:
             return NOTHING
         except Exception:
@@ -115,7 +111,7 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
         if user is None:
             return UNKNOWN
         try:
-            found = await asyncio.wait_for(user.read(path), _SECONDS)
+            found = await asyncio.wait_for(user.read(path), memory.tool_timeout)
         except NotFoundError:
             return NOTHING
         except Exception:
@@ -137,7 +133,7 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
         note = _note(text, memory.session_id, len(memory.noted))
         memory.noted.append(text)
         try:
-            saved = await asyncio.wait_for(user.add([note]), _SAVE_SECONDS)
+            saved = await asyncio.wait_for(user.add([note]), memory.save_timeout)
         except TwinMemoryError as error:
             if not error.outage:
                 return NOT_SAVED  # refused: saying "Saved." would be a lie the caller hears

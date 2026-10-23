@@ -13,7 +13,6 @@ from fakes import FakeLLM, MemoryService, ScriptedSTT, SilentAudioInput
 from livekit.agents import Agent, AgentSession, ConversationItemAddedEvent, llm
 
 from twinmemory_livekit import TwinMemory, TwinMemoryAgent
-from twinmemory_livekit import _memory as memory_module
 from twinmemory_livekit._tools import UNAVAILABLE
 
 LISBON = "user, 2 Oct 2026: I moved to Lisbon for the job at Acme."
@@ -233,10 +232,9 @@ async def test_turns_before_the_user_is_known_wait_for_them() -> None:
     await memory.aclose()
 
 
-async def test_closing_never_waits_long_for_a_hung_memory(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(memory_module, "FLUSH_SECONDS", 0.5)
+async def test_closing_never_waits_long_for_a_hung_memory() -> None:
     service = MemoryService(delay=60.0)
-    memory = _memory(service, recall_timeout=0.1)
+    memory = _memory(service, recall_timeout=0.1, flush_timeout=0.5)
     async with AgentSession(llm=FakeLLM()) as session:
         await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
         await _say(session, "Where do I live now?")
