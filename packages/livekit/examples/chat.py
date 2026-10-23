@@ -5,6 +5,9 @@ ends the call.
     uv run python examples/chat.py dana     # call 1: tell it something, then /quit
     uv run python examples/chat.py dana     # call 2, a few seconds later: ask about it
 
+`--mode tools` is the other mode: nothing is recalled or saved by itself, and the model calls
+memory_search, memory_read and memory_add when it decides to - so it needs a real model.
+
 Needs TWIN_MEMORY_API_KEY (a key that writes) and TWIN_MEMORY_BASE_URL. Without a model key the
 agent's model is a stand-in that only says what memory it was shown before each reply. With
 OPENAI_API_KEY or OPENROUTER_API_KEY it is a real model:
@@ -26,6 +29,7 @@ from typing import Any
 from livekit.agents import DEFAULT_API_CONNECT_OPTIONS, Agent, AgentSession, ModelSettings, llm
 
 from twinmemory_livekit import TwinMemory, TwinMemoryAgent
+from twinmemory_livekit._memory import Mode
 
 INSTRUCTIONS = (
     "You are a friendly assistant on a phone line. Keep replies to one or two sentences. Use what "
@@ -34,7 +38,7 @@ INSTRUCTIONS = (
 
 
 def shown(chat_ctx: llm.ChatContext) -> list[str]:
-    """The passages recall put in front of the model this turn, one per earlier conversation."""
+    """The lines recall put in front of the model this turn."""
     for message in chat_ctx.messages():
         text = message.text_content or ""
         if "<memory>" in text:
@@ -54,7 +58,7 @@ class _Said(llm.LLMStream):
     async def _run(self) -> None:
         passages = shown(self._chat_ctx)
         if passages:
-            reply = f"(stand-in model) I was shown the {len(passages)} passages printed above."
+            reply = f"(stand-in model) I was shown the {len(passages)} memories printed above."
         else:
             reply = "(stand-in model) I was shown no memory for this turn."
         self._event_ch.send_nowait(
@@ -85,30 +89,47 @@ class ChatAgent(TwinMemoryAgent):
         before = self.memory.last_recall
         await self.memory.enrich(chat_ctx)
         info = self.memory.last_recall
-        if info is None or info is before:
+        if self.memory.mode != "auto":
+            pass  # nothing is recalled by itself; the tools say what the model looked up
+        elif info is None or info is before:
             print("   [memory: not searched, nothing to look up in that]")
         elif not info.reused:
             how = "timed out" if info.timed_out else "failed" if info.failed else "ok"
             print(f"   [memory: {info.chars} chars in {info.ms:.0f} ms, {how}]")
-            for n, passage in enumerate(shown(chat_ctx), 1):
-                print(f"   [{n}] {passage}")
+            for n, line in enumerate(shown(chat_ctx), 1):
+                print(f"   [{n}] {line}")
         async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
             yield chunk  # pyright: ignore[reportReturnType]
 
 
-async def call(user: str) -> None:
-    memory = TwinMemory(user, session_id=f"chat-{uuid.uuid4().hex[:8]}")
-    session = AgentSession(llm=model())
+async def call(user: str, mode: Mode) -> None:
+    llm_ = model()
+    if mode == "tools" and isinstance(llm_, StandIn):
+        raise SystemExit(
+            "--mode tools needs a real model: set OPENAI_API_KEY or OPENROUTER_API_KEY"
+        )
+    memory = TwinMemory(user, mode=mode, session_id=f"chat-{uuid.uuid4().hex[:8]}")
+    session = AgentSession(llm=llm_)
     memory.attach(session)
 
     def said_by_agent(event: Any) -> None:
         if getattr(event.item, "role", "") == "assistant":
             print(f"agent> {event.item.text_content}")
 
-    session.on("conversation_item_added", said_by_agent)
+    def used_a_tool(event: Any) -> None:
+        for called, output in zip(event.function_calls, event.function_call_outputs, strict=False):
+            answer = " ".join((output.output if output else "").split())[:160]
+            print(f"   [tool {called.name}({called.arguments}) -> {answer}]")
 
-    await session.start(ChatAgent(memory, instructions=INSTRUCTIONS, memory_tools=False))
-    print(f"A call as {memory.user_id!r}, saved as session {memory.session_id}. /quit ends it.")
+    session.on("conversation_item_added", said_by_agent)
+    session.on("function_tools_executed", used_a_tool)
+
+    # The stand-in model cannot call tools; a real one gets them.
+    tools = not isinstance(llm_, StandIn)
+    await session.start(ChatAgent(memory, instructions=INSTRUCTIONS, memory_tools=tools))
+    print(
+        f"A call as {memory.user_id!r} in {mode} mode, session {memory.session_id}. /quit ends it."
+    )
     while True:
         try:
             said = (await asyncio.to_thread(input, "you>   ")).strip()
@@ -127,7 +148,9 @@ async def call(user: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
     parser.add_argument("user", help="the caller's end user id, e.g. dana")
-    asyncio.run(call(parser.parse_args().user))
+    parser.add_argument("--mode", choices=("auto", "tools"), default="auto")
+    args = parser.parse_args()
+    asyncio.run(call(args.user, args.mode))
 
 
 if __name__ == "__main__":

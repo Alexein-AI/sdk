@@ -67,9 +67,10 @@ def _lines(hit: Hit, rank: int, agent: bool) -> list[Line]:
     day = (m.group(1) + " ") if (m := _DAY.match(hit.text)) else ""
     turns = _turns(" ".join(hit.text.split()))
     out: list[Line] = []
+    small_talk = False  # the caller's last words were only that, so the answer to them is too
     for i, (speaker, time, words) in enumerate(turns):
         said_by_agent = speaker == _AGENT
-        if not words or (said_by_agent and not agent):
+        if not words or (said_by_agent and (not agent or small_talk)):
             continue
         when = f"{day}{time}".strip() if len(time) <= 5 else time
         who = "you said" if said_by_agent else "noted" if not speaker else "they said"
@@ -80,7 +81,10 @@ def _lines(hit: Hit, rank: int, agent: bool) -> list[Line]:
             assert before is not None
             line = f"{when}, you asked “{before[2][-_ASKED_CHARS:]}”, they said: {words}"
         elif not said_by_agent and set(_WORDS.findall(words.lower())) <= _SMALL_TALK:
+            small_talk = True
             continue
+        if not said_by_agent:
+            small_talk = False
         out.append(Line(line, rank, words.rstrip().endswith("?")))
     return out
 

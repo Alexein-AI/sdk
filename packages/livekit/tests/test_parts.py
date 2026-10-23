@@ -119,6 +119,11 @@ def test_recall_is_what_the_caller_said_not_whole_conversations() -> None:
     assert lines == ["23 Oct 2026 11:25, they said: My locker code at the Alfama gym is 4417."]
 
 
+def test_the_answer_to_small_talk_is_small_talk_too() -> None:
+    lines = said([], [LOCKER], "where is the gym", agent=True, max_chars=1500)
+    assert not any("How can I help" in line for line in lines)  # the reply to "hi"
+
+
 def test_the_agents_words_only_when_asked_for() -> None:
     lines = said([], [LOCKER], "where is the gym", agent=True, max_chars=1500)
     assert "23 Oct 2026 11:25, you said: Got it, your locker code is 4417." in lines
