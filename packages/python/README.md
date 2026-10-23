@@ -1,18 +1,22 @@
 # twinmemory-cli
 
-Memory from [twin memory](https://twinmemory.dev) in a LangGraph project or a CrewAI crew, as code
-you own: one command writes it, and from then on it is your file, in the manner of shadcn. The written
-code uses the [`twinmemory`](https://github.com/Alexein-AI/twin-memory-python) client.
+Memory from [twin memory](https://twinmemory.dev) in a LangGraph project, a CrewAI crew or an
+OpenAI Agents SDK agent, as code you own: one command writes it, and from then on it is your file, in
+the manner of shadcn. The written code uses the
+[`twinmemory`](https://github.com/Alexein-AI/twin-memory-python) client.
 
 ```bash
 uvx twinmemory-cli init langgraph                 # a project you have
 uvx twinmemory-cli init crewai                    # a crew you have
+uvx twinmemory-cli init openai-agents             # an OpenAI Agents SDK project you have
 uvx twinmemory-cli create langgraph my-agent      # a new one, with memory wired in
 uvx twinmemory-cli create crewai my-crew
 uvx twinmemory-cli doctor                         # is it all set up?
 ```
 
-The LangGraph sections come first; [CrewAI](#crewai) has its own.
+The LangGraph sections come first; [CrewAI](#crewai) and
+[the OpenAI Agents SDK](#the-openai-agents-sdk) have their own. What they share - the key, `doctor` -
+works the same for all three.
 
 ## `init`
 
@@ -153,11 +157,48 @@ crew.kickoff(inputs={"user_id": "dana", "topic": "..."})
 `uv run run_crew --user dana "..."`. `--model` takes CrewAI's `provider/model` name (default
 `anthropic/claude-sonnet-5-5`) and adds the CrewAI extra that provider needs.
 
+## The OpenAI Agents SDK
+
+`init openai-agents` makes the same checks - the SDK is a dependency or imported, `openai-agents`
+0.3 or newer - and writes `memory.py` beside the file that builds your `Agent` (asking when there
+are several, or `--dir`; with none, into the project's package). The file is async: the SDK is.
+`--graph` and `--async` are LangGraph's and refused here.
+
+| Name                              | What it is                                                     |
+| --------------------------------- | -------------------------------------------------------------- |
+| `recall`                          | a `call_model_input_filter`: searches once a turn, with the user's latest message, and adds what it finds to the instructions of every model call in the turn |
+| `remember(result)`                | saves the turn a run answered - the user's message and the final output, under the agent's name |
+| `MemoryContext`                   | `user_id`, and an optional `session_id` that groups what is saved |
+| `MEMORY_TOOLS`, `MEMORY_WRITE_TOOLS` | as above: `function_tool`s that take the user from the run's context |
+| `FAST`, `STRICT`, `MAX_CHARS`, `TIMEOUT` | the settings, at the top of the file                    |
+
+```python
+from app.memory import MEMORY_TOOLS, MemoryContext, recall, remember
+
+agent = Agent(name="Assistant", tools=[*MEMORY_TOOLS])
+result = await Runner.run(
+    agent,
+    "Where do I live?",
+    context=MemoryContext(user_id="dana", session_id="conv-7"),
+    run_config=RunConfig(call_model_input_filter=recall),
+)
+await remember(result)  # for run_streamed, once its events are consumed
+```
+
+Memory goes into the instructions, not the conversation, so it is never written into a `Session`,
+the Conversations API or `to_input_list()`; it works the same with each. A handoff's next agent
+gets it too. Any context with a `user_id` will do, an object or a dict. A wrong key raises: from
+a tool, as the SDK's `UserError` with memory's error as its cause.
+
+`create openai-agents <name>` makes a uv project with `agent.py`, a terminal chat and `memory.py`.
+`--model` names the model (`MODEL` in `.env`); without it, the agent uses the SDK's default.
+
 ## Development
 
 ```bash
 uv sync                  # twinmemory comes from ../../vendor until it is on PyPI
-uv run pytest            # the CLI, and every file it writes run inside real LangGraph graphs
+uv run pytest            # the CLI, and every file it writes run inside real LangGraph graphs,
+                         # and the OpenAI Agents SDK's Runner with its scripted model
 uv run ruff check . && uv run pyright
 ```
 

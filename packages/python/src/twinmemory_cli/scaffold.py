@@ -1,10 +1,10 @@
-"""`twinmemory-cli init langgraph`: write memory into a LangGraph project as code its developer
-owns.
+"""`twinmemory-cli init <framework>`: write memory into a project as code its developer owns.
 
 The steps, in order, each of which can stop the command before anything is written: find the
-project, make sure it is a LangGraph one (or that adding LangGraph is wanted), make sure what is
-installed is new enough, and pick the graph the file goes beside. Then: write the file, add the
-packages it imports, and set up the key - which can be skipped, and added later.
+project, make sure it uses the framework (or that adding it is wanted), make sure what is
+installed is new enough, and pick where the file goes: beside the graph, or the agent. Then:
+write the file, add the packages it imports, and set up the key - which can be skipped, and
+added later.
 """
 
 from __future__ import annotations
@@ -19,14 +19,21 @@ from twinmemory_cli._version import __version__
 from twinmemory_cli.render import render
 from twinmemory_cli.stop import Stop
 from twinmemory_cli.ui import Console
+from twinmemory_cli.wiring import next_steps
 
-# What the written file needs, at least: `Runtime`, `context_schema` and `ToolRuntime` are
-# LangGraph 1 and LangChain 1, and `fail_open` and `integration` are this package's 0.2.
-MINIMUMS = {"twinmemory": "0.2", "langgraph": "1.0", "langchain": "1.0"}
+# What each framework's file needs, at least. Every one needs `fail_open` and `integration`,
+# this package's 0.2. LangGraph's: `Runtime`, `context_schema` and `ToolRuntime` are LangGraph 1
+# and LangChain 1. The OpenAI Agents SDK's: `call_model_input_filter` is 0.3, and the file was
+# run on 0.3.0 as well as the newest. CrewAI's: nothing beyond CrewAI, which the crew has
+# already and `crews.py` checks.
+MINIMUMS = {
+    "langgraph": {"twinmemory": "0.2", "langgraph": "1.0", "langchain": "1.0"},
+    "openai-agents": {"twinmemory": "0.2", "openai-agents": "0.3"},
+    "crewai": {"twinmemory": "0.2"},
+}
+# How each is named to the developer.
+NAMES = {"langgraph": "LangGraph", "openai-agents": "the OpenAI Agents SDK", "crewai": "CrewAI"}
 PARTS = ("nodes", "tools")
-FRAMEWORKS = ("langgraph", "crewai")
-# What `init crewai`'s file imports beyond CrewAI, which the crew has already.
-CREWAI_MINIMUMS = {"twinmemory": "0.2"}
 
 Runner = Callable[[Sequence[str], Path], int]
 
@@ -40,6 +47,7 @@ class Options:
     """Everything `init` can be told. `parts` are what the file holds; `sdk` installs this
     package from somewhere other than PyPI (a path, while it is not published)."""
 
+    framework: str = "langgraph"
     directory: Path | None = None
     filename: str = "memory.py"
     graph: str | None = None
@@ -53,15 +61,13 @@ class Options:
     skip_key: bool = False
     sdk: str | None = None
     dry_run: bool = False
-    framework: str = "langgraph"
     run: Runner = field(default=run_command)
 
 
-def init(framework: str, cwd: Path, options: Options, console: Console) -> int:
+def init(cwd: Path, options: Options, console: Console) -> int:
     """Run `init`; the exit code: 0 done, 1 stopped or the install failed, 2 a bad command."""
-    options.framework = framework
     try:
-        root, target = _prepare(framework, cwd, options, console)
+        root, target = _prepare(cwd, options, console)
     except Stop as stop:
         console.fail(str(stop))
         return stop.code
@@ -74,17 +80,21 @@ def init(framework: str, cwd: Path, options: Options, console: Console) -> int:
     setup_key(root, options, console)
     console.line()
     module = _module(written, root)
-    if framework == "crewai":
+    if options.framework == "crewai":
         console.line(crews.next_steps(crews.crew(root), module, options))
     else:
         console.line(next_steps(module, options))
     return 0 if installed else 1
 
 
-def _prepare(framework: str, cwd: Path, options: Options, console: Console) -> tuple[Path, Path]:
+def _prepare(cwd: Path, options: Options, console: Console) -> tuple[Path, Path]:
     """The project's root and where the file goes, or `Stop` with why not."""
-    if framework not in FRAMEWORKS:
-        raise Stop(f"no template for {framework!r}; there is: {', '.join(FRAMEWORKS)}", code=2)
+    framework = options.framework
+    if framework not in MINIMUMS:
+        raise Stop(f"no template for {framework!r}; there is: {', '.join(MINIMUMS)}", code=2)
+    if framework == "openai-agents" and (options.graph or options.asynchronous):
+        flag = "--graph" if options.graph else "--async"
+        raise Stop(f"{flag} is for langgraph; the {framework} file is async already", code=2)
     if options.filename and not options.filename.endswith(".py"):
         raise Stop(f"--file must name a Python file: {options.filename!r}", code=2)
     root = project.find_root(cwd)
@@ -96,45 +106,58 @@ def _prepare(framework: str, cwd: Path, options: Options, console: Console) -> t
         )
     console.step("found", f"{project.installer(root, ['twinmemory']).name} project at {root}")
     if framework == "crewai":
-        options.parts = crews.parts(options)
-        found = crews.crew(root)
-        crews.require_version(root, console)
-        target = (cwd / options.directory).resolve() if options.directory else found.home
-        written = target / options.filename
-        if written.exists() and not options.force:
-            raise Stop(f"{_relative(written, root)} exists; --force replaces it. Nothing changed.")
-        return root, target
-    _require_langgraph(root, console)
-    _require_versions(root)
-    target = (
-        (cwd / options.directory).resolve()
-        if options.directory
-        else _graph_dir(root, options, console)
-    )
+        return root, _crew_dir(root, cwd, options, console)
+    _require_framework(root, framework, console)
+    _require_versions(root, framework)
+    if options.directory:
+        target = (cwd / options.directory).resolve()
+    elif framework == "langgraph":
+        target = _graph_dir(root, options, console)
+    else:
+        target = _agent_dir(root, console)
     written = target / options.filename
     if written.exists() and not options.force:
         raise Stop(f"{_relative(written, root)} exists; --force replaces it. Nothing changed.")
     return root, target
 
 
-def _require_langgraph(root: Path, console: Console) -> None:
-    if project.uses_langgraph(root):
+def _crew_dir(root: Path, cwd: Path, options: Options, console: Console) -> Path:
+    """Where a CrewAI crew's file goes - beside its crew - once `crews.py` has checked it."""
+    options.parts = crews.parts(options)
+    found = crews.crew(root)
+    crews.require_version(root, console)
+    target = (cwd / options.directory).resolve() if options.directory else found.home
+    written = target / options.filename
+    if written.exists() and not options.force:
+        raise Stop(f"{_relative(written, root)} exists; --force replaces it. Nothing changed.")
+    return target
+
+
+def _require_framework(root: Path, framework: str, console: Console) -> None:
+    if framework == "openai-agents" and project.shadows_agents(root):
+        console.step(
+            "warning",
+            "this project has an `agents` package of its own; the OpenAI Agents SDK is "
+            "imported as `agents` too, and the two would clash",
+        )
+    if project.uses(root, framework):
         return
-    console.step("note", "this project does not use LangGraph yet")
-    if not console.confirm("Add LangGraph to it and go on?"):
+    name = NAMES[framework]
+    console.step("note", f"this project does not use {name} yet")
+    if not console.confirm(f"Add {name} to it and go on?"):
         raise Stop(
-            "not a LangGraph project; run again with --yes to add LangGraph to it, or start a "
-            "new one with `twinmemory-cli create langgraph <name>`. Nothing changed."
+            f"this project does not use {name}; run again with --yes to add it, or start a "
+            f"new one with `twinmemory-cli create {framework} <name>`. Nothing changed."
         )
 
 
-def _require_versions(root: Path) -> None:
+def _require_versions(root: Path, framework: str) -> None:
     site = project.environment(root)
     if site is None:
         return
     stale = [
         (package, version, minimum)
-        for package, minimum in MINIMUMS.items()
+        for package, minimum in MINIMUMS[framework].items()
         if package != "twinmemory"
         and (version := project.installed(site, package))
         and project.older(version, minimum)
@@ -167,6 +190,24 @@ def _graph_dir(root: Path, options: Options, console: Console) -> Path:
     return found[chosen]
 
 
+def _agent_dir(root: Path, console: Console) -> Path:
+    """Beside the code that builds an `Agent`; with none found, the project's own package."""
+    found = project.agent_dirs(root)
+    if not found:
+        console.step("note", "found no file that builds an Agent; writing to the project's package")
+        return project.target_dir(root)
+    if len(found) == 1:
+        return found[0]
+    named = [_relative(d, root) for d in found]
+    chosen = console.choose("Which agent is memory for?", named)
+    if chosen is None:
+        raise Stop(
+            f"{len(found)} directories build an Agent ({', '.join(named)}); "
+            "name one with --dir. Nothing changed."
+        )
+    return found[named.index(chosen)]
+
+
 def _plan(root: Path, written: Path, options: Options, console: Console) -> None:
     """What `init` would do, every check made, nothing changed and nothing sent."""
     console.step("would", f"write {_relative(written, root)}")
@@ -196,8 +237,8 @@ def planned(root: Path, packages: list[str], options: Options, console: Console)
 
 
 def write(target: Path, options: Options) -> Path:
-    if options.framework == "crewai":
-        template = "crewai/memory.py.tmpl"
+    if options.framework in ("openai-agents", "crewai"):
+        template = f"{options.framework.replace('-', '_')}/memory.py.tmpl"
     elif options.asynchronous:
         template = "langgraph/memory_async.py.tmpl"
     else:
@@ -211,22 +252,18 @@ def write(target: Path, options: Options) -> Path:
 
 def requirements(root: Path, options: Options) -> list[str]:
     """What still has to be added for the file to import, each with its minimum."""
-    minimums = _minimums(options)
+    minimums = MINIMUMS[options.framework]
     missing = [p for p in minimums if not project.declares(root, p)]
     return [
         options.sdk if p == "twinmemory" and options.sdk else f"{p}>={minimums[p]}" for p in missing
     ]
 
 
-def _minimums(options: Options) -> dict[str, str]:
-    return CREWAI_MINIMUMS if options.framework == "crewai" else MINIMUMS
-
-
 def install(root: Path, options: Options, console: Console) -> bool:
     """Add what the project does not depend on yet, with its own tool; True unless that failed."""
     packages = requirements(root, options)
     if not packages:
-        console.step("kept", f"{', '.join(_minimums(options))}: already dependencies")
+        console.step("kept", f"{', '.join(MINIMUMS[options.framework])}: already dependencies")
         return True
     found = project.installer(root, packages)
     if found.requirements is not None:
@@ -285,47 +322,6 @@ def _check_key(key: str, base_url: str | None, options: Options, console: Consol
         console.step("warning", "this key only reads: saving to memory needs one that writes")
     elif checked.writes is False and "nodes" in options.parts:
         console.step("warning", "this key only reads: remember and memory_add need one that writes")
-
-
-def next_steps(module: str, options: Options) -> str:
-    nodes, tools = "nodes" in options.parts, "tools" in options.parts
-    run = "await graph.ainvoke" if options.asynchronous else "graph.invoke"
-    names = ["MemoryContext"]
-    names += ["MemoryState", "memory_prompt", "recall", "remember"] if nodes else []
-    names += ["MEMORY_TOOLS"] if tools else []
-    lines = [
-        "  Wire it in, where you build your graph:",
-        "",
-        f"    from {module} import {', '.join(sorted(names))}",
-        "",
-    ]
-    if nodes:
-        lines += [
-            "    builder = StateGraph(MemoryState, context_schema=MemoryContext)",
-            '    builder.add_node("recall", recall)',
-            '    builder.add_node("remember", remember)',
-            '    builder.add_edge(START, "recall")',
-            '    builder.add_edge("recall", "agent")    # your model node: memory_prompt(state)',
-            '    builder.add_edge("agent", "remember")  # goes in its system prompt',
-            "",
-        ]
-    if tools:
-        lines += [
-            "    # the model looks things up itself: give it the tools",
-            "    create_agent(model, tools=[*MEMORY_TOOLS, ...], context_schema=MemoryContext)",
-            "",
-        ]
-    lines += [
-        "  Run with the end user's id; the model never chooses it:",
-        "",
-        f'    {run}(inputs, config={{"configurable": {{"thread_id": "t-1"}}}},',
-        '                 context={"user_id": "dana"})',
-        "",
-        f"  The key is {env.KEY} in .env. `langgraph dev` reads .env when langgraph.json",
-        '  has "env": ".env"; a plain script loads it itself.',
-        "  `twinmemory-cli doctor` checks it all.",
-    ]
-    return "\n".join(lines)
 
 
 def _quoted(command: str) -> str:

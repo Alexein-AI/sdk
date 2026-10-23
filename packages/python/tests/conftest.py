@@ -1,14 +1,22 @@
-"""A client whose every request is answered by a function, and the requests it was sent."""
+"""A client whose every request is answered by a function, and the requests it was sent; a
+memory API that answers as the real one does; and a memory file as `init` writes it, imported
+with such a client."""
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import sys
 from collections.abc import Callable
+from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import httpx
 import pytest
 from twinmemory import AsyncMemory, Memory
+
+from twinmemory_cli.render import render
 
 Answer = Callable[[httpx.Request], httpx.Response]
 
@@ -68,3 +76,54 @@ def async_memory(answer: Answer, **kwargs: Any) -> tuple[AsyncMemory, Recorded]:
     recorded = Recorded(answer)
     http = httpx.AsyncClient(transport=httpx.MockTransport(recorded))
     return AsyncMemory("tm_test", http_client=http, **kwargs), recorded
+
+
+SEARCHED = {
+    "query": "q",
+    "found": 1,
+    "known": ["Dana lives in Lisbon."],
+    "facts": [],
+    "hits": [{"path": "passages/p1.md", "id": "p1", "text": "Dana: I moved to Lisbon."}],
+}
+
+
+def answer(request: httpx.Request) -> httpx.Response:
+    route = request.url.path.rsplit("/", 1)[-1]
+    if route == "search":
+        return ok(SEARCHED)
+    if route == "read":
+        return ok({"path": "passages/p1.md", "text": "Dana: I moved to Lisbon."})
+    if route == "add":
+        items = json.loads(request.content)["items"]
+        return ok({"accepted": len(items), "items": []}, status=202)
+    return ok()
+
+
+def routes(recorded: Recorded) -> list[str]:
+    return [r.url.path.rsplit("/", 1)[-1] for r in recorded.requests]
+
+
+def load_memory_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    template: str,
+    answer: Answer,
+    *,
+    parts: tuple[str, ...],
+    integration: str,
+    asynchronous: bool,
+) -> tuple[ModuleType, Recorded]:
+    """The file as `init` writes it, imported, its client answered by `answer` - made as the
+    file makes its own, failing open unless STRICT."""
+    path = tmp_path / "memory.py"
+    path.write_text(render(template, parts, {"version": "test", "fast": "False"}))
+    name = f"generated_{integration.replace('-', '_')}"
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, name, module)
+    spec.loader.exec_module(module)
+    made = async_memory if asynchronous else memory
+    client, recorded = made(answer, fail_open=not module.STRICT, integration=integration)
+    monkeypatch.setattr(module, "_memory", lambda: client)
+    return module, recorded

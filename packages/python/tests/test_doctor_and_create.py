@@ -11,9 +11,8 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
-import httpx
 import pytest
-from conftest import async_memory, memory, ok
+from conftest import answer, async_memory, memory, routes
 from test_cli import lint_clean
 
 from twinmemory_cli import create as creating
@@ -226,17 +225,6 @@ from langchain_core.language_models.fake_chat_models import (  # noqa: E402
 )
 from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
 
-SEARCHED = {"query": "q", "found": 1, "known": ["Dana lives in Lisbon."]}
-
-
-def answer(request: httpx.Request) -> httpx.Response:
-    route = request.url.path.rsplit("/", 1)[-1]
-    if route == "search":
-        return ok(SEARCHED)
-    if route == "add":
-        return ok({"items": [], "queued": 1, "pending": 1}, status=202)
-    return ok()
-
 
 @pytest.fixture
 def created(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
@@ -262,10 +250,6 @@ def created(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
 SEARCH_CALL = AIMessage(
     "", tool_calls=[{"name": "memory_search", "args": {"query": "home"}, "id": "c1"}]
 )
-
-
-def routes(recorded: Any) -> list[str]:
-    return [r.url.path.rsplit("/", 1)[-1] for r in recorded.requests]
 
 
 def run(graph: Any, asynchronous: bool) -> Any:

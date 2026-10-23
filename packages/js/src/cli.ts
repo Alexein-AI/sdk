@@ -2,9 +2,10 @@
  * `twinmemory-cli`, in the manner of shadcn: what it writes is the developer's own code from then
  * on, readable and editable, and nothing in this package reaches back into it.
  *
- *     twinmemory-cli init langgraph       memory for a LangGraph.js project you have
- *     twinmemory-cli create langgraph X   a new LangGraph.js project with memory wired in
- *     twinmemory-cli doctor               whether a project is set up for memory
+ *     twinmemory-cli init langgraph            memory for a LangGraph.js project you have
+ *     twinmemory-cli init openai-agents        ... or an OpenAI Agents SDK one
+ *     twinmemory-cli create <framework> X      a new project with memory wired in
+ *     twinmemory-cli doctor                    whether a project is set up for memory
  *
  * Node's standard library and the `twinmemory` client only. Never an installer of anything but the
  * packages the written files import, and never a writer of a key it was not given.
@@ -14,16 +15,19 @@ import { parseArgs } from "node:util";
 
 import { create, DEFAULT_MODEL } from "./create.js";
 import { doctor } from "./doctor.js";
-import { init, options, PARTS, type Part } from "./scaffold.js";
+import { init, MINIMUMS, options, PARTS, type Part } from "./scaffold.js";
 import { Console } from "./ui.js";
 import { VERSION } from "./version.js";
 
-const HELP = `twinmemory-cli ${VERSION} - twin memory for LangGraph.js, as code you own
+const HELP = `twinmemory-cli ${VERSION} - twin memory for LangGraph.js and the OpenAI Agents SDK,
+as code you own
 
 Usage:
-  twinmemory-cli init langgraph [options]          write memory into this project
-  twinmemory-cli create langgraph <name> [options] a new project with memory wired in
-  twinmemory-cli doctor                            check this project is set up for memory
+  twinmemory-cli init <framework> [options]          write memory into this project
+  twinmemory-cli create <framework> <name> [options] a new project with memory wired in
+  twinmemory-cli doctor                              check this project is set up for memory
+
+  <framework> is langgraph or openai-agents.
 
 What the memory file holds:
   --nodes-only          recall and remember, no tools
@@ -38,11 +42,12 @@ The key (all of it can be skipped, and done later):
 init only:
   --dir <dir>           where to write the file (default: found)
   --file <name>         the file's name (default: memory.ts)
-  --graph <name>        which graph in langgraph.json it is for
+  --graph <name>        which graph in langgraph.json it is for (langgraph)
   --force               replace a file already there
 
 create only:
-  --model <model>       initChatModel's name for it (default: ${DEFAULT_MODEL})
+  --model <model>       the model: initChatModel's name for it with langgraph (default:
+                        ${DEFAULT_MODEL}); the SDK's with openai-agents (default: its own)
 
   --yes, -y             answer yes; ask nothing
   --no-install          print install commands instead of running them
@@ -97,6 +102,7 @@ export async function main(argv: string[], given?: Console): Promise<number> {
   }
   const parts: readonly Part[] = v["nodes-only"] ? ["nodes"] : v["tools-only"] ? ["tools"] : PARTS;
   const o = options({
+    framework: framework ?? "",
     directory: v.dir,
     filename: v.file ?? "memory.ts",
     graph: v.graph,
@@ -110,17 +116,21 @@ export async function main(argv: string[], given?: Console): Promise<number> {
     sdk: v.sdk,
     dryRun: Boolean(v["dry-run"]),
   });
-  if (command === "init") return init(framework ?? "", cwd, o, console);
+  if (command === "init") return init(cwd, o, console);
   if (command === "create") {
-    if (framework !== "langgraph") {
-      console.fail(`no template for ${JSON.stringify(framework ?? "")}; there is: langgraph`);
+    if (!framework || !(framework in MINIMUMS)) {
+      const known = Object.keys(MINIMUMS).join(", ");
+      console.fail(`no template for ${JSON.stringify(framework ?? "")}; there is: ${known}`);
       return 2;
     }
     if (!name) {
-      console.fail("create needs the new project's name: twinmemory-cli create langgraph <name>");
+      console.fail(
+        `create needs the new project's name: twinmemory-cli create ${framework} <name>`,
+      );
       return 2;
     }
-    return create(name, cwd, v.model ?? DEFAULT_MODEL, o, console);
+    const model = v.model ?? (framework === "langgraph" ? DEFAULT_MODEL : "");
+    return create(name, cwd, model, o, console);
   }
   console.fail(`no command ${JSON.stringify(command)}: init, create or doctor`);
   return 2;

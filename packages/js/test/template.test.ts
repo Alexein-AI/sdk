@@ -7,84 +7,28 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { AIMessage, HumanMessage, type BaseMessage } from "@langchain/core/messages";
 import { END, MessagesValue, START, StateGraph, StateSchema } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { Memory, AuthenticationError, ServiceUnavailableError } from "twinmemory";
+import { AuthenticationError, ServiceUnavailableError } from "twinmemory";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { render } from "../src/render.js";
 import { GENERATED as ALL_GENERATED } from "./helpers.js";
+import { answer, down, loadMemoryFile, type Respond } from "./recorded.js";
 
 /** This file's own corner, so files running in parallel never remove each other's. */
 const GENERATED = ALL_GENERATED + "template/";
 
-interface Sent {
-  path: string;
-  headers: Record<string, string>;
-  body: Record<string, unknown>;
-}
-
-const SEARCHED = {
-  query: "q",
-  found: 1,
-  known: ["Dana lives in Lisbon."],
-  facts: [],
-  hits: [{ path: "passages/p1.md", id: "p1", text: "Dana: I moved to Lisbon." }],
-};
-
-function answer(path: string): Response {
-  const route = path.split("/").pop();
-  if (route === "search") return Response.json(SEARCHED);
-  if (route === "read")
-    return Response.json({ path: "passages/p1.md", text: "Dana: I moved to Lisbon." });
-  if (route === "add") return Response.json({ items: [], queued: 1, pending: 1 }, { status: 202 });
-  return Response.json({});
-}
-
-const down = () => Response.json({ detail: "rebuilding" }, { status: 503 });
-
-function client(respond: (path: string) => Response, extra: Record<string, unknown> = {}) {
-  const sent: Sent[] = [];
-  const memory = new Memory({
-    apiKey: "tm_test",
-    failOpen: true,
+/** The file as `init` writes it, imported fresh, with its client answered by `respond`. */
+const load = (parts: string[], respond: Respond = answer, { failOpen = true } = {}) =>
+  loadMemoryFile(GENERATED, "langgraph/memory.ts.tmpl", parts, respond, {
     integration: "langgraph",
-    maxRetries: 0,
-    logger: () => {},
-    fetch: async (input, init) => {
-      const path = new URL(String(input)).pathname;
-      sent.push({
-        path,
-        headers: init?.headers as Record<string, string>,
-        body: init?.body ? JSON.parse(String(init.body)) : {},
-      });
-      return respond(path);
-    },
-    ...extra,
+    failOpen,
   });
-  return { memory, sent };
-}
 
 type Module = Record<string, any>;
-let counter = 0;
-
-/** The file as `init` writes it, imported fresh, with its client answered by `respond`. */
-async function load(parts: string[], respond = answer, extra: Record<string, unknown> = {}) {
-  const dir = join(GENERATED, `memory-${process.pid}-${counter++}`);
-  mkdirSync(dir, { recursive: true });
-  const path = join(dir, "memory.ts");
-  writeFileSync(
-    path,
-    render("langgraph/memory.ts.tmpl", parts, { version: "test", fast: "false" }),
-  );
-  const module: Module = await import(pathToFileURL(path).href);
-  const { memory, sent } = client(respond, extra);
-  module.useMemory(memory);
-  return { module, sent };
-}
 
 const RUN = { context: { user_id: "dana" }, configurable: { thread_id: "t-1" } };
 const CALLS = [
@@ -204,6 +148,18 @@ describe("the written file in a graph", () => {
     expect(sent.find((s) => s.path.endsWith("/add"))!.body.items).toEqual([
       { kind: "note", session: "t-9", text: "Prefers trains." },
     ]);
+  });
+});
+
+describe("a long message", () => {
+  it("is searched by its end", async () => {
+    // The service takes a question of at most 2,000 characters; a pasted email is longer.
+    const { module, sent } = await load(["nodes"]);
+    const asked = "x".repeat(2500) + " Where do I live?";
+    await module.recall({ messages: [new HumanMessage(asked)], memory: "" }, RUN);
+    const query: string = sent[0]!.body.query as string;
+    expect(query.length).toBe(2000);
+    expect(query.endsWith("Where do I live?")).toBe(true);
   });
 });
 

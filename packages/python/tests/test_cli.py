@@ -67,7 +67,8 @@ class Project:
     ) -> tuple[int, Console]:
         console = console or Console(out=lambda _: None)
         options.setdefault("skip_key", True)
-        code = init(framework, cwd or self.root, Options(run=self._run, **options), console)
+        told = Options(framework=framework, run=self._run, **options)
+        code = init(cwd or self.root, told, console)
         return code, console
 
     def text(self, path: str) -> str:
@@ -179,7 +180,7 @@ def test_a_project_without_langgraph_stops_unless_told(project: Project) -> None
 
     code, console = project.init()
 
-    assert code == 1 and "not a LangGraph project" in said(console)
+    assert code == 1 and "this project does not use LangGraph;" in said(console)
     assert not (project.root / "memory.py").exists() and project.ran == []
 
 

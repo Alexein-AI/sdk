@@ -1,17 +1,20 @@
-# twinmemory-cli for LangGraph.js
+# twinmemory-cli for JavaScript
 
-Memory from [twin memory](https://twinmemory.dev) in a LangGraph.js project, as code you own: one
-command writes it, and from then on it is your file, in the manner of shadcn. The written code uses
-the [`twinmemory`](https://github.com/Alexein-AI/twin-memory-js) client.
+Memory from [twin memory](https://twinmemory.dev) in a LangGraph.js or OpenAI Agents SDK project,
+as code you own: one command writes it, and from then on it is your file, in the manner of shadcn.
+The written code uses the [`twinmemory`](https://github.com/Alexein-AI/twin-memory-js) client.
 
 ```bash
 npx twinmemory-cli init langgraph                 # a project you have
+npx twinmemory-cli init openai-agents             # ... or an OpenAI Agents SDK one
 npx twinmemory-cli create langgraph my-agent      # a new one, with memory wired in
 npx twinmemory-cli doctor                         # is it all set up?
 ```
 
-Node 20 or newer, LangGraph.js 1.0 or newer. For Python, see
-[`../python`](../python).
+Node 20 or newer, LangGraph.js 1.0 or newer, `@openai/agents` 0.6 or newer. For Python, see
+[`../python`](../python). The OpenAI Agents SDK has its own section,
+[below](#the-openai-agents-sdk); everything up to it is LangGraph's, and what the two share - the
+key, the presets, `doctor` - works the same for both.
 
 ## `init`
 
@@ -91,12 +94,48 @@ writes it, wired in. It takes `init`'s presets and key flags, and `--model` for 
 Checks the memory file, the dependencies and their installed versions, the key (with one free
 request) and that `.env` is not committed. Each failure says how to fix it.
 
+## The OpenAI Agents SDK
+
+`init openai-agents` makes the same checks - `@openai/agents` is a dependency or imported, 0.6 or
+newer - and writes `memory.ts` beside the file that builds your `Agent` (`new Agent(...)` or
+`Agent.create(...)`; asking when there are several, or `--dir`; with none, into `src/` or the
+root). It adds `twinmemory`, `@openai/agents` and `zod` 4 where they are missing. `--graph` is
+LangGraph's and refused here.
+
+| Name                                     | What it is                                                                                                                                                 |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recall`                                 | a `callModelInputFilter`: searches once a turn, with the user's latest message, and adds what it finds to the instructions of every model call in the turn |
+| `remember(result)`                       | saves the turn a run answered - the user's message and the final output, under the agent's name                                                            |
+| `MemoryContext`                          | `{ userId, sessionId? }`; `sessionId` groups what is saved                                                                                                 |
+| `MEMORY_TOOLS`, `MEMORY_WRITE_TOOLS`     | `memory_search` and `memory_read`, and `memory_add`: tools that take the user from the run's context                                                       |
+| `FAST`, `STRICT`, `MAX_CHARS`, `TIMEOUT` | the settings, at the top of the file                                                                                                                       |
+
+```ts
+import { MEMORY_TOOLS, type MemoryContext, recall, remember } from "./memory.js";
+
+const agent = new Agent({ name: "Assistant", tools: [...MEMORY_TOOLS] });
+const result = await run(agent, "Where do I live?", {
+  context: { userId: "dana", sessionId: "conv-7" } satisfies MemoryContext,
+  callModelInputFilter: recall,
+});
+await remember(result); // for a stream, once `completed` resolves
+```
+
+Memory goes into the instructions, not the conversation, so it is never written into a session,
+the Conversations API or `result.history`; it works the same with each. A handoff's next agent gets
+it too. A wrong key throws.
+
+`create openai-agents <name>` makes an npm project in TypeScript with `src/agent.ts`, a terminal
+chat and `memory.ts`. `--model` names the model (`MODEL` in `.env`); without it, the agent uses the
+SDK's default.
+
 ## Development
 
 ```bash
 npm install          # twinmemory comes from ../../vendor until it is on npm
 npm run check        # types, formatting, and the tests: the CLI, and every file it writes run
-                     # inside real LangGraph.js graphs, type-checked and formatted as written
+                     # inside real LangGraph.js graphs and the OpenAI Agents SDK's runner (with
+                     # a scripted model), type-checked and formatted as written
 npm run build        # dist/bin.js
 node dist/bin.js init langgraph --sdk /path/to/twin-memory-js
 ```

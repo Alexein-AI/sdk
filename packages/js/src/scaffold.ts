@@ -1,11 +1,11 @@
 /**
- * `twinmemory-cli init langgraph`: write memory into a LangGraph.js project as code its developer
- * owns.
+ * `twinmemory-cli init <framework>`: write memory into a project as code its developer owns.
  *
  * The steps, in order, each of which can stop the command before anything is written: find the
- * project, make sure it is a LangGraph one (or that adding LangGraph is wanted), make sure what is
- * installed is new enough, and pick the graph the file goes beside. Then: write the file, add the
- * packages it imports, and set up the key - which can be skipped, and added later.
+ * project, make sure it uses the framework (or that adding it is wanted), make sure what is
+ * installed is new enough, and pick where the file goes: beside the graph, or the agent. Then:
+ * write the file, add the packages it imports, and set up the key - which can be skipped, and
+ * added later.
  */
 
 import { spawnSync } from "node:child_process";
@@ -17,16 +17,28 @@ import * as project from "./project.js";
 import { render } from "./render.js";
 import type { Console } from "./ui.js";
 import { VERSION } from "./version.js";
+import { nextSteps } from "./wiring.js";
 
 /**
- * What the written file needs, at least: `StateSchema` and a run's `context` are LangGraph.js 1
- * and LangChain core 1; `failOpen` and `integration` are in the first `twinmemory` for JavaScript.
+ * What each framework's file needs, at least. Every one needs `failOpen` and `integration`, in
+ * the first `twinmemory` for JavaScript. LangGraph's: `StateSchema` and a run's `context` are
+ * LangGraph.js 1 and LangChain core 1. The OpenAI Agents SDK's: a run's `callModelInputFilter`
+ * and a result's `runContext` are in 0.6, which the file was run on as well as the newest; its
+ * tools' schemas are zod 4, which the SDK asks for.
  */
-export const MINIMUMS: Record<string, string> = {
-  twinmemory: "0.1",
-  "@langchain/langgraph": "1.0",
-  "@langchain/core": "1.0",
-  zod: "3.25",
+export const MINIMUMS: Record<string, Record<string, string>> = {
+  langgraph: {
+    twinmemory: "0.1",
+    "@langchain/langgraph": "1.0",
+    "@langchain/core": "1.0",
+    zod: "3.25",
+  },
+  "openai-agents": { twinmemory: "0.1", "@openai/agents": "0.6", zod: "4.0" },
+};
+/** How each is named to the developer. */
+export const NAMES: Record<string, string> = {
+  langgraph: "LangGraph",
+  "openai-agents": "the OpenAI Agents SDK",
 };
 export const PARTS = ["nodes", "tools"] as const;
 export type Part = (typeof PARTS)[number];
@@ -45,6 +57,7 @@ export const runCommand: Runner = (command, cwd) =>
  * somewhere other than npm (a path, while it is not published).
  */
 export interface Options {
+  framework: string;
   directory?: string;
   filename: string;
   graph?: string;
@@ -63,6 +76,7 @@ export interface Options {
 
 export function options(given: Partial<Options> = {}): Options {
   return {
+    framework: "langgraph",
     filename: "memory.ts",
     force: false,
     install: true,
@@ -87,15 +101,10 @@ export class Stop extends Error {
 }
 
 /** Run `init`; the exit code: 0 done, 1 stopped or the install failed, 2 a bad command. */
-export async function init(
-  framework: string,
-  cwd: string,
-  o: Options,
-  console: Console,
-): Promise<number> {
+export async function init(cwd: string, o: Options, console: Console): Promise<number> {
   let root: string, target: string;
   try {
-    [root, target] = await prepare(framework, cwd, o, console);
+    [root, target] = await prepare(cwd, o, console);
   } catch (error) {
     if (!(error instanceof Stop)) throw error;
     console.fail(error.message);
@@ -114,27 +123,31 @@ export async function init(
   return installed ? 0 : 1;
 }
 
-async function prepare(
-  framework: string,
-  cwd: string,
-  o: Options,
-  console: Console,
-): Promise<[string, string]> {
-  if (framework !== "langgraph")
-    throw new Stop(`no template for ${JSON.stringify(framework)}; there is: langgraph`, 2);
+async function prepare(cwd: string, o: Options, console: Console): Promise<[string, string]> {
+  const framework = o.framework;
+  if (!(framework in MINIMUMS)) {
+    const known = Object.keys(MINIMUMS).join(", ");
+    throw new Stop(`no template for ${JSON.stringify(framework)}; there is: ${known}`, 2);
+  }
+  if (framework !== "langgraph" && o.graph !== undefined)
+    throw new Stop(`--graph is for langgraph; ${framework} has no langgraph.json`, 2);
   if (!/\.[cm]?ts$/.test(o.filename))
     throw new Stop(`--file must name a TypeScript file: ${JSON.stringify(o.filename)}`, 2);
   const root = project.findRoot(cwd);
   if (!root) {
     throw new Stop(
       "no JavaScript project here (no package.json or langgraph.json at or above this directory). " +
-        "Run it from your project, or start one with `twinmemory-cli create langgraph <name>`.",
+        `Run it from your project, or start one with \`twinmemory-cli create ${framework} <name>\`.`,
     );
   }
   console.step("found", `${project.installer(root, []).name} project at ${root}`);
-  await requireLanggraph(root, console);
-  requireVersions(root);
-  const target = o.directory ? resolve(cwd, o.directory) : await graphDir(root, o, console);
+  await requireFramework(root, framework, console);
+  requireVersions(root, framework);
+  const target = o.directory
+    ? resolve(cwd, o.directory)
+    : framework === "langgraph"
+      ? await graphDir(root, o, console)
+      : await agentDir(root, console);
   const written = join(target, o.filename);
   if (existsSync(written) && !o.force) {
     throw new Stop(`${shown(written, root)} exists; --force replaces it. Nothing changed.`);
@@ -142,19 +155,20 @@ async function prepare(
   return [root, target];
 }
 
-async function requireLanggraph(root: string, console: Console): Promise<void> {
-  if (project.usesLanggraph(root)) return;
-  console.step("note", "this project does not use LangGraph yet");
-  if (!(await console.confirm("Add LangGraph to it and go on?"))) {
+async function requireFramework(root: string, framework: string, console: Console): Promise<void> {
+  if (project.uses(root, framework)) return;
+  const name = NAMES[framework]!;
+  console.step("note", `this project does not use ${name} yet`);
+  if (!(await console.confirm(`Add ${name} to it and go on?`))) {
     throw new Stop(
-      "not a LangGraph project; run again with --yes to add LangGraph to it, or start a new one " +
-        "with `twinmemory-cli create langgraph <name>`. Nothing changed.",
+      `this project does not use ${name}; run again with --yes to add it, or start a new one ` +
+        `with \`twinmemory-cli create ${framework} <name>\`. Nothing changed.`,
     );
   }
 }
 
-function requireVersions(root: string): void {
-  const stale = Object.entries(MINIMUMS)
+function requireVersions(root: string, framework: string): void {
+  const stale = Object.entries(MINIMUMS[framework]!)
     .filter(([name]) => name !== "twinmemory")
     .map(([name, minimum]) => [name, project.installed(root, name), minimum] as const)
     .filter(([, version, minimum]) => version && project.older(version, minimum));
@@ -191,19 +205,41 @@ async function graphDir(root: string, o: Options, console: Console): Promise<str
   return found[chosen]!;
 }
 
+/** Beside the code that builds an `Agent`; with none found, `src/` or the root. */
+async function agentDir(root: string, console: Console): Promise<string> {
+  const found = project.agentDirs(root);
+  if (!found.length) {
+    console.step("note", "found no file that builds an Agent; writing to src/ or the root");
+    return project.targetDir(root);
+  }
+  if (found.length === 1) return found[0]!;
+  const named = found.map((d) => shown(d, root));
+  const chosen = await console.choose("Which agent is memory for?", named);
+  if (chosen === undefined) {
+    throw new Stop(
+      `${found.length} directories build an Agent (${named.join(", ")}); name one with --dir. ` +
+        "Nothing changed.",
+    );
+  }
+  return found[named.indexOf(chosen)]!;
+}
+
 export function write(target: string, o: Options): string {
   mkdirSync(target, { recursive: true });
   const written = join(target, o.filename);
   writeFileSync(
     written,
-    render("langgraph/memory.ts.tmpl", o.parts, { version: VERSION, fast: String(o.fast) }),
+    render(`${o.framework.replace("-", "_")}/memory.ts.tmpl`, o.parts, {
+      version: VERSION,
+      fast: String(o.fast),
+    }),
   );
   return written;
 }
 
 /** What still has to be added for the file to import, each with its minimum. */
 export function requirements(root: string, o: Options): string[] {
-  return Object.entries(MINIMUMS)
+  return Object.entries(MINIMUMS[o.framework]!)
     .filter(([name]) => !project.declares(root, name))
     .map(([name, minimum]) => (name === "twinmemory" && o.sdk ? o.sdk : `${name}@>=${minimum}`));
 }
@@ -235,7 +271,7 @@ function plan(root: string, written: string, o: Options, console: Console): void
 export function install(root: string, o: Options, console: Console): boolean {
   const packages = requirements(root, o);
   if (!packages.length) {
-    console.step("kept", `${Object.keys(MINIMUMS).join(", ")}: already dependencies`);
+    console.step("kept", `${Object.keys(MINIMUMS[o.framework]!).join(", ")}: already dependencies`);
     return true;
   }
   const command = project.installer(root, packages).command;
@@ -288,52 +324,6 @@ export async function setupKey(root: string, o: Options, console: Console): Prom
   if (checked.writes === false && o.parts.includes("nodes")) {
     console.step("warning", "this key only reads: remember and memory_add need one that writes");
   }
-}
-
-export function nextSteps(o: Options): string {
-  const nodes = o.parts.includes("nodes");
-  const tools = o.parts.includes("tools");
-  const module = "./" + o.filename.replace(/\.([cm]?)ts$/, ".$1js");
-  const names = [
-    "MemoryContext",
-    ...(nodes ? ["MemoryState", "memoryPrompt", "recall", "remember"] : []),
-    ...(tools ? ["MEMORY_TOOLS"] : []),
-  ];
-  const lines = [
-    "  Wire it in, where you build your graph:",
-    "",
-    `    import { ${names.join(", ")} } from "${module}";`,
-    "",
-  ];
-  if (nodes) {
-    lines.push(
-      "    const graph = new StateGraph(MemoryState, MemoryContext)",
-      '      .addNode("recall", recall)',
-      '      .addNode("remember", remember)',
-      '      .addEdge(START, "recall")',
-      '      .addEdge("recall", "agent")   // your model node: memoryPrompt(state)',
-      '      .addEdge("agent", "remember") // goes in its system prompt',
-      "",
-    );
-  }
-  if (tools) {
-    lines.push(
-      "    // the model looks things up itself: give it the tools",
-      "    createAgent({ model, tools: [...MEMORY_TOOLS], contextSchema: MemoryContext });",
-      "",
-    );
-  }
-  lines.push(
-    "  Run with the end user's id; the model never chooses it:",
-    "",
-    '    await graph.invoke(inputs, { context: { user_id: "dana" },',
-    '                                 configurable: { thread_id: "t-1" } });',
-    "",
-    `  The key is ${env.KEY} in .env. \`langgraph dev\` reads .env when langgraph.json`,
-    '  has "env": ".env"; a plain script loads it itself.',
-    "  `npx twinmemory-cli doctor` checks it all.",
-  );
-  return lines.join("\n");
 }
 
 export function shown(path: string, root: string): string {
