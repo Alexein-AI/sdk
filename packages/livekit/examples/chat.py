@@ -33,8 +33,18 @@ INSTRUCTIONS = (
 )
 
 
+def shown(chat_ctx: llm.ChatContext) -> list[str]:
+    """The passages recall put in front of the model this turn, one per earlier conversation."""
+    for message in chat_ctx.messages():
+        text = message.text_content or ""
+        if "<memory>" in text:
+            inside = text.split("<memory>\n", 1)[1].split("\n</memory>", 1)[0]
+            return [line.removeprefix("- ") for line in inside.splitlines() if line.strip()]
+    return []
+
+
 class StandIn(llm.LLM):
-    """A model that only says whether it was shown memory, and the first lines of it."""
+    """A model that only says how much memory it was shown; the passages are printed above it."""
 
     def chat(self, *, chat_ctx: llm.ChatContext, **kwargs: Any) -> llm.LLMStream:
         return _Said(self, chat_ctx=chat_ctx, tools=[], conn_options=DEFAULT_API_CONNECT_OPTIONS)
@@ -42,14 +52,9 @@ class StandIn(llm.LLM):
 
 class _Said(llm.LLMStream):
     async def _run(self) -> None:
-        shown = [
-            m.text_content or ""
-            for m in self._chat_ctx.messages()
-            if "<memory>" in (m.text_content or "")
-        ]
-        if shown:
-            lines = shown[-1].split("<memory>\n", 1)[1].split("\n</memory>", 1)[0].splitlines()
-            reply = f"(stand-in model) I was shown {len(lines)} memories, first: {lines[0][:160]}"
+        passages = shown(self._chat_ctx)
+        if passages:
+            reply = f"(stand-in model) I was shown the {len(passages)} passages printed above."
         else:
             reply = "(stand-in model) I was shown no memory for this turn."
         self._event_ch.send_nowait(
@@ -85,6 +90,8 @@ class ChatAgent(TwinMemoryAgent):
         elif not info.reused:
             how = "timed out" if info.timed_out else "failed" if info.failed else "ok"
             print(f"   [memory: {info.chars} chars in {info.ms:.0f} ms, {how}]")
+            for n, passage in enumerate(shown(chat_ctx), 1):
+                print(f"   [{n}] {passage}")
         async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
             yield chunk  # pyright: ignore[reportReturnType]
 
