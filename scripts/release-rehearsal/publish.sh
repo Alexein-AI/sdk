@@ -36,12 +36,12 @@ js_version=$(node -p "require('$js_sdk/package.json').version")
 unpublish_if_there "twinmemory@$js_version"
 (cd "$js_sdk" && npm_publish --ignore-scripts)
 
-say "twinmemory-cli (JavaScript) from packages/langgraph-js"
-cli_js="$repo/packages/langgraph-js"
+say "twinmemory-cli (JavaScript) from packages/js"
+cli_js="$repo/packages/js"
 (cd "$cli_js" && npm run build --silent)
 # The checkout depends on the client by path, for development; what is published depends on it by
 # version, as the release does.
-staged="$work/langgraph-js"
+staged="$work/js"
 mkdir -p "$staged" && cp -R "$cli_js/package.json" "$cli_js/README.md" "$cli_js/CHANGELOG.md" "$cli_js/LICENSE" "$cli_js/dist" "$cli_js/templates" "$staged/"
 (cd "$staged" && npm pkg set "dependencies.twinmemory=^$js_version")
 cli_js_version=$(node -p "require('$staged/package.json').version")
@@ -54,8 +54,8 @@ py_publish() { uv publish --publish-url "$pypi_upload" --username rehearsal --pa
 say "twinmemory (Python) from $py_sdk"
 (cd "$py_sdk" && rm -rf dist && uv build -q && py_publish dist/*)
 
-say "twinmemory-cli (Python) from packages/langgraph-python"
-(cd "$repo/packages/langgraph-python" && rm -rf dist && uv build -q && py_publish dist/*)
+say "twinmemory-cli (Python) from packages/python"
+(cd "$repo/packages/python" && rm -rf dist && uv build -q && py_publish dist/*)
 
 say "published"
 for name in twinmemory twinmemory-cli; do

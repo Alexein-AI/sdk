@@ -11,7 +11,7 @@ npx twinmemory-cli doctor                         # is it all set up?
 ```
 
 Node 20 or newer, LangGraph.js 1.0 or newer. For Python, see
-[`../langgraph-python`](../langgraph-python).
+[`../python`](../python).
 
 ## `init`
 

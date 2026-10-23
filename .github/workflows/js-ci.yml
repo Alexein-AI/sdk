@@ -1,19 +1,19 @@
-# twinmemory-cli for LangGraph.js (packages/langgraph-js). Until the twinmemory client is on npm it
+# twinmemory-cli for JavaScript (packages/js). Until the twinmemory client is on npm it
 # comes from a checkout of twin-memory-js beside this repository's (package.json, "file:"), so both
 # are checked out side by side, and the client is built first. That repository is private: the
 # TWIN_MEMORY_JS_TOKEN secret is a fine-grained token that can read it. TWIN_MEMORY_JS_REF (a
 # variable) picks the branch, main by default.
-name: langgraph-js
+name: js
 
 on:
   pull_request:
-    paths: ["packages/langgraph-js/**", ".github/workflows/langgraph-js-*.yml"]
+    paths: ["packages/js/**", ".github/workflows/js-*.yml"]
   push:
     branches: [main]
-    paths: ["packages/langgraph-js/**", ".github/workflows/langgraph-js-*.yml"]
+    paths: ["packages/js/**", ".github/workflows/js-*.yml"]
 
 concurrency:
-  group: langgraph-js-${{ github.ref }}
+  group: js-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -41,7 +41,7 @@ jobs:
       - name: the client, built
         working-directory: twin-memory-js
         run: npm ci && npm run build
-      - working-directory: twin-memory-integrations/packages/langgraph-js
+      - working-directory: twin-memory-integrations/packages/js
         run: |
           npm ci
           npx tsc --noEmit

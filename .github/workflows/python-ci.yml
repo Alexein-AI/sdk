@@ -1,19 +1,19 @@
-# twinmemory-cli for LangGraph (packages/langgraph-python). Until the twinmemory client is on PyPI
+# twinmemory-cli for Python (packages/python). Until the twinmemory client is on PyPI
 # it comes from a checkout of twin-memory-python beside this repository's
-# (packages/langgraph-python/pyproject.toml, tool.uv.sources), so both are checked out side by side.
+# (packages/python/pyproject.toml, tool.uv.sources), so both are checked out side by side.
 # That repository is private: the TWIN_MEMORY_PYTHON_TOKEN secret is a fine-grained token that can
 # read it. TWIN_MEMORY_PYTHON_REF (a variable) picks the branch, main by default.
-name: langgraph-python
+name: python
 
 on:
   pull_request:
-    paths: ["packages/langgraph-python/**", ".github/workflows/langgraph-python-*.yml"]
+    paths: ["packages/python/**", ".github/workflows/python-*.yml"]
   push:
     branches: [main]
-    paths: ["packages/langgraph-python/**", ".github/workflows/langgraph-python-*.yml"]
+    paths: ["packages/python/**", ".github/workflows/python-*.yml"]
 
 concurrency:
-  group: langgraph-python-${{ github.ref }}
+  group: python-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
         python: ["3.10", "3.13"]
     defaults:
       run:
-        working-directory: twin-memory-integrations/packages/langgraph-python
+        working-directory: twin-memory-integrations/packages/python
     steps:
       - uses: actions/checkout@v4
         with:

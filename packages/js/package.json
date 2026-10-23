@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Alexein-AI/twin-memory-integrations.git",
-    "directory": "packages/langgraph-js"
+    "directory": "packages/js"
   },
   "keywords": [
     "memory",
