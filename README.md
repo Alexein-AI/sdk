@@ -104,6 +104,12 @@ like a voice agent's turn. `result.filtered` says whether the filter ran.
 
 Every result is a typed object; `.raw` holds the JSON as the API sent it.
 
+## LangGraph
+
+`uvx twinmemory-cli init langgraph` writes memory into a LangGraph project as code you own, using
+this client; `twinmemory-cli` lives in
+[twin-memory-integrations](https://github.com/Alexein-AI/twin-memory-integrations/tree/main/packages/python).
+
 ## Async
 
 ```python
@@ -117,7 +123,8 @@ async with AsyncMemory() as memory:
 
 ## Errors
 
-Every error is a `TwinMemoryError` with `status`, the API's `detail`, and `request_id`.
+Every error is a `TwinMemoryError` with `status`, the API's `detail`, `request_id`, and `outage`:
+whether it means memory is unavailable rather than that the request or key is wrong.
 
 | Error                       | When                                                      |
 | --------------------------- | --------------------------------------------------------- |
@@ -132,6 +139,16 @@ Every error is a `TwinMemoryError` with `status`, the API's `detail`, and `reque
 
 429 and 503 are retried twice, waiting as the `Retry-After` header says. Connection errors are retried the
 same way.
+
+### Failing open
+
+`Memory(fail_open=True)` rides out an outage - memory unreachable, timing out, or answering 429 or
+5xx after its retries: `search` answers an empty result with `failed=True`, `add` saves nothing and
+answers `failed=True`, and each logs a warning on the `twinmemory` logger. A wrong key or a wrong
+request (401, 403, 400) still raises. Pair it with a short `timeout` where a reply cannot wait.
+
+`Memory(integration="langgraph")` adds a word to the `User-Agent`, so the console's request log shows
+where requests came from.
 
 ## Development
 

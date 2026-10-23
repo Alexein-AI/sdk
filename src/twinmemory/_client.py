@@ -8,8 +8,10 @@ how it is sent: the key, the retries, and the error a failed response becomes.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import random
+import re
 import time
 from collections.abc import Awaitable, Sequence
 from types import TracebackType
@@ -55,6 +57,11 @@ DEFAULT_RETRIES = 2
 _RETRIED = {429, 503}
 # A Retry-After past this is not waited out; the error is raised instead.
 _LONGEST_WAIT = 60.0
+# What `integration=` may add to the User-Agent: one short token, so the request log can count
+# requests by where they came from (`twinmemory-python/0.2.0 langgraph`).
+_INTEGRATION = re.compile(r"[a-z0-9][a-z0-9._-]{0,31}")
+
+log = logging.getLogger("twinmemory")
 
 
 class _Sends(Protocol):
@@ -65,7 +72,17 @@ class _AsyncSends(Protocol):
     def __call__(self, call: _calls.Call[T], user: str | None) -> Awaitable[T]: ...
 
 
-def _settings(api_key: str | None, base_url: str | None) -> tuple[str, dict[str, str]]:
+def _ride_out(error: TwinMemoryError, fail_open: bool, what: str, user: str) -> None:
+    """Raise `error` unless the client fails open and it is an outage; then log it, and the
+    caller answers empty. Memory being down costs a reply its memory, not the reply."""
+    if not (fail_open and error.outage):
+        raise error
+    log.warning("twin memory unavailable, %s for %s skipped: %s", what, user, error)
+
+
+def _settings(
+    api_key: str | None, base_url: str | None, integration: str | None
+) -> tuple[str, dict[str, str]]:
     key = api_key if api_key is not None else os.environ.get("TWIN_MEMORY_API_KEY", "")
     if not key:
         raise TwinMemoryError(
@@ -73,10 +90,12 @@ def _settings(api_key: str | None, base_url: str | None) -> tuple[str, dict[str,
             "console, under API keys."
         )
     url = base_url or os.environ.get("TWIN_MEMORY_BASE_URL") or DEFAULT_BASE_URL
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "User-Agent": f"twinmemory-python/{__version__}",
-    }
+    agent = f"twinmemory-python/{__version__}"
+    if integration is not None:
+        if not _INTEGRATION.fullmatch(integration):
+            raise ValueError(f"integration must be one short lowercase word: {integration!r}")
+        agent += f" {integration}"
+    headers = {"Authorization": f"Bearer {key}", "User-Agent": agent}
     return url.rstrip("/"), headers
 
 
@@ -138,11 +157,14 @@ class Memory:
         base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_RETRIES,
+        fail_open: bool = False,
+        integration: str | None = None,
         http_client: httpx.Client | None = None,
     ) -> None:
-        url, headers = _settings(api_key, base_url)
+        url, headers = _settings(api_key, base_url, integration)
         self.base_url = url
         self.max_retries = max_retries
+        self.fail_open = fail_open
         self._http = http_client or httpx.Client(timeout=timeout)
         self._http.base_url = url
         self._http.headers.update(headers)
@@ -153,7 +175,7 @@ class Memory:
 
     def user(self, user_id: str) -> User:
         """The memory of one of your end users, by your own id for them."""
-        return User(self._send, _calls.checked_user(user_id))
+        return User(self._send, _calls.checked_user(user_id), fail_open=self.fail_open)
 
     def close(self) -> None:
         self._http.close()
@@ -197,11 +219,14 @@ class AsyncMemory:
         base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_RETRIES,
+        fail_open: bool = False,
+        integration: str | None = None,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
-        url, headers = _settings(api_key, base_url)
+        url, headers = _settings(api_key, base_url, integration)
         self.base_url = url
         self.max_retries = max_retries
+        self.fail_open = fail_open
         self._http = http_client or httpx.AsyncClient(timeout=timeout)
         self._http.base_url = url
         self._http.headers.update(headers)
@@ -212,7 +237,7 @@ class AsyncMemory:
 
     def user(self, user_id: str) -> AsyncUser:
         """The memory of one of your end users, by your own id for them."""
-        return AsyncUser(self._send, _calls.checked_user(user_id))
+        return AsyncUser(self._send, _calls.checked_user(user_id), fail_open=self.fail_open)
 
     async def close(self) -> None:
         await self._http.aclose()
@@ -249,9 +274,10 @@ class AsyncMemory:
 class User:
     """One end user's memory. Every call sends their id as `X-Twin-Account`."""
 
-    def __init__(self, send: _Sends, user_id: str) -> None:
+    def __init__(self, send: _Sends, user_id: str, *, fail_open: bool = False) -> None:
         self._send = send
         self.id = user_id
+        self._fail_open = fail_open
 
     def __repr__(self) -> str:
         return f"User({self.id!r})"
@@ -278,7 +304,11 @@ class User:
             "about": about, "expires": expires, "at": at, "metadata": metadata,
         }  # fmt: skip
         calls = _calls.add(items, wait=wait, defaults=defaults)
-        return _calls.merged([self._send(c, self.id) for c in calls])
+        try:
+            return _calls.merged([self._send(c, self.id) for c in calls])
+        except TwinMemoryError as error:
+            _ride_out(error, self._fail_open, "add", self.id)
+            return AddResult([], 0, 0, failed=True)
 
     def search(
         self,
@@ -292,7 +322,11 @@ class User:
         """What memory holds for a question. `fast` skips the model filter: free and quicker,
         less precise. `before` and `after` are ISO dates."""
         call = _calls.search(query, before=before, after=after, scope=scope, fast=fast)
-        return self._send(call, self.id)
+        try:
+            return self._send(call, self.id)
+        except TwinMemoryError as error:
+            _ride_out(error, self._fail_open, "search", self.id)
+            return SearchResult.unavailable(query)
 
     def grep(self, pattern: str, *, scope: str | None = None, limit: int = 50) -> GrepResult:
         """Every passage holding an exact phrase, ignoring case."""
@@ -357,9 +391,10 @@ class User:
 class AsyncUser:
     """`User`, for asyncio: the same methods, awaited."""
 
-    def __init__(self, send: _AsyncSends, user_id: str) -> None:
+    def __init__(self, send: _AsyncSends, user_id: str, *, fail_open: bool = False) -> None:
         self._send = send
         self.id = user_id
+        self._fail_open = fail_open
 
     def __repr__(self) -> str:
         return f"AsyncUser({self.id!r})"
@@ -386,7 +421,11 @@ class AsyncUser:
             "about": about, "expires": expires, "at": at, "metadata": metadata,
         }  # fmt: skip
         calls = _calls.add(items, wait=wait, defaults=defaults)
-        return _calls.merged([await self._send(c, self.id) for c in calls])
+        try:
+            return _calls.merged([await self._send(c, self.id) for c in calls])
+        except TwinMemoryError as error:
+            _ride_out(error, self._fail_open, "add", self.id)
+            return AddResult([], 0, 0, failed=True)
 
     async def search(
         self,
@@ -400,7 +439,11 @@ class AsyncUser:
         """What memory holds for a question. `fast` skips the model filter: free and quicker,
         less precise. `before` and `after` are ISO dates."""
         call = _calls.search(query, before=before, after=after, scope=scope, fast=fast)
-        return await self._send(call, self.id)
+        try:
+            return await self._send(call, self.id)
+        except TwinMemoryError as error:
+            _ride_out(error, self._fail_open, "search", self.id)
+            return SearchResult.unavailable(query)
 
     async def grep(self, pattern: str, *, scope: str | None = None, limit: int = 50) -> GrepResult:
         """Every passage holding an exact phrase, ignoring case."""
