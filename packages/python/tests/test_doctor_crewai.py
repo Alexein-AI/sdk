@@ -102,3 +102,20 @@ def test_doctor_in_a_crew_without_the_file_names_init_crewai(tmp_path: Path) -> 
     console = quiet()
     assert doctor(tmp_path, console) == 1
     assert "twinmemory-cli init crewai" in said(console)
+
+
+def test_doctor_says_what_to_watch_for_on_a_newer_crewai(tmp_path: Path) -> None:
+    healthy(tmp_path, crewai="1.17.0")
+    console = quiet()
+    doctor(tmp_path, console)
+    assert "warnings on the `twinmemory` logger" in said(console)
+
+
+def test_doctor_in_a_flow_says_flows_are_not_supported(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "f"\ndependencies = ["crewai>=1.15"]\n\n[tool.crewai]\ntype = "flow"\n'
+    )
+    console = quiet()
+    assert doctor(tmp_path, console) == 1
+    text = said(console)
+    assert "Flows are not supported yet" in text and "init crewai" not in text

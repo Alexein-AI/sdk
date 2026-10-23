@@ -155,3 +155,16 @@ def test_the_command_line_takes_crewai(project: Project, monkeypatch: pytest.Mon
 def test_an_unknown_framework_names_both(project: Project) -> None:
     code, console = project.init(framework="autogen")
     assert code == 2 and "langgraph" in said(console) and "crewai" in said(console)
+
+
+def test_a_newer_crewai_says_what_to_watch_for(project: Project) -> None:
+    crewai_project(project)
+    project.installed(crewai="1.17.0")
+    _, console = project.init(framework="crewai")
+    assert "warnings on the `twinmemory` logger" in said(console)
+
+
+def test_crewai_not_found_says_its_version_was_not_checked(project: Project) -> None:
+    crewai_project(project)
+    code, console = project.init(framework="crewai")
+    assert code == 0 and "crewai version not checked" in said(console)

@@ -26,7 +26,11 @@ def doctor(cwd: Path, console: Console) -> int:
         console.fail("no Python project here; run it from your project.")
         return 1
     console.line(f"twinmemory-cli {__version__} - checking {root}")
-    framework = "crewai" if project.crew(root) is not None else "langgraph"
+    found = project.crew(root)
+    if found is not None and found.kind == "flow":
+        console.fail("this is a CrewAI Flow; Flows are not supported yet.")
+        return 1
+    framework = "crewai" if found is not None else "langgraph"
     written = _written(root, framework, console)
     minimums = _minimums({f for _, f in written} or {framework})
     results = [bool(written), _dependencies(root, minimums, console)]
@@ -124,7 +128,9 @@ def _versions(root: Path, minimums: dict[str, str], console: Console) -> bool:
             _mark(
                 console,
                 None,
-                f"crewai {version} is newer than this release was tested with ({tested})",
+                f"crewai {version} is newer than this release was tested with ({tested}); "
+                "it should work - if tasks stop recalling or saving memory, "
+                "look for warnings on the `twinmemory` logger",
             )
         else:
             _mark(console, True, f"{package} {version}")

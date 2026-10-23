@@ -177,6 +177,18 @@ def test_a_user_with_no_memory_yet_recalls_nothing(
     assert module.TwinMemory().recall("anything") == []
 
 
+def test_one_huge_line_is_cut_to_max_chars(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def huge(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/search"):
+            return ok({"query": "q", "found": 1, "known": ["x" * 10_000]})
+        return answering(request)
+
+    module, _ = load(tmp_path, monkeypatch, huge)
+    module.whose({"user_id": "dana"})
+    (match,) = module.TwinMemory().recall("anything")
+    assert len(match.record.content) == module.MAX_CHARS
+
+
 # ------------------------------------------------------------------------------------ save --
 
 
@@ -211,6 +223,8 @@ def test_an_empty_result_saves_nothing(tmp_path: Path, monkeypatch: pytest.Monke
     blank = "Task: Plan a weekend.\nAgent: Travel planner\nExpected result: A plan.\nResult:   "
     assert memory_.extract_memories(blank) == []
     assert memory_.extract_memories(blank.rstrip() + " Porto.") != []
+    # an answer that itself ends with "Result:" is still an answer
+    assert memory_.extract_memories(blank.rstrip() + " The report.\nResult:") != []
     module.whose({"user_id": "dana"})
     memory_.remember_many(["", "  "], agent_role="Travel planner")
     assert "add" not in recorder.routes()
