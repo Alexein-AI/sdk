@@ -13,7 +13,8 @@ from twinmemory import Hit
 
 from twinmemory_livekit import account_id
 from twinmemory_livekit._identity import from_metadata, from_participant
-from twinmemory_livekit._recall import block, place, question, wrap
+from twinmemory_livekit._lines import said
+from twinmemory_livekit._recall import place, question, wrap
 
 # ---------------------------------------------------------------------------- identity --
 
@@ -87,16 +88,83 @@ def test_a_short_answer_is_searched_with_what_it_answers() -> None:
 
 
 def test_small_talk_is_not_searched() -> None:
-    for said in ("Thanks!", "okay", "Thank you.", "hmm", "   "):
-        assert question(_ctx(("assistant", "Done."), ("user", said))) is None
+    for words in ("Thanks!", "okay", "Thank you.", "hmm", "   "):
+        assert question(_ctx(("assistant", "Done."), ("user", words))) is None
     assert question(_ctx(("user", "thanks, and what's my gate?"))) is not None
 
 
-def test_one_long_passage_does_not_hide_the_short_ones_after_it() -> None:
-    hits = [Hit("p", "1", "a" * 50), Hit("p", "2", "b" * 500), Hit("p", "3", "c" * 50)]
-    made = block(["Lives in Lisbon."], hits, max_chars=200)
-    assert "Lives in Lisbon." in made and "a" * 50 in made and "c" * 50 in made
-    assert "b" * 500 not in made and len(made) <= 200
+def _passage(title: str, *turns: tuple[str, str, str], day: str = "23 Oct 2026") -> Hit:
+    """A conversation passage as the engine writes one (`passages.turn` and `_header`)."""
+    said_ = " ".join(f"**{who}** {at} · {text}" for who, at, text in turns)
+    header = f"Context: messages (memory), {day}. user and assistant, in “{title}”. Turns 1-4."
+    return Hit("passages/memory/messages/th_1/p_0001.md", "p1", f"{header} {said_}")
+
+
+LOCKER = _passage(
+    "hi",
+    ("user", "11:24", "hi"),
+    ("assistant", "11:24", "Hello! How can I help?"),
+    ("user", "11:25", "My locker code at the Alfama gym is 4417."),
+    ("assistant", "11:25", "Got it, your locker code is 4417."),
+)
+ASKED = _passage(
+    "What is my locker code at the gym?",
+    ("user", "11:26", "What is my locker code at the gym?"),
+    ("assistant", "11:26", "It's 4417."),
+)
+
+
+def test_recall_is_what_the_caller_said_not_whole_conversations() -> None:
+    lines = said([], [LOCKER], "where is the gym", agent=False, max_chars=1500)
+    assert lines == ["23 Oct 2026 11:25, they said: My locker code at the Alfama gym is 4417."]
+
+
+def test_the_agents_words_only_when_asked_for() -> None:
+    lines = said([], [LOCKER], "where is the gym", agent=True, max_chars=1500)
+    assert "23 Oct 2026 11:25, you said: Got it, your locker code is 4417." in lines
+
+
+def test_a_short_answer_comes_with_the_question_it_answers() -> None:
+    hit = _passage(
+        "trip",
+        ("assistant", "09:00", "Should I book Lisbon or Porto?"),
+        ("user", "09:01", "the second one"),
+        ("assistant", "09:01", "Booked."),
+        ("user", "09:02", "thanks"),
+    )
+    lines = said([], [hit], "which city", agent=False, max_chars=1500)
+    assert lines == [
+        "23 Oct 2026 09:01, you asked “Should I book Lisbon or Porto?”, they said: the second one"
+    ]
+
+
+def test_an_old_question_comes_after_what_answers_it_and_the_same_question_not_at_all() -> None:
+    query = "What is my locker code at the gym?"
+    # Word match ranks the old question first; the line that answers it still leads.
+    lines = said([], [ASKED, LOCKER], query, agent=False, max_chars=1500)
+    assert lines == ["23 Oct 2026 11:25, they said: My locker code at the Alfama gym is 4417."]
+    lines = said([], [ASKED, LOCKER], "the gym code?", agent=False, max_chars=1500)
+    assert lines[0].endswith("4417.") and lines[1].endswith("at the gym?")
+
+
+def test_each_thing_said_once_and_within_the_budget() -> None:
+    again = _passage("again", ("user", "12:00", "My locker code at the Alfama gym is 4417."))
+    many = [_passage(f"t{n}", ("user", "10:00", f"Fact number {n} " + "x" * 80)) for n in range(40)]
+    lines = said(["Lives in Lisbon."], [LOCKER, again, *many], "q", agent=False, max_chars=500)
+    assert lines[0] == "Lives in Lisbon."  # what is known leads
+    assert sum("4417" in line for line in lines) == 1
+    assert sum(len(line) + 3 for line in lines) <= 500
+
+
+def test_a_note_is_its_text_once() -> None:
+    note = Hit(
+        "passages/memory/notes/n.md",
+        "n1",
+        "Context: notes (memory), 23 Oct 2026. Prefers a window seat.. Prefers a window seat.",
+    )
+    assert said([], [note], "seat", agent=False, max_chars=1500) == [
+        "23 Oct 2026, noted: Prefers a window seat."
+    ]
 
 
 def test_nothing_remembered_can_close_the_memory_wrapper_or_look_like_markup() -> None:

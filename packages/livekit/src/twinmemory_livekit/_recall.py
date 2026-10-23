@@ -22,7 +22,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from livekit.agents import llm
-from twinmemory import AsyncUser, Hit, NotFoundError, SearchResult, TwinMemoryError
+from twinmemory import AsyncUser, NotFoundError, SearchResult, TwinMemoryError
+
+from twinmemory_livekit._lines import said
 
 log = logging.getLogger("twinmemory.livekit")
 
@@ -89,19 +91,6 @@ def question(chat_ctx: llm.ChatContext) -> tuple[llm.ChatMessage, str] | None:
     return None
 
 
-def block(known: list[str], hits: list[Hit], max_chars: int) -> str:
-    """What is known, then whole passages in rank order, each kept if it fits: one long passage
-    does not hide the shorter ones after it."""
-    lines = [" ".join(k.split()) for k in known]
-    used = sum(len(line) + 3 for line in lines)
-    for hit in hits:
-        text = " ".join(hit.text.split())
-        if text and used + len(text) + 3 <= max_chars:
-            lines.append(text)
-            used += len(text) + 3
-    return "\n".join(f"- {line}" for line in lines)
-
-
 # Every character a model may read as an angle bracket, and the ampersand that starts an entity:
 # with none of them left, no tag and no `&lt;` can be spelled, however it is hidden, and the rest
 # of the text (m², 10⁶, an emoji, a Persian word) is left exactly as it was said.
@@ -151,6 +140,7 @@ class Recall:
     timeout: float
     max_chars: int
     fast: bool
+    agent: bool = True
     since: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     last: RecallInfo | None = None
     _known: list[str] = field(default_factory=list[str])
@@ -222,7 +212,8 @@ class Recall:
         found = await self._ask(user, query, scope=_EARLIER_CALLS, before=self.since)
         if found is None:
             return None
-        return block(self._known, found.hits, self.max_chars)
+        lines = said(self._known, found.hits, query, agent=self.agent, max_chars=self.max_chars)
+        return "\n".join(f"- {line}" for line in lines)
 
     async def _about(self, user: AsyncUser) -> None:
         found = await self._ask(user, _ABOUT)

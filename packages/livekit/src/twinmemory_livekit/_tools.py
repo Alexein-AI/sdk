@@ -1,0 +1,112 @@
+"""The memory tools a model calls when it decides to: `memory_search`, `memory_read` and, in tools
+mode, `memory_add` - the names LangGraph's and the MCP server's tools have.
+
+Every tool acts on the call's bound user, whom the model never names, answers in words an agent
+can say aloud when memory is down, and is quick: an add is queued to the call's ordered writer and
+answered at once, so the voice never waits on a save.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING
+
+from livekit.agents import llm
+from twinmemory import Author, Item, NotFoundError
+
+from twinmemory_livekit._lines import said
+
+if TYPE_CHECKING:
+    from twinmemory_livekit._memory import TwinMemory
+
+# A tool call has a thinking pause around it already, so it gets longer than a turn's recall.
+_SECONDS = 4.0
+_NOTE_CHARS = 500
+_READ_CHARS = 3000
+UNAVAILABLE = "I couldn't reach my memory just now."
+NOTHING = "Nothing remembered about that."
+UNKNOWN = "I don't know who I'm talking to yet, so I have no memory to use."
+
+# Said to the model in tools mode, after your instructions: the tools are its only memory there,
+# and a model that is not told when to save rarely does (n8n's Add tool says as much).
+GUIDE = (
+    "You have a long-term memory of this caller, across calls. Before you answer anything about "
+    "them, their plans or what was said before, call memory_search. Whenever they tell you "
+    "something new about themselves - a preference, a fact, a plan, a name, a date, a number - "
+    "call memory_add on your own, without being asked and without saying so, one fact per call, "
+    "in their words. Never save passwords, card numbers or other secrets."
+)
+
+
+def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
+    """`memory_search` and `memory_read`, and `memory_add` with `write`."""
+
+    @llm.function_tool
+    async def memory_search(query: str) -> str:
+        """Search your long-term memory of this caller: what they said, did and decided in
+        earlier calls. Ask in plain words, for example "where do they live". Ends with the
+        sources it found, to read one whole with memory_read."""
+        user = memory.user
+        if user is None:
+            return UNKNOWN
+        try:
+            found = await asyncio.wait_for(user.search(query[:1000], fast=memory.fast), _SECONDS)
+        except NotFoundError:
+            return NOTHING
+        except Exception:
+            return UNAVAILABLE
+        if found.failed:
+            return UNAVAILABLE
+        lines = said(found.known, found.hits, query, agent=True, max_chars=memory.max_chars)
+        if not lines:
+            return NOTHING
+        sources = "\n".join(f"- {hit.path}" for hit in found.hits if hit.path)
+        return "\n".join(f"- {line}" for line in lines) + (
+            f"\n\nSources:\n{sources}" * bool(sources)
+        )
+
+    @llm.function_tool
+    async def memory_read(path: str) -> str:
+        """Read one remembered conversation or note whole, by a source memory_search gave."""
+        user = memory.user
+        if user is None:
+            return UNKNOWN
+        try:
+            found = await asyncio.wait_for(user.read(path), _SECONDS)
+        except NotFoundError:
+            return NOTHING
+        except Exception:
+            return UNAVAILABLE
+        return (found.text or found.error or NOTHING)[:_READ_CHARS]
+
+    @llm.function_tool
+    async def memory_add(fact: str) -> str:
+        """Save one new fact about this caller to your long-term memory, for later calls: a
+        preference, a fact about them, a plan, a decision, a name, a date or a number. Call it
+        on your own, without being asked, whenever they say something new; one fact per call,
+        as one sentence in their words. Never save passwords, card numbers or other secrets."""
+        if memory.user is None:
+            return UNKNOWN
+        text = " ".join(fact.split())[:_NOTE_CHARS]
+        if not text:
+            return "There was nothing to save."
+        memory.note(_note(text, memory.session_id))
+        return "Saved."
+
+    return [memory_search, memory_read, memory_add] if write else [memory_search, memory_read]
+
+
+def _note(text: str, session: str) -> Item:
+    # The same fact said twice in a call is one note: its id is the call and the words.
+    digest = hashlib.sha256(text.lower().encode()).hexdigest()[:16]
+    return Item(
+        id=f"lk:{session}:note:{digest}",
+        kind="note",
+        text=text,
+        session=session,
+        at=datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+        author=Author(self=True),
+        metadata={"livekit": "memory_add"},
+    )

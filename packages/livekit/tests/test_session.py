@@ -14,6 +14,7 @@ from livekit.agents import Agent, AgentSession, ConversationItemAddedEvent, llm
 
 from twinmemory_livekit import TwinMemory, TwinMemoryAgent
 from twinmemory_livekit import _memory as memory_module
+from twinmemory_livekit._tools import UNAVAILABLE
 
 LISBON = "user, 2 Oct 2026: I moved to Lisbon for the job at Acme."
 
@@ -193,10 +194,8 @@ async def test_the_memory_tools_answer_in_words_when_memory_is_down() -> None:
     async with AgentSession(llm=fake) as session:
         await session.start(TwinMemoryAgent(memory, instructions="x"))
         await _say(session, "Where do I live now?")
-    outputs = [text for role, text in fake.calls[-1] if role == "function_call_output"]
-    assert fake.calls[-1][-1][0] == "function_call_output" or outputs is not None
     tool_output = next(i for i in session.history.items if i.type == "function_call_output")
-    assert tool_output.output == memory_module.UNAVAILABLE  # pyright: ignore[reportAttributeAccessIssue]
+    assert tool_output.output == UNAVAILABLE  # pyright: ignore[reportAttributeAccessIssue]
     service.status = None
     await memory.aclose()
 

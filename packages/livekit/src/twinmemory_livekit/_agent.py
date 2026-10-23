@@ -17,8 +17,9 @@ from twinmemory_livekit._memory import TwinMemory
 
 
 class TwinMemoryAgent(Agent):
-    """An `Agent` with long-term memory. Every keyword an `Agent` takes is passed on;
-    `memory_tools=False` leaves out `memory_search` and `memory_remember`.
+    """An `Agent` with long-term memory, in the memory's mode. Every keyword an `Agent` takes is
+    passed on. In auto mode `memory_tools=False` leaves out `memory_search` and `memory_read`; in
+    tools mode the tools are its memory, and the model is told when to use them.
 
     If you override `llm_node` or `on_enter`, call `super()`.
     """
@@ -34,6 +35,10 @@ class TwinMemoryAgent(Agent):
     ) -> None:
         if memory_tools:
             tools = [*(tools or []), *memory.tools()]
+        elif memory.mode == "tools":
+            raise ValueError('memory_tools=False leaves a mode="tools" memory nothing to do')
+        if memory.guide:
+            instructions = f"{instructions}\n\n{memory.guide}"
         super().__init__(instructions=instructions, tools=tools, **kwargs)
         self.memory = memory
 

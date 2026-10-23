@@ -205,9 +205,10 @@ async def test_redact_changes_or_drops_a_turn_before_it_leaves_the_process() -> 
 
 async def test_the_memory_tools_are_free_and_a_note_is_short() -> None:
     service = MemoryService(hits=[LISBON])
-    memory = _memory(service)
-    search, remember = memory.tools()
+    memory = _memory(service, mode="tools")
+    search, _read, add = memory.tools()
     assert await search("where do I live") and service.searches[-1]["fast"] is True
-    await remember("x" * 5000)
+    assert await add("x" * 5000) == "Saved."  # answered at once, saved by the writer
+    assert await memory.flush(5) == 0
     assert len(service.added[-1]["text"]) == 500 and service.added[-1]["kind"] == "note"
     await memory.aclose()
