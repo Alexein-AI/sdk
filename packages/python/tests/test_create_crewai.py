@@ -186,3 +186,12 @@ def test_the_tools_only_crew_saves_its_result_after_the_run(
     main_module = importlib.import_module("trip_crew.main")
     main_module.ask("dana", "Where do I live?")
     assert [r for r, a, _ in sent if a == "dana"] == ["add"]
+
+
+def test_the_tools_only_crews_tools_are_for_the_runs_user(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CrewBase makes the agents when the crew class is made, so the user is given then."""
+    crew_module, _ = run_created(tmp_path, monkeypatch, ("tools",))
+    (agent,) = crew_module.TripCrew("dana").crew().agents
+    assert {getattr(t, "user_id", None) for t in agent.tools} == {"dana"}

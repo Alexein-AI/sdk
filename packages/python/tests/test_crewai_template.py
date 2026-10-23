@@ -274,6 +274,69 @@ def test_a_failed_run_leaves_nothing_behind(
     assert {a for r, a, _ in recorder.sent if r != "me"} == {"sam"}
 
 
+def test_a_crew_without_whose_never_uses_the_last_runs_user(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A second crew on the same memory that skips the hook must not read or save as the
+    user the first crew's run named: a wrong user is worse than no memory."""
+    module, recorder = load(tmp_path, monkeypatch)
+    crew_of(module, stand(), memory=module.twin_memory).kickoff(
+        inputs={"user_id": "dana", "city": "Porto"}
+    )
+    recorder.sent.clear()
+    hookless = crew_of(module, stand(), memory=module.twin_memory)
+    hookless.before_kickoff_callbacks = []
+    out = hookless.kickoff(inputs={"user_id": "sam", "city": "Faro"})
+    assert getattr(out, "raw", None) == "Lisbon it is."
+    assert recorder.sent == []
+    assert any("whose" in r.message for r in caplog.records)
+
+
+def test_memory_with_no_hook_says_so(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """CrewAI swallows memory's errors, so the file logs a memory left unwired itself."""
+    module, recorder = load(tmp_path, monkeypatch)
+    hookless = crew_of(module, stand())
+    hookless.before_kickoff_callbacks = []
+    hookless.kickoff(inputs={"user_id": "dana", "city": "Porto"})
+    assert recorder.sent == []
+    assert any("whose" in r.message for r in caplog.records)
+
+
+@pytest.mark.parametrize("user_id", ["dana@example.com", "dana smith", "-dana"])
+def test_a_user_id_memory_cannot_hold_stops_at_kickoff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, user_id: str
+) -> None:
+    module, recorder = load(tmp_path, monkeypatch)
+    llm = stand()
+    with pytest.raises(ValueError, match="not a usable end user id"):
+        crew_of(module, llm).kickoff(inputs={"user_id": user_id, "city": "Porto"})
+    assert llm.prompts == [] and recorder.sent == []
+    with pytest.raises(ValueError, match="not a usable end user id"):
+        module.memory_tools(user_id)
+
+
+def test_recall_takes_arguments_a_newer_crewai_may_pass(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, _ = load(tmp_path, monkeypatch)
+    module.whose({"user_id": "dana"})
+    assert module.TwinMemory().recall("where", limit=1, some_new_option=True) != []
+
+
+def test_strict_stops_the_run_when_memory_is_down_at_kickoff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CrewAI swallows what recall and saves raise, so kickoff is where STRICT can stop a run."""
+    module, _ = load(tmp_path, monkeypatch, lambda r: ok({"detail": "rebuilding"}, status=503))
+    monkeypatch.setattr(module, "STRICT", True)
+    llm = stand()
+    with pytest.raises(module.TwinMemoryError):
+        crew_of(module, llm).kickoff(inputs={"user_id": "dana", "city": "Porto"})
+    assert llm.prompts == []
+
+
 def test_one_memory_shared_by_runs_for_different_users_keeps_them_apart(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

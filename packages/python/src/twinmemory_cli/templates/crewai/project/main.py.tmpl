@@ -26,9 +26,7 @@ def ask(user_id: str, question: str) -> str:
     out = crew.kickoff(inputs={"user_id": user_id, "question": question})
 # <<< auto
 # >>> tools_only
-    made = {crew_class}()
-    made.user_id = user_id
-    out = made.crew().kickoff(inputs={"question": question})
+    out = {crew_class}(user_id).crew().kickoff(inputs={"question": question})
     save_result(user_id, out)
 # <<< tools_only
     return str(getattr(out, "raw", out))

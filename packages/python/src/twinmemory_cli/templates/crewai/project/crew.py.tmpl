@@ -43,8 +43,10 @@ class {crew_class}:
 # <<< auto
 # >>> tools_only
 
-    # Set by main.ask() before the crew is made: the user the tools are for.
-    user_id: str = ""
+    def __init__(self, user_id: str) -> None:
+        # The user the tools are for, given by your code: CrewBase makes the agents,
+        # and their tools, as soon as the crew class is made.
+        self.user_id = user_id
 # <<< tools_only
 
     @agent

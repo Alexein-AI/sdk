@@ -68,6 +68,11 @@ from crewai.memory import MemoryMatch, MemoryRecord
 # <<< auto
 # >>> tools
 from crewai.tools import BaseTool
+# <<< tools
+# >>> auto
+from opentelemetry import baggage
+# <<< auto
+# >>> tools
 from pydantic import BaseModel, Field
 # <<< tools
 from twinmemory import (
@@ -90,8 +95,10 @@ FAST = {fast}
 
 # False keeps your crew running when memory is unreachable, slow or failing: a task
 # goes ahead without its memory, a save is skipped, and a warning is logged. True
-# raises instead. A wrong key raises either way, at kickoff: that is a mistake to fix,
-# not an outage to ride out.
+# raises instead - but CrewAI logs and carries on past what memory raises during a
+# task, so with True it is the check at kickoff that stops a run when memory is down.
+# A wrong key raises either way, at kickoff: that is a mistake to fix, not an outage
+# to ride out.
 STRICT = False
 
 # How much of what memory holds goes into a prompt, in characters.
@@ -145,9 +152,11 @@ def _id(*parts: str) -> str:
 # ------------------------------------------------------------------- whose memory --
 # The user is held per run, not on the memory object, so one TwinMemory serves every
 # run - concurrent runs for different users included: each kickoff has a context of its
-# own, and CrewAI saves in a copy of it.
+# own, and CrewAI saves in a copy of it. The user is tied to the kickoff that named it,
+# so a later crew or agent on the same memory that skips whose() never inherits it.
 
-_user: ContextVar[str | None] = ContextVar("twin_memory_user", default=None)
+_user: ContextVar[tuple[object, str] | None]  # (the kickoff, the user)
+_user = ContextVar("twin_memory_user", default=None)
 _session: ContextVar[str | None] = ContextVar("twin_memory_session", default=None)
 _key_checked = False
 
@@ -163,10 +172,16 @@ def whose(inputs: dict[str, Any]) -> dict[str, Any]:
             "twin memory needs to know whose memory this is: kick off with "
             'inputs={"user_id": "..."}'
         )
+    _memory().user(user_id)  # raises at kickoff for an id memory cannot hold
     _check_key()
-    _user.set(user_id)
+    _user.set((_kickoff(), user_id))
     _session.set(uuid.uuid4().hex)
     return inputs
+
+
+def _kickoff() -> object:
+    """The kickoff running now: CrewAI makes a new crew context for each one."""
+    return baggage.get_baggage("crew_context")
 
 
 def _check_key() -> None:
@@ -180,7 +195,7 @@ def _check_key() -> None:
     except AuthenticationError:
         raise
     except TwinMemoryError as error:
-        if not error.outage:
+        if not error.outage or STRICT:
             raise
         log.warning("twin memory unavailable, key not checked: %s", error)
         return  # tried again on the next run
@@ -188,13 +203,15 @@ def _check_key() -> None:
 
 
 def _current() -> User:
-    user_id = _user.get()
-    if not user_id:
-        raise ValueError(
-            "twin memory has no user for this run: kick off with "
+    held = _user.get()
+    if held is None or held[0] is not _kickoff():
+        message = (
+            "twin memory has no user for this run, so it is not used: kick off with "
             'inputs={"user_id": "..."}, with whose() as a before-kickoff callback'
         )
-    return _memory().user(user_id)
+        log.warning(message)  # CrewAI swallows the error below
+        raise ValueError(message)
+    return _memory().user(held[1])
 
 
 # ------------------------------------------------------------------------ memory --
@@ -221,6 +238,7 @@ class TwinMemory(CrewMemory):
         depth: Any = "deep",
         source: str | None = None,
         include_private: bool = False,
+        **_: Any,  # what a newer CrewAI may add
     ) -> list[MemoryMatch]:
         try:
             found = _search(_current(), query)
@@ -356,6 +374,7 @@ class _Save(_MemoryTool):
 def memory_tools(user_id: str, *, writes: bool = True) -> list[BaseTool]:
     """The memory tools for one end user's agent: the user is fixed here, by your code,
     and never asked of the model. `writes=False` leaves out Save to memory."""
+    _memory().user(user_id)  # raises now for an id memory cannot hold
     tools: list[BaseTool] = [_Search(user_id=user_id), _Read(user_id=user_id)]
     return [*tools, _Save(user_id=user_id)] if writes else tools
 
