@@ -235,7 +235,8 @@ class TwinMemory:
 
     async def _close(self) -> None:
         if self._session is None:
-            log.warning("twin memory was never attached to a session: no turn was saved")
+            if self.mode == "auto":
+                log.warning("twin memory was never attached to a session: no turn was saved")
         else:
             if self.mode == "auto":
                 self._session.off("conversation_item_added", self._on_item)

@@ -209,6 +209,9 @@ class MemoryService:
         if route == "add" and self.flaky and [i.get("id") for i in body["items"]] == [self.flaky]:
             self.flaky = None
             return httpx.Response(503, json={"detail": "busy"})
+        if route == "add" and any(_nameless_self(i) for i in body["items"]):
+            # The service's own rule (twin_memory/store/build/content.py `_author`).
+            return httpx.Response(422, json={"detail": "an author that says self needs a role"})
         if route == "add" and self.reject and any(self.reject in i["text"] for i in body["items"]):
             return httpx.Response(422, json={"detail": "an item is too long"})
         if route == "add":
@@ -226,3 +229,10 @@ class MemoryService:
         known = [] if body.get("scope") else self.known
         found = {"query": body.get("query", ""), "found": len(hits), "hits": hits, "known": known}
         return httpx.Response(200, json=found)
+
+
+def _nameless_self(item: dict[str, Any]) -> bool:
+    author = item.get("author")
+    if not isinstance(author, dict) or not author.get("self"):
+        return False
+    return not (author.get("name") or author.get("id") or item.get("role"))

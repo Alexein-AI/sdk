@@ -90,7 +90,9 @@ async def test_tools_saves_what_the_model_decides_to() -> None:
     assert [(i["kind"], i["text"]) for i in service.added] == [
         ("note", "Their favourite colour is teal.")
     ]
-    assert service.added[0]["author"] == {"self": True}
+    assert (
+        "author" not in service.added[0]
+    )  # the agent wrote it down; the service refuses a bare self
     await memory.aclose()
 
 
@@ -104,6 +106,27 @@ async def test_tools_finds_what_the_model_asks_for() -> None:
     output = next(i for i in session.history.items if i.type == "function_call_output")
     assert "they said: My locker code at the Alfama gym is 4417." in output.output  # pyright: ignore[reportAttributeAccessIssue]
     assert "Sources:" in output.output  # pyright: ignore[reportAttributeAccessIssue]
+    await memory.aclose()
+
+
+async def test_a_refused_fact_is_never_reported_saved() -> None:
+    service = MemoryService(reject="teal")
+    memory = _memory(service, mode="tools")
+    _search, _read, add = memory.tools()
+    assert await add("Their favourite colour is teal.") == "I couldn't save that just now."
+    assert await add("They train on Tuesdays.") == "Saved."
+    assert [i["text"] for i in service.added] == ["They train on Tuesdays."]
+    await memory.aclose()
+
+
+async def test_a_fact_memory_is_too_slow_for_is_saved_behind_the_reply() -> None:
+    service = MemoryService(delay=3.0)
+    memory = _memory(service, mode="tools")
+    _search, _read, add = memory.tools()
+    assert await add("They train on Tuesdays.") == "Saved."  # within the 2 s it may wait
+    service.delay = 0
+    assert await memory.flush(10) == 0
+    assert [i["text"] for i in service.added].count("They train on Tuesdays.") >= 1
     await memory.aclose()
 
 
