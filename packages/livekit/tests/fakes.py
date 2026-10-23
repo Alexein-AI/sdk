@@ -177,6 +177,8 @@ class MemoryService:
     delay: float = 0.0
     status: int | None = None
     new_user: bool = False
+    garbage: bool = False  # answer 200 with an HTML page, as a proxy or captive portal does
+    reject: str | None = None  # refuse, 422, any add with an item holding this text
     searches: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     added: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     users: list[str] = field(default_factory=list[str])
@@ -201,6 +203,10 @@ class MemoryService:
             await asyncio.sleep(self.delay)
         if self.status is not None:
             return httpx.Response(self.status, json={"detail": f"status {self.status}"})
+        if self.garbage:
+            return httpx.Response(200, text="<html>Sign in to the guest Wi-Fi</html>")
+        if route == "add" and self.reject and any(self.reject in i["text"] for i in body["items"]):
+            return httpx.Response(422, json={"detail": "an item is too long"})
         if route == "add":
             self.added.extend(body["items"])
             self.new_user = False

@@ -5,7 +5,8 @@ history, typed or spoken, from whichever agent is speaking; an interrupted reply
 actually said. One writer drains one queue, so turns land in order, and each item's id is the call
 and LiveKit's id for the message, so a retry or a second delivery replaces rather than duplicates.
 
-Not a transcript store: handoffs, tool calls, empty messages and what recall added are skipped.
+Not a transcript store: handoffs, tool calls, empty messages and what recall added are skipped,
+and `redact` may change or drop any turn before it leaves the process.
 """
 
 from __future__ import annotations
@@ -13,29 +14,40 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 
 from livekit.agents import llm
-from twinmemory import AsyncUser, Author, Item, TwinMemoryError
+from twinmemory import AsyncUser, Author, InvalidRequestError, Item, TwinMemoryError
 
-from twinmemory_livekit._recall import MARK
+from twinmemory_livekit._recall import MARK, how
 
 log = logging.getLogger("twinmemory.livekit")
+
+Redact = Callable[[str, str], "str | None"]
 
 # Turns wait here while memory is down or the user is not yet known; past this the oldest go, with
 # a warning, so a long outage cannot grow a call's memory use without bound.
 MAX_BUFFER = 500
+# A dictated paragraph is a few hundred characters; a turn past this is cut, not refused whole.
+MAX_TURN_CHARS = 8000
 _BATCH = 20
 # A write that takes longer than this is tried again; ids make the second attempt replace the first.
 _WRITE_SECONDS = 5.0
 _BACKOFF = (0.5, 1.0, 2.0, 4.0, 8.0)
 
 
-def item(message: llm.ChatMessage, *, session: str, room: str | None) -> Item | None:
+def item(
+    message: llm.ChatMessage, *, session: str, room: str | None, redact: Redact | None = None
+) -> Item | None:
     """`message` as an item of the call `session`; None for what is not a turn worth keeping."""
     text = (message.text_content or "").strip()
     if message.role not in ("user", "assistant") or not text or MARK in message.extra:
         return None
+    if redact is not None:
+        text = (redact(message.role, text) or "").strip()
+        if not text:
+            return None
     metadata: dict[str, object] = {"livekit_item": message.id}
     if message.interrupted:
         metadata["interrupted"] = True
@@ -46,7 +58,7 @@ def item(message: llm.ChatMessage, *, session: str, room: str | None) -> Item | 
         id=f"lk:{session}:{message.id}",
         kind="message",
         role=message.role,
-        text=text,
+        text=text[:MAX_TURN_CHARS],
         session=session,
         at=at.isoformat(timespec="milliseconds"),
         metadata=metadata,
@@ -62,34 +74,42 @@ class Writer:
 
     def __init__(self) -> None:
         self._waiting: list[Item] = []
+        self._sending: list[Item] = []
         self._user: AsyncUser | None = None
         self._wake = asyncio.Event()
         self._idle = asyncio.Event()
         self._idle.set()
         self._task: asyncio.Task[None] | None = None
         self._refused = False
+        self._failed: set[str] = set()
         self.dropped = 0
 
     def put(self, turn: Item) -> None:
         if len(self._waiting) >= MAX_BUFFER:
-            self._waiting.pop(0)
-            self.dropped += 1
-            if self.dropped == 1:
-                log.warning("twin memory unreachable for %d turns: dropping the oldest", MAX_BUFFER)
+            # The oldest turn not on its way already: one being sent may still land.
+            oldest = next((t for t in self._waiting if not _among(t, self._sending)), None)
+            if oldest is not None:
+                self._waiting.remove(oldest)
+                self.dropped += 1
+                if self.dropped == 1:
+                    log.warning(
+                        "twin memory unreachable for %d turns, dropping the oldest", MAX_BUFFER
+                    )
         self._waiting.append(turn)
         self._idle.clear()
         self._wake.set()
+        self._ensure()
 
     def start(self, user: AsyncUser) -> None:
         """Save to `user` from now on, the turns that waited for them first."""
         self._user = user
-        if self._task is None:
-            self._task = asyncio.create_task(self._run(), name="twinmemory.capture")
         self._wake.set()
+        self._ensure()
 
     async def flush(self, timeout: float) -> int:
         """Wait up to `timeout` seconds for every queued turn to be saved; how many were not."""
         if self._user is not None:
+            self._ensure()
             with contextlib.suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(self._idle.wait(), timeout)
         return len(self._waiting)
@@ -101,7 +121,19 @@ class Writer:
             await asyncio.gather(self._task, return_exceptions=True)
             self._task = None
         if left:
-            log.warning("twin memory: %d turns of this call were not saved", left)
+            why = "memory was unreachable" if self._user else "no user was ever bound"
+            log.warning("twin memory: %d turns of this call were not saved, %s", left, why)
+
+    def _ensure(self) -> None:
+        """The writer task, started once there is a user and an event loop to run it on."""
+        if self._task is not None or self._user is None:
+            return
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return  # no running loop yet: the first turn starts it
+        self._task = asyncio.create_task(self._run(), name="twinmemory.capture")
+        self._task.add_done_callback(_reported)
 
     async def _run(self) -> None:
         failures = 0
@@ -109,13 +141,14 @@ class Writer:
             await self._wake.wait()
             self._wake.clear()
             while self._waiting and self._user is not None:
-                batch = self._waiting[:_BATCH]
-                if await self._save(self._user, batch):
-                    del self._waiting[: len(batch)]
+                self._sending = self._waiting[:_BATCH]
+                if await self._save(self._user, self._sending):
+                    self._waiting = [t for t in self._waiting if not _among(t, self._sending)]
                     failures = 0
                     continue
                 await asyncio.sleep(_BACKOFF[min(failures, len(_BACKOFF) - 1)])
                 failures += 1
+            self._sending = []
             if not self._waiting:
                 self._idle.set()
 
@@ -125,12 +158,35 @@ class Writer:
             result = await asyncio.wait_for(user.add(batch), _WRITE_SECONDS)
         except asyncio.TimeoutError:
             return False
+        except InvalidRequestError as error:
+            if len(batch) > 1:  # one bad turn: save the others one by one
+                return all([await self._save(user, [turn]) for turn in batch])
+            self._refuse(error)
+            return True
         except TwinMemoryError as error:
             if error.outage:
                 return False
-            # A wrong key, or a key that cannot write: trying again cannot help.
-            if not self._refused:
-                self._refused = True
-                log.error("twin memory refused this call's turns, they are not saved: %s", error)
+            self._refuse(error)  # a wrong key, or one that cannot write: retrying cannot help
             return True
+        except Exception as error:
+            # Not the service's answer (a proxy's page, a closed client): like an outage, wait.
+            if type(error).__name__ not in self._failed:
+                self._failed.add(type(error).__name__)
+                log.warning("twin memory save failed (%s), will retry", how(error))
+            return False
         return not result.failed
+
+    def _refuse(self, error: TwinMemoryError) -> None:
+        if not self._refused:
+            self._refused = True
+            log.error("twin memory refused this call's turns, not saved (%s)", how(error))
+
+
+def _among(turn: Item, batch: list[Item]) -> bool:
+    return any(turn is sent for sent in batch)
+
+
+def _reported(task: asyncio.Task[None]) -> None:
+    error = None if task.cancelled() else task.exception()
+    if isinstance(error, Exception):
+        log.error("twin memory capture stopped (%s)", how(error))

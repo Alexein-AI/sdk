@@ -1,9 +1,10 @@
-"""Whose memory a call reads and writes: an end user id taken from the job's metadata or from the
-participant, never from anything said in the call.
+"""Whose memory a call reads and writes: an end user id taken from the participant, or from job
+metadata your backend wrote, never from anything said in the call.
 
-Not authentication. A participant's identity and a job's metadata are set by your token server and
-your dispatch, so they are exactly as trustworthy as those. A SIP participant's identity is the
-caller's phone number, which a caller can spoof, so it is refused unless you say otherwise.
+Not authentication. A participant's identity is set by your token server and a job's metadata by
+whoever dispatched it, so each is exactly as trustworthy as that. A phone caller's identity
+(SIP, or a connector such as WhatsApp) is a number the caller can spoof, and is not used unless you
+say so.
 """
 
 from __future__ import annotations
@@ -14,32 +15,32 @@ import re
 
 from livekit import rtc
 
-# twin memory's end user ids (the `X-Twin-Account` header): what the client checks before sending.
-_USABLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
-_UNSAFE = re.compile(r"[^A-Za-z0-9._-]+")
+# twin memory's end user ids (the `X-Twin-Account` header). The service caps the whole account
+# name, `<org>.<project>.<id>`, at 64 characters, so an id made here stays well under that.
+_USABLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,31}")
+# What this module makes: an identity that already looks like one is hashed again, so nobody can
+# pick an identity that lands in somebody else's memory.
+_MADE = re.compile(r"lk-[0-9a-f]{24}")
+_PHONE = (rtc.ParticipantKind.PARTICIPANT_KIND_SIP, rtc.ParticipantKind.PARTICIPANT_KIND_CONNECTOR)
 
 
 def account_id(identity: str) -> str:
-    """`identity` as an end user id: itself when twin memory can use it as one, else a readable
-    part of it and a hash of the whole. `dana@acme.dev` and `dana-acme.dev` stay two people, where
-    replacing the characters alone would make them one."""
-    if _USABLE.fullmatch(identity):
-        return identity
+    """`identity` as an end user id: itself when it is short and plain, else `lk-` and a hash of
+    it, which names nobody's number or address and that no other identity maps to."""
     if not identity:
         raise ValueError("an empty identity names nobody")
-    readable = _UNSAFE.sub("-", identity).strip("-._")[:40] or "lk"
-    digest = hashlib.sha256(identity.encode()).hexdigest()[:16]
-    return f"{readable}-{digest}"
+    if _USABLE.fullmatch(identity) and not _MADE.fullmatch(identity):
+        return identity
+    return "lk-" + hashlib.sha256(identity.encode()).hexdigest()[:24]
 
 
-def from_participant(participant: rtc.Participant, *, trust_sip: bool = False) -> str:
-    """The end user id for the person behind `participant`."""
-    if participant.kind == rtc.ParticipantKind.PARTICIPANT_KIND_SIP and not trust_sip:
-        raise ValueError(
-            f"participant {participant.identity!r} joined by phone, and a phone number can be "
-            "spoofed: look the caller up in your own records and bind(user_id=...), or pass "
-            "trust_sip=True to use the number as the user id"
-        )
+def from_participant(participant: rtc.Participant, *, trust_phone: bool = False) -> str | None:
+    """The end user id for the person behind `participant`; None for a phone caller unless
+    `trust_phone`, and for anything that is not a person (an agent, an ingress, a bridge)."""
+    if participant.kind in _PHONE:
+        return account_id(participant.identity) if trust_phone else None
+    if participant.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD:
+        return None
     return account_id(participant.identity)
 
 
@@ -50,5 +51,5 @@ def from_metadata(metadata: str, key: str) -> str | None:
         data: object = json.loads(metadata) if metadata else None
     except ValueError:
         return None
-    found = data.get(key) if isinstance(data, dict) else None  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    found = data.get(key) if isinstance(data, dict) else None
     return account_id(found) if isinstance(found, str) and found else None

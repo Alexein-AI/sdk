@@ -19,7 +19,7 @@ LISBON = "user, 2 Oct 2026: I moved to Lisbon for the job at Acme."
 
 
 def _memory(service: MemoryService, user: str | None = "dana", **kwargs: object) -> TwinMemory:
-    return TwinMemory(user, memory=service.client(), session_id="call-2", **kwargs)  # pyright: ignore[reportArgumentType]
+    return TwinMemory(user, client=service.client(), session_id="call-2", **kwargs)  # pyright: ignore[reportArgumentType]
 
 
 def _before_user(call: list[tuple[str, str]]) -> tuple[str, str]:
@@ -175,7 +175,7 @@ def _tool_then_text(name: str, arguments: str) -> FakeLLM:
 
 async def test_a_tools_follow_up_reuses_the_turns_recall() -> None:
     service = MemoryService(hits=[LISBON])
-    memory, fake = _memory(service), _tool_then_text("search_memory", '{"query": "home"}')
+    memory, fake = _memory(service), _tool_then_text("memory_search", '{"query": "home"}')
     async with AgentSession(llm=fake) as session:
         await session.start(TwinMemoryAgent(memory, instructions="x"))
         await _say(session, "Where do I live now?")
@@ -189,7 +189,7 @@ async def test_a_tools_follow_up_reuses_the_turns_recall() -> None:
 
 async def test_the_memory_tools_answer_in_words_when_memory_is_down() -> None:
     service = MemoryService(status=503)
-    memory, fake = _memory(service), _tool_then_text("search_memory", '{"query": "home"}')
+    memory, fake = _memory(service), _tool_then_text("memory_search", '{"query": "home"}')
     async with AgentSession(llm=fake) as session:
         await session.start(TwinMemoryAgent(memory, instructions="x"))
         await _say(session, "Where do I live now?")
@@ -229,7 +229,7 @@ async def test_turns_before_the_user_is_known_wait_for_them() -> None:
         assert await memory.flush(5) == 0
     assert [role for role, _ in service.texts()] == ["user", "assistant"]
     assert set(service.users) == {"dana"}
-    with pytest.raises(ValueError, match="already"):
+    with pytest.raises(ValueError, match="already has a user"):
         memory.bind("someone-else")
     await memory.aclose()
 

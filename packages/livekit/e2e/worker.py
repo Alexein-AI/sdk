@@ -51,7 +51,8 @@ async def entrypoint(ctx: JobContext) -> None:
     base = {"room": room, "job": ctx.job.id}
 
     # ---- the README pattern
-    memory = TwinMemory.from_job(ctx)
+    # The driver's backend role: it names the user in the dispatch's metadata, for call 3.
+    memory = TwinMemory.from_job(ctx, metadata_key="twinmemory_user_id")
     emit(
         "job_start",
         **base,
@@ -89,12 +90,12 @@ async def entrypoint(ctx: JobContext) -> None:
                 "timed_out": r.timed_out,
                 "failed": r.failed,
                 "reused": r.reused,
-                "query": r.query,
             },
         )
         return f"MEMORY-SEEN:{'yes' if blocks else 'no'}"
 
     session = AgentSession(llm=FakeLLM(reply_fn=reply))
+    memory.attach(session)
 
     @session.on("conversation_item_added")
     def _item(ev: Any) -> None:

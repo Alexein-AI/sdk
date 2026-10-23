@@ -7,9 +7,9 @@ from twinmemory_livekit import TwinMemory, TwinMemoryAgent
 async def entrypoint(ctx: JobContext):
     memory = TwinMemory.from_job(ctx)
     await ctx.connect()
-    if memory.user_id is None:
-        memory.bind(participant=await ctx.wait_for_participant())
+    memory.bind(participant=await ctx.wait_for_participant())
     session = AgentSession(stt=..., llm=..., tts=...)
+    memory.attach(session)
     await session.start(room=ctx.room, agent=TwinMemoryAgent(memory, instructions="..."))
 ```
 
