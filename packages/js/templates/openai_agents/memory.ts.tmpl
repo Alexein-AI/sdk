@@ -38,10 +38,8 @@
  */
 
 // >>> nodes
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
-// <<< nodes
-// >>> nodes
 import {
   type AgentInputItem,
   type CallModelInputFilterArgs,
@@ -54,11 +52,17 @@ import {
 import { type RunContext, tool } from "@openai/agents";
 // <<< tools
 import {
+// >>> tools
+  AuthenticationError,
+// <<< tools
 // >>> nodes
   type Item,
 // <<< nodes
   Memory,
   NotFoundError,
+// >>> tools
+  PermissionDeniedError,
+// <<< tools
   type SearchResult,
 // >>> tools
   TwinMemoryError,
@@ -136,12 +140,18 @@ function sessionId(context: unknown): string | undefined {
   return found ? String(found) : undefined;
 }
 
+/**
+ * The longest question memory takes, in characters. A longer one - a pasted email -
+ * is searched by its end, where its question usually is.
+ */
+const MAX_QUERY = 2000;
+
 async function search(
   who: User,
   query: string,
 ): Promise<SearchResult | undefined> {
   try {
-    return await who.search(query, { fast: FAST });
+    return await who.search(query.slice(-MAX_QUERY), { fast: FAST });
   } catch (error) {
     if (error instanceof NotFoundError) return undefined; // nothing saved yet
     throw error;
@@ -168,12 +178,24 @@ function saidByUser(item: AgentInputItem): boolean {
 }
 
 /**
- * What `recall` found for each user's turn, for the model calls after the first in
- * that turn (a tool loop, a handoff), whose input no longer ends with the user's
- * message. The oldest are dropped first.
+ * The user's message when this model call is the first of a turn - the input ends
+ * with it, or with developer or system messages after it - else undefined.
  */
-const recalled = new Map<string, string>();
-const KEPT = 1000;
+function asked(items: AgentInputItem[]): string | undefined {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const role = "role" in items[i]! ? (items[i] as { role: string }).role : "";
+    if (role === "developer" || role === "system") continue;
+    return role === "user" ? text(items[i]!).trim() : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * What `recall` found for each run - its context object - for the model calls after
+ * the first in a turn (a tool loop, a handoff), whose input no longer ends with the
+ * user's message. Per run, so two turns in flight for one user keep their own.
+ */
+const recalled = new WeakMap<object, string>();
 
 /** What goes before what memory found, in the instructions. */
 const HEADING =
@@ -189,19 +211,19 @@ export async function recall({
   context,
 }: CallModelInputFilterArgs<unknown>): Promise<ModelInputData> {
   const who = user(context);
-  const latest = modelData.input.at(-1);
-  if (latest && saidByUser(latest)) {
-    const asked = text(latest).trim();
-    const found = asked ? await search(who, asked) : undefined;
-    const block = found?.context(MAX_CHARS) ?? "";
-    recalled.delete(who.id);
-    recalled.set(who.id, block ? HEADING + block : "");
-    for (const oldest of recalled.keys()) {
-      if (recalled.size <= KEPT) break;
-      recalled.delete(oldest);
-    }
+  const run = context as object;
+  let question = asked(modelData.input);
+  if (question === undefined && !recalled.has(run)) {
+    // A run resumed after an approval, or in another process: nothing kept for it.
+    const said = modelData.input.findLast(saidByUser);
+    question = said && text(said).trim();
   }
-  const block = recalled.get(who.id);
+  if (question !== undefined) {
+    const found = question ? await search(who, question) : undefined;
+    const block = found?.context(MAX_CHARS) ?? "";
+    recalled.set(run, block ? HEADING + block : "");
+  }
+  const block = recalled.get(run);
   if (!block) return modelData;
   const given = modelData.instructions;
   return { ...modelData, instructions: given ? `${given}\n\n${block}` : block };
@@ -214,11 +236,13 @@ export async function recall({
  *
  * Each message is saved under an id made from the run's response and its text, so
  * saving the same result again replaces what was saved rather than adding a second
- * copy. Tool calls and their results are not saved. Needs a key that writes.
+ * copy. Tool calls and their results are not saved. A run paused for an approval
+ * saves nothing: save the run that resumes it. Needs a key that writes.
  */
 export async function remember(
   result: RunResult<any, any> | StreamedRunResult<any, any>,
 ): Promise<void> {
+  if (result.interruptions?.length) return;
   const context: unknown = result.runContext.context;
   const session = sessionId(context);
   const said: AgentInputItem[] =
@@ -226,12 +250,27 @@ export async function remember(
       ? [{ role: "user", content: result.input }]
       : result.input;
   const asked = said.findLast(saidByUser);
-  const turn = `${session}|${result.lastResponseId}`;
+  const turn = `${session}|${turnOf(result)}`;
   const items = [
     item(asked ? text(asked) : "", "user", turn),
     item(answer(result.finalOutput), "assistant", turn, result.lastAgent?.name),
   ].filter((said): said is Item => said !== undefined);
   if (items.length) await user(context).add(items, { session });
+}
+
+/** Ids made for results whose model gave no response id. */
+const turns = new WeakMap<object, string>();
+
+/**
+ * What sets this run's saves apart from another's with the same words: the model's
+ * response id, or - from a model that gives none, as Chat Completions does - one
+ * made for this result, so that saving it again still replaces rather than adds.
+ */
+function turnOf(result: object & { lastResponseId?: string }): string {
+  if (result.lastResponseId) return result.lastResponseId;
+  const made = turns.get(result) ?? randomUUID();
+  turns.set(result, made);
+  return made;
 }
 
 /** The final output as text: a string as it is, structured output as JSON. */
@@ -258,22 +297,28 @@ function item(
 
 // ------------------------------------------------------------------------ tools --
 // The run context is filled in by the runner and never shown to the model, so a
-// model cannot ask for anybody else's memory. `errorFunction: null` lets a wrong
-// key throw rather than reach the model as text.
+// model cannot ask for anybody else's memory.
 
 export const UNAVAILABLE =
   "Memory is unavailable right now; carry on without it.";
 
 /**
- * What the model is told when memory is down, unless STRICT; a wrong key or a
- * wrong request throws.
+ * What the model is told when a tool fails: that memory is down, or what was wrong
+ * with what it asked, so it can carry on or try again. A wrong key, a run with no
+ * user in its context, or an outage under STRICT throws: those are yours to fix.
  */
-function unavailable(error: unknown): string {
-  if (STRICT || !(error instanceof TwinMemoryError) || !error.outage) {
-    throw error;
+function toolFailed(run: RunContext<unknown>, error: unknown): string {
+  const yours =
+    error instanceof AuthenticationError ||
+    error instanceof PermissionDeniedError;
+  const outage = error instanceof TwinMemoryError && error.outage;
+  const noUser = !(run.context as Partial<MemoryContext> | undefined)?.userId;
+  if (yours || noUser || (STRICT && outage)) throw error;
+  if (outage) {
+    console.warn(`twin memory unavailable: ${(error as Error).message}`);
+    return UNAVAILABLE;
   }
-  console.warn(`twin memory unavailable: ${error.message}`);
-  return UNAVAILABLE;
+  return `That did not work: ${error instanceof Error ? error.message : error}`;
 }
 
 export const memorySearch = tool({
@@ -283,7 +328,7 @@ export const memorySearch = tool({
     "in earlier conversations. Ask in plain language. Ends with the paths of what " +
     "it found, to read whole with memory_read.",
   parameters: z.object({ query: z.string().describe("What to look for") }),
-  errorFunction: null,
+  errorFunction: toolFailed,
   async execute({ query }, run?: RunContext<unknown>) {
     const found = await search(user(run?.context), query);
     if (found?.failed) return UNAVAILABLE;
@@ -304,16 +349,14 @@ export const memoryRead = tool({
   parameters: z.object({
     path: z.string().describe("A path memory_search gave"),
   }),
-  errorFunction: null,
+  errorFunction: toolFailed,
   async execute({ path }, run?: RunContext<unknown>) {
     try {
       const found = await user(run?.context).read(path);
       return found.text ?? found.error ?? `Nothing at ${path}.`;
     } catch (error) {
-      if (error instanceof NotFoundError) {
-        return "Nothing has been remembered for this user yet.";
-      }
-      return unavailable(error);
+      if (!(error instanceof NotFoundError)) throw error;
+      return "Nothing has been remembered for this user yet.";
     }
   },
 });
@@ -325,7 +368,7 @@ export const memoryAdd = tool({
     "a fact about them, a decision. Write it as one plain sentence. Never save " +
     "passwords, keys or secrets.",
   parameters: z.object({ text: z.string().describe("One plain sentence") }),
-  errorFunction: null,
+  errorFunction: toolFailed,
   async execute({ text }, run?: RunContext<unknown>) {
     const saved = await user(run?.context).add(text, {
       kind: "note",

@@ -156,12 +156,18 @@ function threadId(config: RunConfig | undefined): string | undefined {
   return thread === undefined ? undefined : String(thread);
 }
 
+/**
+ * The longest question memory takes, in characters. A longer one - a pasted email -
+ * is searched by its end, where its question usually is.
+ */
+const MAX_QUERY = 2000;
+
 async function search(
   who: User,
   query: string,
 ): Promise<SearchResult | undefined> {
   try {
-    return await who.search(query, { fast: FAST });
+    return await who.search(query.slice(-MAX_QUERY), { fast: FAST });
   } catch (error) {
     if (error instanceof NotFoundError) return undefined; // nothing saved yet
     throw error;

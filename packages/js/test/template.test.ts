@@ -207,6 +207,18 @@ describe("the written file in a graph", () => {
   });
 });
 
+describe("a long message", () => {
+  it("is searched by its end", async () => {
+    // The service takes a question of at most 2,000 characters; a pasted email is longer.
+    const { module, sent } = await load(["nodes"]);
+    const asked = "x".repeat(2500) + " Where do I live?";
+    await module.recall({ messages: [new HumanMessage(asked)], memory: "" }, RUN);
+    const query: string = sent[0]!.body.query as string;
+    expect(query.length).toBe(2000);
+    expect(query.endsWith("Where do I live?")).toBe(true);
+  });
+});
+
 describe("memory being down", () => {
   it("lets a turn go ahead without it", async () => {
     const { module: m } = await load(["nodes", "tools"], down);

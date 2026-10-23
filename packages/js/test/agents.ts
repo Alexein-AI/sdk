@@ -15,20 +15,26 @@ import {
 /** A model that answers each call with the next step, and keeps what it was asked. */
 export class Scripted implements Model {
   readonly calls: ModelRequest[] = [];
-  constructor(private readonly steps: AgentOutputItem[][]) {}
+  /** `withIds: false` answers as Chat Completions models do, with no response id. */
+  constructor(
+    private readonly steps: AgentOutputItem[][],
+    private readonly withIds = true,
+  ) {}
 
   async getResponse(request: ModelRequest): Promise<ModelResponse> {
     this.calls.push(request);
     const output = this.steps.shift();
     if (!output) throw new Error("the script has no step left");
-    return { usage: new Usage(), output, responseId: `resp-${this.calls.length}` };
+    const responseId = this.withIds ? `resp-${this.calls.length}` : undefined;
+    return { usage: new Usage(), output, responseId };
   }
 
   async *getStreamedResponse(request: ModelRequest): AsyncIterable<StreamEvent> {
     const { output, responseId } = await this.getResponse(request);
     const usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
     // The protocol's output type is narrower than the runner's; the items are the same.
-    yield { type: "response_done", response: { id: responseId!, usage, output } } as StreamEvent;
+    const id = responseId ?? "";
+    yield { type: "response_done", response: { id, usage, output } } as StreamEvent;
   }
 }
 

@@ -50,7 +50,7 @@ function answer(path: string): Response {
 const down = () => Response.json({ detail: "rebuilding" }, { status: 503 });
 const wrongKey = () => Response.json({ detail: "bad key" }, { status: 401 });
 
-function client(respond: (path: string) => Response, failOpen = true) {
+function client(respond: (path: string, body: any) => Response, failOpen = true) {
   const sent: Sent[] = [];
   const memory = new Memory({
     apiKey: "tm_test",
@@ -60,12 +60,9 @@ function client(respond: (path: string) => Response, failOpen = true) {
     logger: () => {},
     fetch: async (input, init) => {
       const path = new URL(String(input)).pathname;
-      sent.push({
-        path,
-        headers: init?.headers as Record<string, string>,
-        body: init?.body ? JSON.parse(String(init.body)) : {},
-      });
-      return respond(path);
+      const body = init?.body ? JSON.parse(String(init.body)) : {};
+      sent.push({ path, headers: init?.headers as Record<string, string>, body });
+      return respond(path, body);
     },
   });
   return { memory, sent };
@@ -75,7 +72,11 @@ type Module = Record<string, any>;
 let counter = 0;
 
 /** The file as `init` writes it, imported fresh, with its client answered by `respond`. */
-async function load(parts = ["nodes", "tools"], respond = answer, failOpen = true) {
+async function load(
+  parts = ["nodes", "tools"],
+  respond: (path: string, body: any) => Response = answer,
+  failOpen = true,
+) {
   const dir = join(GENERATED, `memory-${process.pid}-${counter++}`);
   mkdirSync(dir, { recursive: true });
   const path = join(dir, "memory.ts");
@@ -250,6 +251,81 @@ describe("the written file in a run", () => {
   });
 });
 
+// ----------------------------------------------- what a real model and server send --
+
+/** What the runner hands the filter before a model call. */
+const call = (context: unknown, ...input: unknown[]) => ({
+  modelData: { input, instructions: "Be brief." },
+  agent: new Agent({ name: "A" }),
+  context,
+});
+const ASKED = { role: "user", content: "Where do I live?" };
+const TOOL_OUTPUT = { type: "function_call_result", callId: "c1", name: "t", status: "completed" };
+
+describe("what a real model and server send", () => {
+  it("searches a long message by its end", async () => {
+    // The service takes a question of at most 2,000 characters; a pasted email is longer.
+    const { module, sent } = await load();
+    await turn(module, new Scripted([[says("Lisbon.")]]), "x".repeat(2500) + " Where do I live?");
+    const query: string = bodies(sent, "search")[0]!.query;
+    expect(query.length).toBe(2000);
+    expect(query.endsWith("Where do I live?")).toBe(true);
+  });
+
+  it("saves each turn apart from a model without response ids", async () => {
+    // Chat Completions models give no response id.
+    const { module, sent } = await load();
+    const agent = new Agent({
+      name: "A",
+      model: new Scripted([[says("Hi.")], [says("Hi.")]], false),
+    });
+    const options = { context: { userId: "dana" }, callModelInputFilter: module.recall };
+    const first = await run(agent, "Thanks", options);
+    await module.remember(first);
+    await module.remember(await run(agent, "Thanks", options));
+    await module.remember(first);
+    const ids = bodies(sent, "add").map((b) => b.items.map((i: any) => i.id));
+    expect(ids[0]).not.toEqual(ids[1]); // two turns, said the same way
+    expect(ids[0]).toEqual(ids[2]); // one turn, saved twice
+  });
+
+  it("keeps two turns in flight for one user apart", async () => {
+    const echo = (path: string, body: any) =>
+      path.endsWith("search")
+        ? Response.json({ query: "q", known: [`ANSWER FOR: ${body.query}`] })
+        : answer(path);
+    const { module } = await load(undefined, echo);
+    const [first, second] = [{ userId: "dana" }, { userId: "dana" }];
+    await module.recall(call(first, ASKED));
+    await module.recall(call(second, { role: "user", content: "My dog's name?" }));
+
+    const afterATool = await module.recall(call(first, ASKED, TOOL_OUTPUT));
+
+    expect(afterATool.instructions).toContain("ANSWER FOR: Where do I live?");
+    expect(afterATool.instructions).not.toContain("dog");
+  });
+
+  it("searches its user's message in a resumed run with nothing kept", async () => {
+    // A run resumed after an approval, or in another process, starts on a tool output.
+    const { module, sent } = await load();
+    const resumed = await module.recall(call({ userId: "dana" }, ASKED, TOOL_OUTPUT));
+    expect(bodies(sent, "search").map((b) => b.query)).toEqual(["Where do I live?"]);
+    expect(resumed.instructions).toContain("Dana lives in Lisbon.");
+  });
+
+  it("still recalls when a system message follows the user's", async () => {
+    const { module, sent } = await load();
+    await module.recall(call({ userId: "dana" }, ASKED, { role: "system", content: "Friday." }));
+    expect(bodies(sent, "search").map((b) => b.query)).toEqual(["Where do I live?"]);
+  });
+
+  it("saves nothing from a run paused for an approval", async () => {
+    const { module, sent } = await load();
+    await module.remember({ interruptions: [{ type: "tool_approval_item" }] });
+    expect(sent).toEqual([]);
+  });
+});
+
 // ------------------------------------------------------------------------------ tools --
 
 /** A model that calls every tool once, then stops: what each call returned. */
@@ -288,6 +364,28 @@ describe("the tools", () => {
 });
 
 // ----------------------------------------------------------------- when memory fails --
+
+describe("the model's own mistakes", () => {
+  it("go back to it, and the run goes on", async () => {
+    const strict = (path: string) =>
+      path.endsWith("read")
+        ? Response.json({ detail: "read needs a path" }, { status: 422 })
+        : answer(path);
+    const { module } = await load(undefined, strict);
+    const model = new Scripted([[calls("memory_read", { path: "" }, "c1")], [says("Sorry.")]]);
+    const agent = new Agent({ name: "A", model, tools: module.MEMORY_TOOLS });
+    const result = await run(agent, "x", { context: CONTEXT });
+    const output = (model.calls[1]!.input as any[]).find((i) => i.type === "function_call_result");
+    expect(result.finalOutput).toBe("Sorry.");
+    expect(output.output.text ?? output.output).toMatch(/^That did not work: .*read needs a path/);
+  });
+
+  it("are not the reason a run with no user goes on", async () => {
+    const { module, sent } = await load();
+    await expect(toolOutputs(module, { plan: "pro" })).rejects.toThrow(/whose memory/);
+    expect(sent).toEqual([]);
+  });
+});
 
 describe("memory being down", () => {
   it("lets a turn go ahead without it", async () => {
