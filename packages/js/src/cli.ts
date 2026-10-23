@@ -97,6 +97,7 @@ export async function main(argv: string[], given?: Console): Promise<number> {
   }
   const parts: readonly Part[] = v["nodes-only"] ? ["nodes"] : v["tools-only"] ? ["tools"] : PARTS;
   const o = options({
+    framework: framework ?? "",
     directory: v.dir,
     filename: v.file ?? "memory.ts",
     graph: v.graph,
@@ -110,7 +111,7 @@ export async function main(argv: string[], given?: Console): Promise<number> {
     sdk: v.sdk,
     dryRun: Boolean(v["dry-run"]),
   });
-  if (command === "init") return init(framework ?? "", cwd, o, console);
+  if (command === "init") return init(cwd, o, console);
   if (command === "create") {
     if (framework !== "langgraph") {
       console.fail(`no template for ${JSON.stringify(framework ?? "")}; there is: langgraph`);

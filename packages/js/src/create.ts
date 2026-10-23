@@ -57,7 +57,7 @@ export async function create(
   const provider = model.includes(":") ? model.split(":")[0]! : "";
   const [library, providerKey] = PROVIDERS[provider] ?? ["", ""];
   const packages = [
-    ...Object.entries(scaffold.MINIMUMS).map(([n, m]) =>
+    ...Object.entries(scaffold.MINIMUMS[o.framework]!).map(([n, m]) =>
       n === "twinmemory" && o.sdk ? o.sdk : `${n}@>=${m}`,
     ),
     "langchain@>=1.0",

@@ -104,7 +104,7 @@ describe("a LangGraph project, new enough", () => {
     const p = bare();
     const [code, console] = await p.init();
     expect(code).toBe(1);
-    expect(said(console)).toContain("not a LangGraph project");
+    expect(said(console)).toContain("this project does not use LangGraph;");
     expect(existsSync(join(p.root, "memory.ts"))).toBe(false);
     expect(p.ran).toEqual([]);
   });

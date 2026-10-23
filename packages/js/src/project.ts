@@ -1,6 +1,6 @@
 /**
  * What the CLI finds out about the project it is run in: where its root is, which graphs it has,
- * where generated code should go, whether it uses LangGraph, which versions are installed, and
+ * where generated code should go, whether it uses a framework, which versions are installed, and
  * how it adds a dependency. It only reads; the commands do the writing.
  */
 
@@ -84,7 +84,8 @@ const SKIPPED = new Set([
   ".turbo",
   ".langgraph_api",
 ]);
-const USES = /(?:from\s+|require\(\s*|import\(\s*)["']@langchain\/langgraph(?:\/[^"']*)?["']/;
+/** The package each framework is, and is imported as. */
+const PACKAGES: Record<string, string> = { langgraph: "@langchain/langgraph" };
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
 
 export function* sources(root: string): Generator<string> {
@@ -107,16 +108,20 @@ export function* sources(root: string): Generator<string> {
   }
 }
 
-/** Whether the project depends on LangGraph or imports it anywhere of its own. */
-export function usesLanggraph(root: string, limit = 2000): boolean {
-  if (declares(root, "@langchain/langgraph") || existsSync(join(root, "langgraph.json"))) {
-    return true;
-  }
+/** Whether the project depends on the framework or imports it anywhere of its own. */
+export function uses(root: string, framework: string, limit = 2000): boolean {
+  const name = PACKAGES[framework]!;
+  if (declares(root, name)) return true;
+  if (framework === "langgraph" && existsSync(join(root, "langgraph.json"))) return true;
+  const escaped = name.replaceAll("/", "\\/");
+  const imports = new RegExp(
+    `(?:from\\s+|require\\(\\s*|import\\(\\s*)["']${escaped}(?:\\/[^"']*)?["']`,
+  );
   let n = 0;
   for (const path of sources(root)) {
     if (n++ >= limit) break;
     try {
-      if (USES.test(readFileSync(path, "utf8"))) return true;
+      if (imports.test(readFileSync(path, "utf8"))) return true;
     } catch {
       continue;
     }

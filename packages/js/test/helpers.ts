@@ -73,7 +73,7 @@ export class Project {
     given: Partial<Options> & { cwd?: string; console?: Console; framework?: string } = {},
   ): Promise<[number, Console]> {
     const { cwd, console = quiet(), framework = "langgraph", ...rest } = given;
-    const code = await init(framework, cwd ?? this.root, this.options(rest), console);
+    const code = await init(cwd ?? this.root, this.options({ framework, ...rest }), console);
     return [code, console];
   }
 }
