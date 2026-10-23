@@ -1,0 +1,39 @@
+# twinmemory-livekit (packages/livekit). The twinmemory client comes from vendor/ until it is
+# on PyPI, so this needs nothing from any other repository.
+name: livekit
+
+on:
+  pull_request:
+    paths: ["packages/livekit/**", "vendor/**", ".github/workflows/livekit-*.yml"]
+  push:
+    branches: [main]
+    paths: ["packages/livekit/**", "vendor/**", ".github/workflows/livekit-*.yml"]
+
+concurrency:
+  group: livekit-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: packages/livekit
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run pyright
+      - run: uv run pytest -q
