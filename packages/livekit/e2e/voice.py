@@ -49,6 +49,8 @@ from livekit import api, rtc
 from room import Events, read_env  # e2e/room.py, beside this file
 from twinmemory import AsyncMemory, NotFoundError
 
+from twinmemory_livekit import participant_id
+
 warnings.filterwarnings("ignore", message="The HMAC key")  # the 6-byte dev secret
 HERE = Path(__file__).resolve().parent
 LK_URL = os.environ.get("LIVEKIT_URL", "ws://localhost:7880")
@@ -475,7 +477,8 @@ class Run:
         while time.monotonic() - t0 < timeout:
             for query in queries:
                 try:
-                    r = await self.memory.user(user).search(query, fast=True)
+                    # Bound by participant: the identity's own namespace (participant_id).
+                    r = await self.memory.user(participant_id(user)).search(query, fast=True)
                     if any(ok(h.text) for h in r.hits) or any(ok(k) for k in r.known):
                         return round(time.monotonic() - t0, 1), query
                 except NotFoundError:
@@ -485,12 +488,12 @@ class Run:
 
     async def auto(self, baseline: bool) -> None:
         user = f"voice-auto-{uuid.uuid4().hex[:8]}"
-        self.users.append(user)
+        self.users += [user, participant_id(user)]
         c1, _ = await self.call("auto", user, "auto-call1", [FACT, FACT2])
         r1 = c1.room_name
         b = self.ev.all(r1, "bound")
         check(
-            bool(b) and b[0]["user_id"] == user,
+            bool(b) and b[0]["user_id"] == participant_id(user),
             f"auto call 1 bound to {user} ({b[:1] and b[0]['user_id']})",
         )
         heard = " ".join(e["text"] for e in self.ev.all(r1, "stt"))
@@ -536,7 +539,7 @@ class Run:
 
         if baseline:
             plain = f"voice-plain-{uuid.uuid4().hex[:8]}"
-            self.users.append(plain)
+            self.users += [plain, participant_id(plain)]
             c3, _ = await self.call("off", plain, "baseline", [FACT, FACT2, QUESTION])
             check(
                 not any(e["memory_blocks"] for e in self.ev.all(c3.room_name, "llm_call")),
@@ -546,12 +549,12 @@ class Run:
 
     async def tools(self) -> None:
         user = f"voice-tools-{uuid.uuid4().hex[:8]}"
-        self.users.append(user)
+        self.users += [user, participant_id(user)]
         c1, _ = await self.call("tools", user, "tools-call1", [REMEMBER])
         r1 = c1.room_name
         b = self.ev.all(r1, "bound")
         check(
-            bool(b) and b[0]["user_id"] == user and b[0]["memory_mode"] == "tools",
+            bool(b) and b[0]["user_id"] == participant_id(user) and b[0]["memory_mode"] == "tools",
             f"tools call 1 bound to {user} in tools mode ({b[:1]})",
         )
         used = [c for e in self.ev.all(r1, "tools") for c in e["calls"]]

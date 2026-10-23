@@ -32,8 +32,12 @@ _BATCH = 20
 # A write that takes longer than this is tried again; ids make the second attempt replace the first.
 _WRITE_SECONDS = 5.0
 _BACKOFF = (0.5, 1.0, 2.0, 4.0, 8.0)
-# A card number, said over the phone: 13 to 19 digits, spaced or dashed as people read them out.
-_CARD = re.compile(r"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)")
+# A number as people read one out: digits in groups split by single spaces or dashes.
+_RUN = re.compile(r"(?<!\d)\d(?:[ -]?\d)*")
+# Card numbers begin with 2 to 6 (Mastercard, Amex, Visa, Discover, JCB, UnionPay).
+_CARD_FIRST = frozenset("23456")
+# Read straight after a card: an expiry (4 digits) and a security code (3 or 4).
+_AFTER = 8
 
 
 def _luhn(digits: str) -> bool:
@@ -44,6 +48,47 @@ def _luhn(digits: str) -> bool:
     return total % 10 == 0
 
 
+def _cards(run: str) -> list[tuple[int, int]]:
+    """Where card numbers sit in one run of digits, as (start, end) in `run`: 13 to 19 digits that
+    begin a group and like a card, and pass the card checksum, longest first - so one read before
+    its expiry and code, or after an order number, is found, not only one standing alone - with
+    the few digits read straight after it."""
+    at = [i for i, c in enumerate(run) if c.isdigit()]
+    digits = "".join(run[i] for i in at)
+    found: list[tuple[int, int]] = []
+    k = 0
+    while k <= len(digits) - 13:
+        opens = k == 0 or run[at[k] - 1] in " -"
+        size = next(
+            (n for n in range(min(19, len(digits) - k), 12, -1) if _luhn(digits[k : k + n])), 0
+        )
+        if not (opens and digits[k] in _CARD_FIRST and size):
+            k += 1
+            continue
+        end = k + size
+        if len(digits) - end < _AFTER:
+            end = len(digits)  # its expiry and security code go with it
+        found.append((at[k], at[end - 1] + 1))
+        k = end
+    return found
+
+
+def masked(text: str) -> str:
+    """`text` with every card number in it as "[card number]", with an expiry or security code read
+    after it. Before any `redact` of yours, in both modes: a model told never to save one saved one
+    (tools mode, gpt-4.1-mini), and a transcript keeps what was said. Not every long number that
+    passes the checksum is a card - about one in ten that begin like one does - and those are
+    masked too: the safe side to err on."""
+    out: list[str] = []
+    last = 0
+    for run in _RUN.finditer(text):
+        for start, end in _cards(run.group()):
+            out += [text[last : run.start() + start], "[card number]"]
+            last = run.start() + end
+    out.append(text[last:])
+    return "".join(out)
+
+
 def saved_text(role: str, text: str, settings: Settings) -> str:
     """`text` as the settings let it be saved - card numbers masked, then your `redact` - or
     empty for nothing."""
@@ -51,18 +96,6 @@ def saved_text(role: str, text: str, settings: Settings) -> str:
     if settings.redact is not None:
         text = settings.redact(role, text) or ""
     return text.strip()
-
-
-def masked(text: str) -> str:
-    """`text` with every card number in it - its checksum holds, so an order number or a phone
-    number does not - as "[card number]". Before any `redact` of yours, in both modes: a model told
-    never to save one saved one (tools mode, gpt-4.1-mini), and a transcript keeps what was said."""
-
-    def card(found: re.Match[str]) -> str:
-        digits = re.sub(r"\D", "", found.group())
-        return "[card number]" if _luhn(digits) else found.group()
-
-    return _CARD.sub(card, text)
 
 
 def item(

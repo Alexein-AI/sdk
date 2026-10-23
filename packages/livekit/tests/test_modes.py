@@ -53,6 +53,23 @@ async def test_auto_recalls_what_was_said_and_lends_only_read_tools() -> None:
     await memory.aclose()
 
 
+async def test_recall_and_memory_search_work_in_any_script() -> None:
+    urdu = (
+        "Context: messages (memory), 2 Oct 2026. user and assistant, in “x”. Turns 1-2. "
+        "**user** 18:02 · میرا لاکر کوڈ 4417 ہے **assistant** 18:02 · ٹھیک ہے"
+    )
+    service = MemoryService(hits=[urdu])
+    memory, fake = _memory(service), FakeLLM()
+    async with AgentSession(llm=fake) as session:
+        await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+        await session.run(user_input="میرا لاکر کوڈ کیا ہے؟")
+    shown = next(t for r, t in fake.calls[-1] if r == "assistant" and "<memory>" in t)
+    assert "they said: میرا لاکر کوڈ 4417 ہے" in shown
+    search, _read = memory.tools()
+    assert "میرا لاکر کوڈ 4417 ہے" in await search("لاکر کوڈ")
+    await memory.aclose()
+
+
 async def test_the_last_call_is_recalled_even_where_words_do_not_match() -> None:
     # "suggest a dinner" shares no word with "I'm vegetarian": a search by words finds nothing,
     # and the call before this one says it.
@@ -138,7 +155,9 @@ async def test_a_refused_fact_is_never_reported_saved() -> None:
     memory = _memory(service, mode="tools")
     _search, _read, add = memory.tools()
     assert await add("Their favourite colour is teal.") == "I couldn't save that just now."
+    assert memory.noted == []  # nor kept as noted
     assert await add("They train on Tuesdays.") == "Saved."
+    assert memory.noted == ["They train on Tuesdays."]
     assert [i["text"] for i in service.added] == ["Noted: They train on Tuesdays."]
     await memory.aclose()
 

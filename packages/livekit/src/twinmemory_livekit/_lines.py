@@ -22,12 +22,40 @@ _DAY = re.compile(r"^Context: [^,]*, (\d{1,2} \w{3} \d{4})")
 _HEADER = re.compile(r"^Context: [^,]*, \d{1,2} \w{3} \d{4}\. ")
 _ASKED_CHARS = 200
 _AGENT = "assistant"
-_SHORT = 4
-_WORDS = re.compile(r"[a-z0-9']+")
-_SMALL_TALK = frozenset(
+# Words in every script: the letters and digits of any language. A Latin-only pattern found none in
+# Urdu, Russian or Chinese, so those turns were never searched and were dropped from recall.
+_WORDS = re.compile(r"[^\W_]+")
+# A reply like "yes" or "the second one" says nothing a search can find on its own; with the
+# agent's question before it, it says what was asked. Shared by recall's query and its lines.
+SHORT = 4
+# Unfiltered search returns six to eight passages for anything, "thanks" included: these turns
+# only fill the prompt with noise - unless they answer a question ("yes", after "Shall I book?").
+SMALL_TALK = frozenset(
     {"hi", "hello", "hey", "thanks", "thank", "you", "ok", "okay", "bye", "goodbye", "cheers"}
     | {"hmm", "um", "uh", "mhm", "right", "cool", "great", "yes", "no", "yeah", "sure"}
 )
+
+
+# How a question ends: Latin and Cyrillic, Chinese and Japanese (full width), Arabic and Urdu.
+_ASKS = ("?", "\uff1f", "\u061f")
+
+
+def asks(text: str) -> bool:
+    """Whether `text` is a question, by how it ends."""
+    return text.rstrip().endswith(_ASKS)
+
+
+def words(text: str) -> list[str]:
+    """The words of `text`, in any script, lowercased."""
+    return _WORDS.findall(text.lower())
+
+
+_words_of = words
+
+
+def small_talk(said: list[str]) -> bool:
+    """Whether words said hold nothing to look up or keep: none, or only small talk."""
+    return set(said) <= SMALL_TALK
 
 
 @dataclass(frozen=True)
@@ -60,36 +88,33 @@ def _untitled(body: str) -> str:
 
 
 def _key(text: str) -> str:
-    return " ".join(_WORDS.findall(text.lower()))
+    return " ".join(words(text))
 
 
 def _lines(hit: Hit, rank: int, agent: bool, skip_small_talk: bool = True) -> list[Line]:
     day = (m.group(1) + " ") if (m := _DAY.match(hit.text)) else ""
     turns = _turns(" ".join(hit.text.split()))
     out: list[Line] = []
-    small_talk = False  # the caller's last words were only that, so the answer to them is too
+    chatter = False  # the caller's last words were small talk, so the answer to them is too
     for i, (speaker, time, words) in enumerate(turns):
         said_by_agent = speaker == _AGENT
-        if not words or (said_by_agent and (not agent or small_talk)):
+        if not words or (said_by_agent and (not agent or chatter)):
             continue
         when = f"{day}{time}".strip() if len(time) <= 5 else time
         who = "you said" if said_by_agent else "noted" if not speaker else "they said"
         line = f"{when}, {who}: {words}" if when else words
         before = turns[i - 1] if i else None
-        answering = before is not None and before[0] == _AGENT and before[2].endswith("?")
-        if not said_by_agent and answering and len(words.split()) < _SHORT:
+        answering = before is not None and before[0] == _AGENT and asks(before[2])
+        heard = _words_of(words)
+        if not said_by_agent and answering and len(heard) < SHORT:
             assert before is not None
             line = f"{when}, you asked “{before[2][-_ASKED_CHARS:]}”, they said: {words}"
-        elif (
-            skip_small_talk
-            and not said_by_agent
-            and set(_WORDS.findall(words.lower())) <= _SMALL_TALK
-        ):
-            small_talk = True
+        elif skip_small_talk and not said_by_agent and small_talk(heard):
+            chatter = True
             continue
         if not said_by_agent:
-            small_talk = False
-        out.append(Line(line, rank, words.rstrip().endswith("?")))
+            chatter = False
+        out.append(Line(line, rank, asks(words)))
     return out
 
 

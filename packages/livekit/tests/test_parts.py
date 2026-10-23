@@ -11,7 +11,7 @@ from livekit import rtc
 from livekit.agents import llm
 from twinmemory import Hit
 
-from twinmemory_livekit import account_id
+from twinmemory_livekit import account_id, participant_id
 from twinmemory_livekit._capture import masked
 from twinmemory_livekit._identity import from_metadata, from_participant
 from twinmemory_livekit._lines import said
@@ -53,7 +53,17 @@ def test_a_phone_caller_or_a_non_person_is_not_bound_unless_trusted() -> None:
         assert from_participant(caller) is None
         assert (from_participant(caller, trust_phone=True) or "").startswith("lk-")
     assert from_participant(_participant("agent-1", kinds.PARTICIPANT_KIND_AGENT)) is None
-    assert from_participant(_participant("dana", kinds.PARTICIPANT_KIND_STANDARD)) == "dana"
+
+
+def test_a_participant_has_a_memory_of_its_own_unless_shared() -> None:
+    dana = _participant("dana", rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD)
+    # Apart from the ids a backend writes: a caller named "dana" never reads user "dana"'s memory.
+    assert from_participant(dana) == participant_id("dana") != "dana"
+    assert participant_id("dana").startswith("lk-") and len(participant_id("dana")) == 27
+    assert from_participant(dana, share_identity=True) == "dana"  # opted in: the backend's "dana"
+    # A forged namespace id is hashed again, so it names nobody else's memory.
+    forged = _participant(participant_id("dana"), rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD)
+    assert from_participant(forged) != participant_id("dana")
 
 
 def test_job_metadata_names_the_user_only_when_it_says_so() -> None:
@@ -86,6 +96,26 @@ def test_a_short_answer_is_searched_with_what_it_answers() -> None:
     ctx = _ctx(("assistant", "Should I book Lisbon or Porto?"), ("user", "the second one"))
     asked = question(ctx)
     assert asked is not None and asked[1] == "Should I book Lisbon or Porto? the second one"
+
+
+@pytest.mark.parametrize(
+    "said_",
+    ["میرا لاکر کوڈ کیا ہے؟", "Какой у меня код от шкафчика?", "我的储物柜密码是多少？"],
+)
+def test_a_question_in_any_script_is_searched(said_: str) -> None:
+    asked = question(_ctx(("assistant", "Hello!"), ("user", said_)))
+    assert asked is not None and said_ in asked[1]
+
+
+def test_a_question_is_known_by_how_it_ends_in_any_script() -> None:
+    from twinmemory_livekit._lines import asks
+
+    assert asks("Where?") and asks("哪里？") and asks("کہاں؟") and not asks("Here.")
+
+
+def test_yes_to_a_question_is_searched_with_it() -> None:
+    asked = question(_ctx(("assistant", "Shall I book the Porto hotel?"), ("user", "Yes.")))
+    assert asked is not None and asked[1] == "Shall I book the Porto hotel? Yes."
 
 
 def test_small_talk_is_not_searched() -> None:
@@ -123,6 +153,17 @@ def test_recall_is_what_the_caller_said_not_whole_conversations() -> None:
 def test_the_answer_to_small_talk_is_small_talk_too() -> None:
     lines = said([], [LOCKER], "where is the gym", agent=True, max_chars=1500)
     assert not any("How can I help" in line for line in lines)  # the reply to "hi"
+
+
+@pytest.mark.parametrize(
+    "turn", ["میں لاہور میں رہتا ہوں", "Я живу в Москве", "我住在上海", "Vivo en Lisboa"]
+)
+def test_what_was_said_in_any_script_is_recalled_with_its_answer(turn: str) -> None:
+    hit = _passage("x", ("user", "18:02", turn), ("assistant", "18:02", "Got it."))
+    assert said([], [hit], "where do I live", agent=True, max_chars=1500) == [
+        f"23 Oct 2026 18:02, they said: {turn}",
+        "23 Oct 2026 18:02, you said: Got it.",
+    ]
 
 
 def test_the_agents_words_only_when_asked_for() -> None:
@@ -218,3 +259,18 @@ def test_a_card_number_is_masked_and_other_numbers_are_not() -> None:
     )
     assert masked("5555-5555-5555-4444 and 378282246310005") == "[card number] and [card number]"
     assert masked("1234 5678 9012 3456") == "1234 5678 9012 3456"  # not a card: no checksum
+
+
+@pytest.mark.parametrize(
+    ("said_", "kept"),
+    [
+        ("4111 1111 1111 1111 123", "[card number]"),  # its security code read straight after
+        ("4111 1111 1111 1111 12 26", "[card number]"),  # its expiry read straight after
+        ("41111111111111111234", "[card number]"),  # run on into more digits
+        ("order 1234 4111 1111 1111 1111", "order 1234 [card number]"),  # after an order number
+        ("my phone is 0300 1234567", "my phone is 0300 1234567"),
+        ("tracking 1Z999AA10123456784", "tracking 1Z999AA10123456784"),
+    ],
+)
+def test_a_card_number_is_found_inside_a_longer_run_of_digits(said_: str, kept: str) -> None:
+    assert masked(said_) == kept

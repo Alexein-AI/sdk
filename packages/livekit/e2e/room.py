@@ -41,6 +41,8 @@ import httpx
 from livekit import api, rtc
 from twinmemory import AsyncMemory, NotFoundError
 
+from twinmemory_livekit import participant_id
+
 warnings.filterwarnings("ignore", message="The HMAC key")  # the 6-byte dev secret
 HERE = Path(__file__).resolve().parent
 LK_URL = os.environ.get("LIVEKIT_URL", "ws://localhost:7880")
@@ -235,6 +237,9 @@ def memory_text(block: str) -> str:
 
 
 async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> dict[str, Any]:
+    # Bound by participant, a caller's memory is its own namespace (participant_id), apart from
+    # the ids a backend writes; call 3's backend names that same id in the job's metadata.
+    uid, kiosk_id = participant_id(user), participant_id(kiosk)
     timings: dict[str, Any] = {}
     tag = uuid.uuid4().hex[:6]
 
@@ -251,8 +256,8 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
     )
     bound = ev.all(r1, "bound")
     check(
-        bool(bound) and bound[0]["user_id"] == user and bound[0]["via"] == "participant",
-        f"call 1 bound to {user} via participant ({bound[:1]})",
+        bool(bound) and bound[0]["user_id"] == uid and bound[0]["via"] == "participant",
+        f"call 1 bound to participant_id({user}) = {uid} ({bound[:1]})",
     )
     check(ev.all(r1, "job_start")[0]["user_from_metadata"] is None, "call 1 metadata named no user")
     flushed = await ev.wait(lambda: ev.all(r1, "flushed"), 15, "call 1 flush on session close")
@@ -260,7 +265,7 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
         flushed[0]["unsaved"] == 0,
         f"call 1 flushed on close, unsaved={flushed[0]['unsaved']} in {flushed[0]['ms']} ms",
     )
-    landed = await found_in_memory(memory, user, "locker code at the Alfama gym", FACT_TOKEN)
+    landed = await found_in_memory(memory, uid, "locker code at the Alfama gym", FACT_TOKEN)
     since_said = time.time() - c1.turns[0]["sent_at"]
     check(
         landed is not None,
@@ -275,7 +280,7 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
     async with Call(r2, user) as c2:
         await c2.say(CALL2_MARKER)
         # let call 2's own turn land in memory first, so leaving it out is the package's doing
-        marker = await found_in_memory(memory, user, "favourite colour", CALL2_TOKEN)
+        marker = await found_in_memory(memory, uid, "favourite colour", CALL2_TOKEN)
         check(
             marker is not None,
             "call 2's own turn landed in memory before the question "
@@ -315,19 +320,19 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
 
     # ---- call 3: the metadata path; the participant is someone else's device
     r3 = f"e2e-call3-{tag}"
-    say(f"call 3: room {r3}, identity {kiosk}, metadata twinmemory_user_id={user}")
-    async with Call(r3, kiosk, {"twinmemory_user_id": user}) as c3:
+    say(f"call 3: room {r3}, identity {kiosk}, metadata twinmemory_user_id={uid}")
+    async with Call(r3, kiosk, {"twinmemory_user_id": uid}) as c3:
         ans3 = await c3.say(QUESTION)
     timings["call3"] = c3.turns
     start3 = ev.all(r3, "job_start")
     from_metadata = start3[0]["user_from_metadata"] if start3 else None
     check(
-        from_metadata == user,
+        from_metadata == uid,
         f"call 3 user came from job metadata before connect ({from_metadata})",
     )
     bound3 = ev.all(r3, "bound")
     check(
-        bool(bound3) and bound3[0]["user_id"] == user and bound3[0]["via"] == "metadata",
+        bool(bound3) and bound3[0]["user_id"] == uid and bound3[0]["via"] == "metadata",
         "call 3 bound via metadata, not the kiosk participant",
     )
     check(ans3 == "MEMORY-SEEN:yes", f"call 3 reply says memory seen (got {ans3!r})")
@@ -340,7 +345,7 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
     )
     await ev.wait(lambda: ev.all(r3, "flushed"), 15, "call 3 flush on session close")
     try:
-        await memory.user(kiosk).search("locker", fast=True)
+        await memory.user(kiosk_id).search("locker", fast=True)
         kiosk_empty = False
     except NotFoundError:
         kiosk_empty = True
@@ -348,7 +353,7 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
 
     # ---- what was saved: one thread per call, the turns as said, never what recall added
     async def saved() -> Any:
-        u = memory.user(user)
+        u = memory.user(uid)
         try:
             threads = {h.thread for h in (await u.latest(k=20)).passages}
             asked = (await u.grep(QUESTION)).total
@@ -365,8 +370,8 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
         check(asked == 2, f"call 2's and call 3's question both saved under {user} ({asked})")
     except AssertionError as e:
         check(False, str(e))
-    u = memory.user(user)
-    recalled = (await u.grep("Background from earlier conversations")).total
+    u = memory.user(uid)
+    recalled = (await u.grep("Quoted records from earlier conversations")).total
     check(
         recalled == 0 and (await u.grep("<memory>")).total == 0,
         f"no recalled <memory> block was saved as a turn ({recalled})",
@@ -490,7 +495,7 @@ def main() -> int:
         finally:
             await memory.close()
             if not args.keep_users:
-                await cleanup([user, kiosk], secret)
+                await cleanup([participant_id(user), participant_id(kiosk), user, kiosk], secret)
 
     try:
         asyncio.run(run())

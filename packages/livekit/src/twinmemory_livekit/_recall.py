@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -25,22 +24,14 @@ from datetime import datetime, timezone
 from livekit.agents import llm
 from twinmemory import AsyncUser, Hit, NotFoundError, SearchResult, TwinMemoryError
 
-from twinmemory_livekit._lines import said
+from twinmemory_livekit._lines import SHORT, asks, said, small_talk, words
 from twinmemory_livekit._settings import HEADER, Settings
 
 log = logging.getLogger("twinmemory.livekit")
 
-# A reply like "yes" or "the second one" says nothing a search can find; with the agent's last
-# words before it, it says what was asked.
-_SHORT = 4
+# A short reply is searched with the agent's words before it (`_lines.SHORT`).
 _ASKED_CHARS = 300
 _QUERY_CHARS = 1000
-# Unfiltered search returns six to eight passages for anything, "thanks" included: these turns
-# would only fill the prompt with noise.
-_PHATIC = frozenset(
-    {"hi", "hello", "hey", "thanks", "thank", "you", "ok", "okay", "bye", "goodbye", "cheers"}
-    | {"hmm", "um", "uh", "mhm", "right", "cool", "great"}
-)
 
 # Lookups held at once: one turn's question, and a few preemptive tries at it.
 _REUSED = 8
@@ -80,13 +71,13 @@ def question(
         if said.role != "user":
             continue
         text = " ".join((said.text_content or "").split())
-        words = re.findall(r"[a-z']+", text.lower())
-        if not words or (skip_small_talk and set(words) <= _PHATIC):
+        heard = words(text)
+        asked = next((m for m in reversed(messages[:i]) if m.role == "assistant"), None)
+        asked_text = " ".join((asked.text_content or "").split()) if asked else ""
+        if not heard or (skip_small_talk and small_talk(heard) and not asks(asked_text)):
             return None
-        if len(words) < _SHORT:
-            asked = next((m for m in reversed(messages[:i]) if m.role == "assistant"), None)
-            if asked is not None and asked.text_content:
-                text = " ".join(asked.text_content.split())[-_ASKED_CHARS:] + " " + text
+        if len(heard) < SHORT and asked_text:
+            text = asked_text[-_ASKED_CHARS:] + " " + text
         return said, text[:_QUERY_CHARS]
     return None
 

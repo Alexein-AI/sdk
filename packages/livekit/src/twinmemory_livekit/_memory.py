@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from dataclasses import fields
 from typing import TYPE_CHECKING, Any
 
 from livekit import rtc
@@ -23,7 +24,7 @@ from twinmemory import AsyncMemory, AsyncUser, Hit, Item
 from twinmemory_livekit import _identity, _tools
 from twinmemory_livekit._capture import Writer, item
 from twinmemory_livekit._recall import Recall, RecallInfo, how, place, question
-from twinmemory_livekit._settings import HEADER, Mode, Redact, Settings
+from twinmemory_livekit._settings import Mode, Redact, Settings
 
 if TYPE_CHECKING:
     from livekit.agents import AgentSession, JobContext
@@ -57,57 +58,35 @@ class TwinMemory:
         self,
         user_id: str | None = None,
         *,
-        mode: Mode = "auto",
+        mode: Mode = Settings.mode,
         client: AsyncMemory | None = None,
         api_key: str | None = None,
         base_url: str | None = None,
         session_id: str | None = None,
-        recall_fast: bool = True,
-        recall_timeout: float = 0.5,
-        recall_max_chars: int = 2000,
-        recall_agent_turns: bool = True,
-        recall_recent: int = 6,
-        recall_known: bool = True,
-        recall_skip_small_talk: bool = True,
-        recall_reuse_seconds: float = 30.0,
-        recall_header: str = HEADER,
-        search_current_call: bool = False,
-        tool_fast: bool = True,
-        tool_timeout: float = 4.0,
-        save_timeout: float = 2.0,
-        note_max_chars: int = 500,
-        tool_guide: str | None = None,
-        capture_agent_turns: bool = True,
-        capture_max_chars: int = 8000,
-        capture_buffer: int = 500,
-        mask_cards: bool = True,
-        redact: Redact | None = None,
-        flush_timeout: float = 5.0,
+        recall_fast: bool = Settings.recall_fast,
+        recall_timeout: float = Settings.recall_timeout,
+        recall_max_chars: int = Settings.recall_max_chars,
+        recall_agent_turns: bool = Settings.recall_agent_turns,
+        recall_recent: int = Settings.recall_recent,
+        recall_known: bool = Settings.recall_known,
+        recall_skip_small_talk: bool = Settings.recall_skip_small_talk,
+        recall_reuse_seconds: float = Settings.recall_reuse_seconds,
+        recall_header: str = Settings.recall_header,
+        search_current_call: bool = Settings.search_current_call,
+        tool_fast: bool = Settings.tool_fast,
+        tool_timeout: float = Settings.tool_timeout,
+        save_timeout: float = Settings.save_timeout,
+        note_max_chars: int = Settings.note_max_chars,
+        tool_guide: str | None = Settings.tool_guide,
+        capture_agent_turns: bool = Settings.capture_agent_turns,
+        capture_max_chars: int = Settings.capture_max_chars,
+        capture_buffer: int = Settings.capture_buffer,
+        mask_cards: bool = Settings.mask_cards,
+        redact: Redact | None = Settings.redact,
+        flush_timeout: float = Settings.flush_timeout,
     ) -> None:
-        self.settings = Settings(
-            mode=mode,
-            recall_fast=recall_fast,
-            recall_timeout=recall_timeout,
-            recall_max_chars=recall_max_chars,
-            recall_agent_turns=recall_agent_turns,
-            recall_recent=recall_recent,
-            recall_known=recall_known,
-            recall_skip_small_talk=recall_skip_small_talk,
-            recall_reuse_seconds=recall_reuse_seconds,
-            recall_header=recall_header,
-            search_current_call=search_current_call,
-            tool_fast=tool_fast,
-            tool_timeout=tool_timeout,
-            save_timeout=save_timeout,
-            note_max_chars=note_max_chars,
-            tool_guide=tool_guide,
-            capture_agent_turns=capture_agent_turns,
-            capture_max_chars=capture_max_chars,
-            capture_buffer=capture_buffer,
-            mask_cards=mask_cards,
-            redact=redact,
-            flush_timeout=flush_timeout,
-        )
+        given = locals()
+        self.settings = Settings(**{f.name: given[f.name] for f in fields(Settings)})
         self._own_client = client is None
         # No retries of the client's own: its back-off would turn a dead host into seconds of
         # silence on a turn, and capture retries writes itself.
@@ -192,19 +171,25 @@ class TwinMemory:
         *,
         participant: rtc.Participant | None = None,
         trust_phone: bool = False,
+        share_identity: bool = False,
     ) -> str | None:
         """Whose memory this call is - your own id for the user, or the participant to take it
         from - and the id bound. Turns said before this wait, and are saved under it.
 
-        A phone caller (SIP, or a connector such as WhatsApp) is left unbound unless `trust_phone`,
-        since a number can be spoofed: the call goes on without memory, and you may bind the id you
-        look the caller up by instead."""
+        Your own id is the one to bind: a participant's identity is only as good as the token
+        server that issued it. A participant is given its own namespace (`participant_id`), apart
+        from your backend's ids, unless `share_identity`; an identity every caller shares
+        ("guest") is one memory either way. A phone caller (SIP, or a connector such as WhatsApp)
+        is left unbound unless `trust_phone`, since a number can be spoofed: the call goes on
+        without memory, and you may bind the id you look the caller up by instead."""
         if self._closed:
             raise RuntimeError("this call's memory is closed")
         if (user_id is None) == (participant is None):
             raise ValueError("bind takes a user_id or a participant, one of them")
         if participant is not None:
-            user_id = _identity.from_participant(participant, trust_phone=trust_phone)
+            user_id = _identity.from_participant(
+                participant, trust_phone=trust_phone, share_identity=share_identity
+            )
             if user_id is None:
                 log.warning("twin memory: participant kind %s not bound", participant.kind)
                 return None

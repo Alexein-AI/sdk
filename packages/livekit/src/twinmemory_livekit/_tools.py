@@ -130,7 +130,6 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
         if not text:
             return "There was nothing to save."
         note = _note(text, memory.session_id, len(memory.noted))
-        memory.noted.append(text)
         try:
             saved = await asyncio.wait_for(user.add([note]), s.save_timeout)
         except TwinMemoryError as error:
@@ -141,6 +140,7 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
             saved = None
         if saved is None or saved.failed:
             memory.note(note)  # its id makes a second landing of the first attempt a no-op
+        memory.noted.append(text)  # saved, or queued to be: never one memory refused
         return "Saved."
 
     search = llm.function_tool(memory_search, description=_SEARCH if write else _SEARCH_FURTHER)

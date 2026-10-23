@@ -2,9 +2,13 @@
 metadata your backend wrote, never from anything said in the call.
 
 Not authentication. A participant's identity is set by your token server and a job's metadata by
-whoever dispatched it, so each is exactly as trustworthy as that. A phone caller's identity
-(SIP, or a connector such as WhatsApp) is a number the caller can spoof, and is not used unless you
-say so.
+whoever dispatched it, so each is exactly as trustworthy as that. LiveKit only asks an identity to
+be unique within its room: a token server that names every caller "guest", or takes the identity
+from the client's request, puts every caller in one memory, or lets one pick another's. So a
+participant's memory is its own namespace, `lk-` and a hash, which no id your backend writes can
+meet, unless you say they share (`share_identity`); your own user id, bound or in job metadata, is
+the way to one memory across your apps. A phone caller's identity (SIP, or a connector such as
+WhatsApp) is a number the caller can spoof, and is not used unless you say so.
 """
 
 from __future__ import annotations
@@ -32,17 +36,30 @@ def account_id(identity: str) -> str:
         raise ValueError("an empty identity names nobody")
     if _USABLE.fullmatch(identity) and not _MADE.fullmatch(identity):
         return identity
+    return participant_id(identity)
+
+
+def participant_id(identity: str) -> str:
+    """The end user id a LiveKit `identity` is given: `lk-` and a hash of it, in a namespace no id
+    your backend writes can meet. Your backend can call this too, to reach the same memory."""
+    if not identity:
+        raise ValueError("an empty identity names nobody")
     return "lk-" + hashlib.sha256(identity.encode()).hexdigest()[:24]
 
 
-def from_participant(participant: rtc.Participant, *, trust_phone: bool = False) -> str | None:
-    """The end user id for the person behind `participant`; None for a phone caller unless
-    `trust_phone`, and for anything that is not a person (an agent, an ingress, a bridge)."""
-    if participant.kind in _PHONE:
-        return account_id(participant.identity) if trust_phone else None
-    if participant.kind != rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD:
+def from_participant(
+    participant: rtc.Participant, *, trust_phone: bool = False, share_identity: bool = False
+) -> str | None:
+    """The end user id for the person behind `participant`: `participant_id`, or with
+    `share_identity` the identity itself where it is a usable id (`account_id`), so it is the
+    memory your backend writes to under that id. None for a phone caller unless `trust_phone`,
+    and for anything that is not a person (an agent, an ingress, a bridge)."""
+    if participant.kind in _PHONE and not trust_phone:
         return None
-    return account_id(participant.identity)
+    if participant.kind not in (*_PHONE, rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD):
+        return None
+    identity = participant.identity
+    return account_id(identity) if share_identity else participant_id(identity)
 
 
 def from_metadata(metadata: str, key: str) -> str | None:

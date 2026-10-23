@@ -143,3 +143,13 @@ def test_the_settings_are_kept_to_read() -> None:
     with pytest.raises(AttributeError):
         memory.settings.recall_timeout = 2  # pyright: ignore[reportAttributeAccessIssue]
     assert isinstance(memory.tools()[0], llm.FunctionTool)
+
+
+def test_the_defaults_live_in_one_place() -> None:
+    import inspect
+    from dataclasses import fields
+
+    given = inspect.signature(TwinMemory.__init__).parameters
+    assert {f.name: f.default for f in fields(Settings)} == {
+        f.name: given[f.name].default for f in fields(Settings)
+    }

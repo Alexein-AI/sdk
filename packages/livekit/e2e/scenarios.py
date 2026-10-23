@@ -133,6 +133,30 @@ SCENARIOS = [
         expect=[["4417"]],
     ),
     Scenario(
+        "in Urdu",
+        [
+            ["میرا جم کا لاکر کوڈ 4417 ہے، اور میں منگل کی شام ورزش کرتا ہوں۔"],
+            ["میرا لاکر کوڈ کیا ہے؟"],
+        ],
+        expect=[["4417", "۴۴۱۷"]],
+    ),
+    Scenario(
+        "in Russian",
+        [
+            ["Код от моего шкафчика в спортзале 4417, тренируюсь по вторникам."],
+            ["Какой у меня код от шкафчика?"],
+        ],
+        expect=[["4417"]],
+    ),
+    Scenario(
+        "in Chinese",
+        [
+            ["我健身房储物柜的密码是4417，我每周二晚上锻炼。"],
+            ["我的储物柜密码是多少？"],
+        ],
+        expect=[["4417"]],
+    ),
+    Scenario(
         "an unrelated question gets no memory in its answer",
         [
             ["My locker code at the gym is 4417."],
