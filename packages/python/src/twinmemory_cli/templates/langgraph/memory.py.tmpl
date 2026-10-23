@@ -139,9 +139,14 @@ def _thread_id(config: RunnableConfig | None) -> str | None:
     return (config or {}).get("configurable", {}).get("thread_id")
 
 
+# The longest question memory takes, in characters. A longer one - a pasted email - is
+# searched by its end, where its question usually is.
+_MAX_QUERY = 2000
+
+
 def _search(user: User, query: str) -> SearchResult | None:
     try:
-        return user.search(query, fast=FAST)
+        return user.search(query[-_MAX_QUERY:], fast=FAST)
     except NotFoundError:  # nothing has been saved for this user yet
         return None
 # >>> nodes

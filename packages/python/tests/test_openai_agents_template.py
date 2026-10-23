@@ -9,7 +9,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import httpx
@@ -19,7 +19,8 @@ from conftest import Answer, async_memory, ok
 pytest.importorskip("agents")
 
 from agents import Agent, RunConfig, Runner, SQLiteSession, UserError, handoff
-from agents.testing.model import ScriptedModel, assistant_message, function_call
+from agents.run import CallModelData, ModelInputData
+from agents.testing.model import ModelStep, ScriptedModel, assistant_message, function_call
 from pydantic import BaseModel
 from twinmemory import AuthenticationError, ServiceUnavailableError
 
@@ -285,6 +286,92 @@ async def test_requests_say_they_came_from_openai_agents(
     assert recorded.last.headers["User-Agent"].endswith(" openai-agents")
 
 
+# ------------------------------------------------- what a real model and server send --
+
+
+async def test_a_long_message_is_searched_by_its_end(generated: tuple[ModuleType, Any]) -> None:
+    """The service takes a question of at most 2,000 characters; a pasted email is longer."""
+    module, recorded = generated
+    asked = "x" * 2500 + " Where do I live?"
+    await turn(module, ScriptedModel([[assistant_message("Lisbon.")]]), asked)
+    query = bodies(recorded, "search")[0]["query"]
+    assert len(query) == 2000 and query.endswith("Where do I live?")
+
+
+async def test_a_model_without_response_ids_still_saves_each_turn_apart(
+    generated: tuple[ModuleType, Any],
+) -> None:
+    """Chat Completions and LiteLLM models give no response id."""
+    module, recorded = generated
+    steps = [ModelStep(output=[assistant_message("You're welcome.")], response_id=None)] * 2
+    model = ScriptedModel(steps)
+    context = module.MemoryContext("dana")
+    first = await turn(module, model, "Thanks", context=context)
+    await turn(module, model, "Thanks", context=context)
+    await module.remember(first)
+    ids = [[i["id"] for i in body["items"]] for body in bodies(recorded, "add")]
+    assert ids[0] != ids[1]  # two turns, said the same way
+    assert ids[0] == ids[2]  # one turn, saved twice
+
+
+def call(context: Any, *items: Any) -> CallModelData[Any]:
+    """What the runner hands the filter before a model call."""
+    data = ModelInputData(input=list(items), instructions="Be brief.")
+    return CallModelData(model_data=data, agent=Agent(name="A"), context=context)
+
+
+ASKED = {"role": "user", "content": "Where do I live?"}
+TOOL_OUTPUT = {"type": "function_call_output", "call_id": "c1", "output": "..."}
+
+
+def echo(request: httpx.Request) -> httpx.Response:
+    """A search that says which question it answered."""
+    if request.url.path.endswith("search"):
+        return ok({"query": "q", "known": [f"ANSWER FOR: {json.loads(request.content)['query']}"]})
+    return answer(request)
+
+
+async def test_two_turns_in_flight_for_one_user_keep_their_own_memory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, _ = load(tmp_path, monkeypatch, echo)
+    first, second = module.MemoryContext("dana"), module.MemoryContext("dana")
+    await module.recall(call(first, ASKED))
+    await module.recall(call(second, {"role": "user", "content": "My dog's name?"}))
+
+    after_a_tool = await module.recall(call(first, ASKED, TOOL_OUTPUT))
+
+    assert "ANSWER FOR: Where do I live?" in (after_a_tool.instructions or "")
+    assert "dog" not in (after_a_tool.instructions or "")
+
+
+async def test_a_resumed_run_with_nothing_kept_searches_its_users_message(
+    generated: tuple[ModuleType, Any],
+) -> None:
+    """A run resumed after an approval, or in another process, starts on a tool output."""
+    module, recorded = generated
+    resumed = await module.recall(call(module.MemoryContext("dana"), ASKED, TOOL_OUTPUT))
+    assert [b["query"] for b in bodies(recorded, "search")] == ["Where do I live?"]
+    assert "Dana lives in Lisbon." in (resumed.instructions or "")
+
+
+async def test_a_developer_message_after_the_users_still_recalls(
+    generated: tuple[ModuleType, Any],
+) -> None:
+    module, recorded = generated
+    note = {"role": "developer", "content": "Today is Friday."}
+    await module.recall(call(module.MemoryContext("dana"), ASKED, note))
+    assert [b["query"] for b in bodies(recorded, "search")] == ["Where do I live?"]
+
+
+async def test_a_run_paused_for_an_approval_saves_nothing(
+    generated: tuple[ModuleType, Any],
+) -> None:
+    module, recorded = generated
+    await module.remember(SimpleNamespace(interruptions=["approve memory_add?"]))
+    assert recorded.requests == []
+
+
 # ------------------------------------------------------------------------------- tools --
 
 CALLS = [
@@ -321,6 +408,45 @@ async def test_tools_read_the_user_from_the_run_never_from_the_model(
     ]
     schemas = {t.name: t.params_json_schema for t in module.MEMORY_WRITE_TOOLS}
     assert all("user" not in json.dumps(s) for s in schemas.values())
+
+
+async def test_the_models_own_mistakes_go_back_to_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A bad request from the model is the model's to fix: it is told, and the run goes on."""
+
+    def strict(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("read"):
+            return ok({"detail": "read needs a path"}, status=422)
+        return answer(request)
+
+    module, _ = load(tmp_path, monkeypatch, strict)
+    model = ScriptedModel(
+        [
+            [
+                function_call("memory_read", {"path": ""}, call_id="c1"),
+                function_call("memory_search", "not json", call_id="c2"),
+            ],
+            [assistant_message("Sorry.")],
+        ]
+    )
+    agent = Agent(name="A", model=model, tools=module.MEMORY_TOOLS)
+    context = module.MemoryContext("dana")
+    result = await Runner.run(
+        agent, "x", context=context, run_config=RunConfig(tracing_disabled=True)
+    )
+
+    outputs = [i["output"] for i in model.calls[1].input if i.get("type") == "function_call_output"]
+    assert result.final_output == "Sorry."
+    assert all(o.startswith("That did not work:") for o in outputs), outputs
+    assert "read needs a path" in outputs[0]
+
+
+async def test_a_tool_run_with_no_user_raises(generated: tuple[ModuleType, Any]) -> None:
+    module, recorded = generated
+    with pytest.raises(Exception, match="whose memory"):
+        await tool_outputs(module, context=SimpleNamespace(plan="pro"))
+    assert recorded.requests == []
 
 
 # ---------------------------------------------------------------------- when memory fails --

@@ -121,6 +121,12 @@ def _prepare(cwd: Path, options: Options, console: Console) -> tuple[Path, Path]
 
 
 def _require_framework(root: Path, framework: str, console: Console) -> None:
+    if framework == "openai-agents" and project.shadows_agents(root):
+        console.step(
+            "warning",
+            "this project has an `agents` package of its own; the OpenAI Agents SDK is "
+            "imported as `agents` too, and the two would clash",
+        )
     if project.uses(root, framework):
         return
     name = NAMES[framework]

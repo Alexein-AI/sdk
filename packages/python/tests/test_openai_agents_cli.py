@@ -140,6 +140,17 @@ def test_an_import_of_agents_is_enough(project: Project) -> None:
     assert init(project)[0] == 0
 
 
+def test_a_project_with_its_own_agents_package_is_not_taken_for_the_sdk(
+    project: Project,
+) -> None:
+    project.uv("")
+    agent_file(project, "agents/planner.py", "from agents.base import Agent\n\nAgent()\n")
+    code, console = init(project)
+    assert code == 1
+    assert "an `agents` package of its own" in said(console)
+    assert "does not use the OpenAI Agents SDK;" in said(console)
+
+
 def test_an_old_sdk_installed_stops_with_the_upgrade(project: Project) -> None:
     agents_project(project).installed(openai_agents="0.2.11")
     code, console = init(project)

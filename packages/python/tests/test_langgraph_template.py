@@ -263,6 +263,16 @@ def test_a_wrong_key_raises_even_so(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         tools_graph(module).invoke({"messages": [HumanMessage("x")]}, context={"user_id": "dana"})
 
 
+def test_a_long_message_is_searched_by_its_end(generated: tuple[ModuleType, Any]) -> None:
+    """The service takes a question of at most 2,000 characters; a pasted email is longer."""
+    module, recorded = generated
+    runtime = type("R", (), {"context": {"user_id": "dana"}})()
+    asked = "x" * 2500 + " Where do I live?"
+    module.recall({"messages": [HumanMessage(asked)]}, runtime, {"configurable": {}})
+    query = recorded.body(0)["query"]
+    assert len(query) == 2000 and query.endswith("Where do I live?")
+
+
 def test_requests_say_they_came_from_langgraph(generated: tuple[ModuleType, Any]) -> None:
     module, recorded = generated
     runtime = type("R", (), {"context": {"user_id": "dana"}})()

@@ -46,6 +46,9 @@ import hashlib
 import json
 # <<< nodes
 import logging
+# >>> nodes
+import uuid
+# <<< nodes
 from dataclasses import dataclass
 from functools import cache
 from typing import Any
@@ -71,10 +74,16 @@ from agents.run import CallModelData, ModelInputData
 from twinmemory import (
     AsyncMemory,
     AsyncUser,
+# >>> tools
+    AuthenticationError,
+# <<< tools
 # >>> nodes
     Item,
 # <<< nodes
     NotFoundError,
+# >>> tools
+    PermissionDeniedError,
+# <<< tools
     SearchResult,
 # >>> tools
     TwinMemoryError,
@@ -142,9 +151,14 @@ def _session(context: Any) -> str | None:
     return str(found) if found else None
 
 
+# The longest question memory takes, in characters. A longer one - a pasted email - is
+# searched by its end, where its question usually is.
+_MAX_QUERY = 2000
+
+
 async def _search(user: AsyncUser, query: str) -> SearchResult | None:
     try:
-        return await user.search(query, fast=FAST)
+        return await user.search(query[-_MAX_QUERY:], fast=FAST)
     except NotFoundError:  # nothing has been saved for this user yet
         return None
 # >>> nodes
@@ -168,9 +182,21 @@ def _said_by_user(item: TResponseInputItem) -> bool:
     return isinstance(item, dict) and item.get("role") == "user"
 
 
-# What `recall` found for each user's turn, for the model calls after the first in that
-# turn (a tool loop, a handoff), whose input no longer ends with the user's message.
-_recalled: dict[str, str] = {}
+def _asked(items: list[TResponseInputItem]) -> str | None:
+    """The user's message when this model call is the first of a turn - the input ends
+    with it, or with developer or system messages after it - else None."""
+    for item in reversed(items):
+        role = item.get("role") if isinstance(item, dict) else None
+        if role in ("developer", "system"):
+            continue
+        return _text(item).strip() if role == "user" else None
+    return None
+
+
+# What `recall` found for each run - its context object - and user, for the model
+# calls after the first in a turn (a tool loop, a handoff), whose input no longer ends
+# with the user's message. Per run, so two turns in flight for one user keep their own.
+_recalled: dict[tuple[int, str], str] = {}
 _KEPT = 1000
 
 # What goes before what memory found, in the instructions.
@@ -185,16 +211,20 @@ async def recall(data: CallModelData[Any]) -> ModelInputData:
     for the user's latest message, added to the instructions."""
     model = data.model_data
     user = _user(data.context)
-    latest = model.input[-1] if model.input else None
-    if latest is not None and _said_by_user(latest):
-        asked = _text(latest).strip()
+    run = (id(data.context), user.id)
+    asked = _asked(model.input)
+    if asked is None and run not in _recalled:
+        # A run resumed after an approval, or in another process: nothing kept for it.
+        said = [_text(i).strip() for i in model.input if _said_by_user(i)]
+        asked = said[-1] if said else None
+    if asked is not None:
         found = await _search(user, asked) if asked else None
         text = found.context(max_chars=MAX_CHARS) if found else ""
-        _recalled.pop(user.id, None)  # to the end, so the oldest are dropped first
-        _recalled[user.id] = _HEADING + text if text else ""
+        _recalled.pop(run, None)  # to the end, so the oldest are dropped first
+        _recalled[run] = _HEADING + text if text else ""
         while len(_recalled) > _KEPT:
             _recalled.pop(next(iter(_recalled)))
-    block = _recalled.get(user.id, "")
+    block = _recalled.get(run, "")
     if block:
         given = model.instructions
         model.instructions = f"{given}\n\n{block}" if given else block
@@ -208,13 +238,16 @@ async def remember(result: RunResultBase) -> None:
 
     Each message is saved under an id made from the run's response and its text, so
     saving the same result again replaces what was saved rather than adding a second
-    copy. Tool calls and their results are not saved. Needs a key that writes."""
+    copy. Tool calls and their results are not saved. A run paused for an approval
+    saves nothing: save the run that resumes it. Needs a key that writes."""
+    if getattr(result, "interruptions", None):
+        return
     context = result.context_wrapper.context
     session = _session(context)
     said = ItemHelpers.input_to_new_input_list(result.input)
     asked = next((_text(i) for i in reversed(said) if _said_by_user(i)), "")
     answered = _answer(result.final_output)
-    turn = result.raw_responses[-1].response_id if result.raw_responses else None
+    turn = _turn(result)
     items = [
         _item(text, role, f"{session}|{turn}", author)
         for text, role, author in (
@@ -235,6 +268,17 @@ def _answer(output: Any) -> str:
     return dump() if callable(dump) else json.dumps(output, default=str)
 
 
+def _turn(result: RunResultBase) -> str:
+    """What sets this run's saves apart from another's with the same words: the model's
+    response id, or - from a model that gives none, as Chat Completions does - one made
+    for this result, so that saving it again still replaces rather than adds."""
+    found = result.raw_responses[-1].response_id if result.raw_responses else None
+    if not found:
+        found = getattr(result, "_twin_memory_turn", None) or uuid.uuid4().hex
+        result._twin_memory_turn = found  # type: ignore[attr-defined]
+    return found
+
+
 def _item(text: str, role: str, turn: str, author: str | None) -> Item:
     ident = hashlib.sha256(f"{turn}|{role}|{text}".encode()).hexdigest()[:24]
     item = Item(id=ident, role=role, text=text)
@@ -247,22 +291,26 @@ def _item(text: str, role: str, turn: str, author: str | None) -> Item:
 
 # --------------------------------------------------------------------------- tools --
 # The context is filled in by the Runner and never shown to the model, so a model
-# cannot ask for anybody else's memory. `failure_error_function=None` lets a wrong key
-# raise rather than reach the model as text.
+# cannot ask for anybody else's memory.
 
 UNAVAILABLE = "Memory is unavailable right now; carry on without it."
 
 
-def _unavailable(error: TwinMemoryError) -> str:
-    """What the model is told when memory is down, unless STRICT; a wrong key or a
-    wrong request raises."""
-    if STRICT or not error.outage:
+def _tool_failed(ctx: RunContextWrapper[Any], error: Exception) -> str:
+    """What the model is told when a tool fails: that memory is down, or what was wrong
+    with what it asked, so it can carry on or try again. A wrong key, a run with no
+    user in its context, or an outage under STRICT raises: those are yours to fix."""
+    yours = isinstance(error, (AuthenticationError, PermissionDeniedError))
+    outage = isinstance(error, TwinMemoryError) and error.outage
+    if yours or not _field(ctx.context, "user_id") or (STRICT and outage):
         raise error
-    log.warning("twin memory unavailable: %s", error)
-    return UNAVAILABLE
+    if outage:
+        log.warning("twin memory unavailable: %s", error)
+        return UNAVAILABLE
+    return f"That did not work: {error}"
 
 
-@function_tool(failure_error_function=None)
+@function_tool(failure_error_function=_tool_failed)
 async def memory_search(ctx: RunContextWrapper[Any], query: str) -> str:
     """Search what you remember about this user: what they said, did and decided in
     earlier conversations. Ends with the paths of what it found, to read whole with
@@ -285,7 +333,7 @@ async def memory_search(ctx: RunContextWrapper[Any], query: str) -> str:
     return text
 
 
-@function_tool(failure_error_function=None)
+@function_tool(failure_error_function=_tool_failed)
 async def memory_read(ctx: RunContextWrapper[Any], path: str) -> str:
     """Read one remembered passage or record whole.
 
@@ -296,14 +344,12 @@ async def memory_read(ctx: RunContextWrapper[Any], path: str) -> str:
         found = await _user(ctx.context).read(path)
     except NotFoundError:
         return "Nothing has been remembered for this user yet."
-    except TwinMemoryError as error:
-        return _unavailable(error)
     if found.text is not None:
         return found.text
     return found.error or f"Nothing at {path}."
 
 
-@function_tool(failure_error_function=None)
+@function_tool(failure_error_function=_tool_failed)
 async def memory_add(ctx: RunContextWrapper[Any], text: str) -> str:
     """Remember something about this user for later conversations: a preference, a
     fact about them, a decision. Never save passwords, keys or secrets.
