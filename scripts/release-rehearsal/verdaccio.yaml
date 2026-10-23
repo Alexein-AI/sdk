@@ -1,0 +1,24 @@
+# The rehearsal's npm registry. Our two packages live here and nowhere else - never fetched from
+# npmjs.org, so a package of the same name published there by anyone cannot be picked up by mistake.
+# Every other package is fetched from npmjs.org and cached.
+storage: /verdaccio/storage
+auth:
+  htpasswd:
+    file: /verdaccio/storage/htpasswd
+    max_users: 10
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+packages:
+  "twinmemory":
+    access: $all
+    publish: $authenticated
+  "twinmemory-cli":
+    access: $all
+    publish: $authenticated
+  "**":
+    access: $all
+    proxy: npmjs
+server:
+  keepAliveTimeout: 60
+log: { type: stdout, format: pretty, level: warn }
