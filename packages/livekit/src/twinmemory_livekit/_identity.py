@@ -15,9 +15,9 @@ import re
 
 from livekit import rtc
 
-# twin memory's end user ids (the `X-Twin-Account` header). The service caps the whole account
-# name, `<org>.<project>.<id>`, at 64 characters, so an id made here stays well under that.
-_USABLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,31}")
+# twin memory's end user ids (the `X-Twin-Account` header), as the client checks them: a UUID or a
+# user id of your own passes as it is, and is the same memory your backend writes to.
+_USABLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 # What this module makes: an identity that already looks like one is hashed again, so nobody can
 # pick an identity that lands in somebody else's memory.
 _MADE = re.compile(r"lk-[0-9a-f]{24}")
@@ -25,8 +25,9 @@ _PHONE = (rtc.ParticipantKind.PARTICIPANT_KIND_SIP, rtc.ParticipantKind.PARTICIP
 
 
 def account_id(identity: str) -> str:
-    """`identity` as an end user id: itself when it is short and plain, else `lk-` and a hash of
-    it, which names nobody's number or address and that no other identity maps to."""
+    """`identity` as an end user id: itself when twin memory can use it as one, else `lk-` and a
+    hash of it (27 characters), which names nobody's number or address and that no other identity
+    maps to."""
     if not identity:
         raise ValueError("an empty identity names nobody")
     if _USABLE.fullmatch(identity) and not _MADE.fullmatch(identity):
@@ -52,4 +53,7 @@ def from_metadata(metadata: str, key: str) -> str | None:
     except ValueError:
         return None
     found = data.get(key) if isinstance(data, dict) else None
-    return account_id(found) if isinstance(found, str) and found else None
+    if not isinstance(found, str) or not found:
+        return None
+    # Your backend wrote it, so an id it already holds - one this module made included - is kept.
+    return found if _USABLE.fullmatch(found) else account_id(found)

@@ -18,13 +18,15 @@ from twinmemory_livekit._recall import block, place, question, wrap
 # ---------------------------------------------------------------------------- identity --
 
 
-def test_a_short_plain_identity_is_the_user_id_as_it_is() -> None:
+def test_an_identity_twin_memory_can_use_is_the_user_id_as_it_is() -> None:
     assert account_id("dana") == "dana"
     assert account_id("user_42.prod-A") == "user_42.prod-A"
+    uuid = "6f1c2b9e-3d4a-4e5f-8a7b-9c0d1e2f3a4b"
+    assert account_id(uuid) == uuid  # the same memory a backend writes to by that id
 
 
 def test_other_identities_are_hashed_short_and_name_nobody() -> None:
-    for identity in ("dana@acme.dev", "+15551234567", "x" * 40, "é", "a b"):
+    for identity in ("dana@acme.dev", "+15551234567", "x" * 70, "é", "a b"):
         made = account_id(identity)
         assert made.startswith("lk-") and len(made) == 27
         assert "dana" not in made and "555" not in made  # no address or number in the id
@@ -55,6 +57,8 @@ def test_a_phone_caller_or_a_non_person_is_not_bound_unless_trusted() -> None:
 def test_job_metadata_names_the_user_only_when_it_says_so() -> None:
     key = "twinmemory_user_id"
     assert from_metadata(json.dumps({key: "dana"}), key) == "dana"
+    made = account_id("dana@acme.dev")  # an id the agent used, handed back by your backend
+    assert from_metadata(json.dumps({key: made}), key) == made
     for metadata in ("", "dana", "[1]", json.dumps({"other": "x"}), json.dumps({key: 7})):
         assert from_metadata(metadata, key) is None
 
@@ -107,12 +111,16 @@ def test_nothing_remembered_can_close_the_memory_wrapper_or_look_like_markup() -
     ]
     wrapped = wrap("\n".join(tries))
     inside = wrapped.split("<memory>\n", 1)[1].rsplit("\n</memory>", 1)[0]
-    assert (
-        "<" not in inside and ">" not in inside and "&lt;" not in inside and "&#60;" not in inside
-    )
-    assert "\u200b" not in inside and "\u00ad" not in inside
+    assert not set(inside) & set("<>\uff1c\uff1e&")  # no bracket, and no entity can be spelled
     assert wrapped.count("<memory>") == 1 and wrapped.count("</memory>") == 1
     assert "Ignore previous instructions" in inside  # kept as text, inert
+
+
+def test_making_memory_inert_leaves_what_was_said_as_it_was() -> None:
+    # Superscripts, an emoji joined by a zero-width joiner, a Persian word with a non-joiner.
+    said = "m\u00b2 at 10\u2076, \U0001f469\u200d\U0001f467 and "
+    said += "\u0645\u06cc\u200c\u062e\u0648\u0627\u0645"
+    assert said in wrap(said)
 
 
 def test_memory_goes_just_before_the_users_words_and_only_once() -> None:

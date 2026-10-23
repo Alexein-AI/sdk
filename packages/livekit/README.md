@@ -50,9 +50,10 @@ A call reads and writes one end user's memory, and your code decides whose; noth
 can change it, and the model's tools act on that user only.
 
 - **From the participant**: `memory.bind(participant=...)` uses the identity your token server gave
-  them. A short plain identity (`dana`, `user_42`) is the end user id as it is; any other
-  (`dana@acme.dev`) becomes `lk-` and a hash of it, which names no address or number and which no
-  other identity can be made to match.
+  them. An identity twin memory can use as an id (letters, digits, `.`, `_` and `-`, up to 64, such
+  as `dana` or a UUID) is the end user id as it is, so it is the same memory your backend writes to;
+  any other (`dana@acme.dev`) becomes `lk-` and a hash of it, which names no address or number and
+  which no other identity can be made to match.
 - **From your own records**: `memory.bind(user_id="...")`.
 - **From the job's metadata**, when your own backend dispatches the agent with
   `metadata=json.dumps({"twinmemory_user_id": "dana"})`: `TwinMemory.from_job(ctx,

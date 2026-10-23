@@ -81,6 +81,7 @@ class Writer:
         self._idle.set()
         self._task: asyncio.Task[None] | None = None
         self._refused = False
+        self._closed = False
         self._failed: set[str] = set()
         self.dropped = 0
 
@@ -108,7 +109,7 @@ class Writer:
 
     async def flush(self, timeout: float) -> int:
         """Wait up to `timeout` seconds for every queued turn to be saved; how many were not."""
-        if self._user is not None:
+        if self._user is not None and not self._closed:
             self._ensure()
             with contextlib.suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(self._idle.wait(), timeout)
@@ -116,6 +117,7 @@ class Writer:
 
     async def aclose(self, timeout: float) -> None:
         left = await self.flush(timeout)
+        self._closed = True
         if self._task is not None:
             self._task.cancel()
             await asyncio.gather(self._task, return_exceptions=True)
@@ -126,7 +128,7 @@ class Writer:
 
     def _ensure(self) -> None:
         """The writer task, started once there is a user and an event loop to run it on."""
-        if self._task is not None or self._user is None:
+        if self._task is not None or self._user is None or self._closed:
             return
         try:
             asyncio.get_running_loop()
@@ -159,8 +161,11 @@ class Writer:
         except asyncio.TimeoutError:
             return False
         except InvalidRequestError as error:
-            if len(batch) > 1:  # one bad turn: save the others one by one
-                return all([await self._save(user, [turn]) for turn in batch])
+            if len(batch) > 1:  # one bad turn: save them one by one, in order, until one must wait
+                for turn in batch:
+                    if not await self._save(user, [turn]):
+                        return False
+                return True
             self._refuse(error)
             return True
         except TwinMemoryError as error:

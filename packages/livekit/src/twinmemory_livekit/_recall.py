@@ -15,11 +15,9 @@ its own turns back. Not a cache of memory: a lookup is reused for half a minute,
 from __future__ import annotations
 
 import asyncio
-import html
 import logging
 import re
 import time
-import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -104,13 +102,17 @@ def block(known: list[str], hits: list[Hit], max_chars: int) -> str:
     return "\n".join(f"- {line}" for line in lines)
 
 
+# Every character a model may read as an angle bracket, and the ampersand that starts an entity:
+# with none of them left, no tag and no `&lt;` can be spelled, however it is hidden, and the rest
+# of the text (m², 10⁶, an emoji, a Persian word) is left exactly as it was said.
+_MARKUP = str.maketrans(
+    {c: "‹" for c in "<＜﹤〈⟨"} | {c: "›" for c in ">＞﹥〉⟩"} | {"&": "＆"}  # noqa: RUF001
+)
+
+
 def _inert(text: str) -> str:
-    """`text` as it cannot be read as markup: entities decoded (`&lt;`), look-alike forms folded
-    (full-width brackets), invisible format characters dropped (a zero-width space inside
-    `</memory>`), and every angle bracket replaced by one that closes no tag."""
-    folded = unicodedata.normalize("NFKC", html.unescape(text))
-    visible = "".join(c for c in folded if unicodedata.category(c) != "Cf")
-    return visible.replace("<", "‹").replace(">", "›")  # noqa: RUF001
+    """`text` as it cannot be read as markup."""
+    return text.translate(_MARKUP)
 
 
 def wrap(context: str) -> str:
@@ -183,7 +185,9 @@ class Recall:
             self._done(now, 0, timed_out=True, reused=reused)
             return ""
         except asyncio.CancelledError:
-            if not lookup.cancelled():
+            current = asyncio.current_task()
+            cancelling = getattr(current, "cancelling", lambda: 0)()  # Python 3.11 and newer
+            if cancelling or not lookup.cancelled():
                 raise  # the reply itself was cancelled
             return ""  # the call is closing, and took the lookup with it
         text = wrap(found) if found else ""

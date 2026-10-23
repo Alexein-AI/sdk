@@ -102,6 +102,31 @@ async def test_one_refused_turn_does_not_take_the_others_with_it() -> None:
     await writer.aclose(1)
 
 
+async def test_saving_one_by_one_keeps_the_order_when_memory_falters() -> None:
+    service = MemoryService(reject="BAD", flaky="t2")  # t2 meets an outage, once, alone
+    writer = Writer()
+    writer.start(service.client().user("dana"))
+    for name in ("t1", "t2", "BAD", "t4"):
+        writer.put(Item(id=name, text=name))
+    assert await writer.flush(10) == 0
+    saved = [i["id"] for i in service.added]
+    assert saved.index("t2") < saved.index("t4")  # t4 never lands before t2
+    assert set(saved) == {"t1", "t2", "t4"}
+    await writer.aclose(1)
+
+
+async def test_flush_after_close_returns_at_once_and_starts_nothing() -> None:
+    service = MemoryService(status=503)
+    writer = Writer()
+    writer.start(service.client().user("dana"))
+    writer.put(Item(id="t1", text="t1"))
+    await writer.aclose(0.2)
+    started = time.monotonic()
+    assert await writer.flush(5) == 1
+    assert time.monotonic() - started < 0.1
+    assert writer._task is None  # pyright: ignore[reportPrivateUsage]
+
+
 async def test_closing_mid_reply_lets_the_reply_go_on() -> None:
     service = MemoryService(hits=[LISBON], delay=5.0)
     memory = _memory(service, recall_timeout=2.0)

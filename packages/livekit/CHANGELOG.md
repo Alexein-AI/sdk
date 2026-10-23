@@ -6,7 +6,7 @@ First release.
 
 - `TwinMemory`: one call's memory, attached to the session (`attach`), so it survives handoffs, and
   closed with it. `bind(participant=...)` takes the user from their LiveKit identity - as it is when
-  short and plain, else `lk-` and a hash that nobody can choose an identity to match - and leaves a
+  twin memory can use it as an id, else `lk-` and a hash that no identity can be chosen to match - and leaves a
   phone caller unbound unless `trust_phone=True`; `from_job(ctx, metadata_key=...)` takes the user
   from job metadata your backend wrote. Turns said before `bind` wait for it.
 - Recall before each reply, in `llm_node`: it keeps preemptive generation and covers typed turns.
