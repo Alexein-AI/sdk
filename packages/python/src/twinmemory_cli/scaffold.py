@@ -2,8 +2,9 @@
 
 The steps, in order, each of which can stop the command before anything is written: find the
 project, make sure it uses the framework (or that adding it is wanted), make sure what is
-installed is new enough, and pick the graph the file goes beside. Then: write the file, add the
-packages it imports, and set up the key - which can be skipped, and added later.
+installed is new enough, and pick where the file goes: beside the graph, or the agent. Then:
+write the file, add the packages it imports, and set up the key - which can be skipped, and
+added later.
 """
 
 from __future__ import annotations
@@ -17,15 +18,18 @@ from twinmemory_cli import env, project
 from twinmemory_cli._version import __version__
 from twinmemory_cli.render import render
 from twinmemory_cli.ui import Console
+from twinmemory_cli.wiring import next_steps
 
 # What each framework's file needs, at least. Every one needs `fail_open` and `integration`,
 # this package's 0.2. LangGraph's: `Runtime`, `context_schema` and `ToolRuntime` are LangGraph 1
-# and LangChain 1.
+# and LangChain 1. The OpenAI Agents SDK's: `call_model_input_filter` is 0.3, and the file was
+# run on 0.3.0 as well as the newest.
 MINIMUMS = {
     "langgraph": {"twinmemory": "0.2", "langgraph": "1.0", "langchain": "1.0"},
+    "openai-agents": {"twinmemory": "0.2", "openai-agents": "0.3"},
 }
 # How each is named to the developer.
-NAMES = {"langgraph": "LangGraph"}
+NAMES = {"langgraph": "LangGraph", "openai-agents": "the OpenAI Agents SDK"}
 PARTS = ("nodes", "tools")
 
 Runner = Callable[[Sequence[str], Path], int]
@@ -89,6 +93,9 @@ def _prepare(cwd: Path, options: Options, console: Console) -> tuple[Path, Path]
     framework = options.framework
     if framework not in MINIMUMS:
         raise Stop(f"no template for {framework!r}; there is: {', '.join(MINIMUMS)}", code=2)
+    if framework != "langgraph" and (options.graph or options.asynchronous):
+        flag = "--graph" if options.graph else "--async"
+        raise Stop(f"{flag} is for langgraph; the {framework} file is async already", code=2)
     if options.filename and not options.filename.endswith(".py"):
         raise Stop(f"--file must name a Python file: {options.filename!r}", code=2)
     root = project.find_root(cwd)
@@ -101,11 +108,12 @@ def _prepare(cwd: Path, options: Options, console: Console) -> tuple[Path, Path]
     console.step("found", f"{project.installer(root, ['twinmemory']).name} project at {root}")
     _require_framework(root, framework, console)
     _require_versions(root, framework)
-    target = (
-        (cwd / options.directory).resolve()
-        if options.directory
-        else _graph_dir(root, options, console)
-    )
+    if options.directory:
+        target = (cwd / options.directory).resolve()
+    elif framework == "langgraph":
+        target = _graph_dir(root, options, console)
+    else:
+        target = _agent_dir(root, console)
     written = target / options.filename
     if written.exists() and not options.force:
         raise Stop(f"{_relative(written, root)} exists; --force replaces it. Nothing changed.")
@@ -119,7 +127,7 @@ def _require_framework(root: Path, framework: str, console: Console) -> None:
     console.step("note", f"this project does not use {name} yet")
     if not console.confirm(f"Add {name} to it and go on?"):
         raise Stop(
-            f"not a {name} project; run again with --yes to add {name} to it, or start a "
+            f"this project does not use {name}; run again with --yes to add it, or start a "
             f"new one with `twinmemory-cli create {framework} <name>`. Nothing changed."
         )
 
@@ -163,6 +171,24 @@ def _graph_dir(root: Path, options: Options, console: Console) -> Path:
     return found[chosen]
 
 
+def _agent_dir(root: Path, console: Console) -> Path:
+    """Beside the code that builds an `Agent`; with none found, the project's own package."""
+    found = project.agent_dirs(root)
+    if not found:
+        console.step("note", "found no file that builds an Agent; writing to the project's package")
+        return project.target_dir(root)
+    if len(found) == 1:
+        return found[0]
+    named = [_relative(d, root) for d in found]
+    chosen = console.choose("Which agent is memory for?", named)
+    if chosen is None:
+        raise Stop(
+            f"{len(found)} directories build an Agent ({', '.join(named)}); "
+            "name one with --dir. Nothing changed."
+        )
+    return found[named.index(chosen)]
+
+
 def _plan(root: Path, written: Path, options: Options, console: Console) -> None:
     """What `init` would do, every check made, nothing changed and nothing sent."""
     console.step("would", f"write {_relative(written, root)}")
@@ -192,9 +218,12 @@ def planned(root: Path, packages: list[str], options: Options, console: Console)
 
 
 def write(target: Path, options: Options) -> Path:
-    template = (
-        "langgraph/memory_async.py.tmpl" if options.asynchronous else "langgraph/memory.py.tmpl"
-    )
+    if options.framework == "openai-agents":
+        template = "openai_agents/memory.py.tmpl"
+    elif options.asynchronous:
+        template = "langgraph/memory_async.py.tmpl"
+    else:
+        template = "langgraph/memory.py.tmpl"
     values = {"version": __version__, "fast": str(options.fast)}
     target.mkdir(parents=True, exist_ok=True)
     written = target / options.filename
@@ -272,47 +301,6 @@ def _check_key(key: str, base_url: str | None, options: Options, console: Consol
     console.step("checked", f"key: {checked.detail}")
     if checked.writes is False and "nodes" in options.parts:
         console.step("warning", "this key only reads: remember and memory_add need one that writes")
-
-
-def next_steps(module: str, options: Options) -> str:
-    nodes, tools = "nodes" in options.parts, "tools" in options.parts
-    run = "await graph.ainvoke" if options.asynchronous else "graph.invoke"
-    names = ["MemoryContext"]
-    names += ["MemoryState", "memory_prompt", "recall", "remember"] if nodes else []
-    names += ["MEMORY_TOOLS"] if tools else []
-    lines = [
-        "  Wire it in, where you build your graph:",
-        "",
-        f"    from {module} import {', '.join(sorted(names))}",
-        "",
-    ]
-    if nodes:
-        lines += [
-            "    builder = StateGraph(MemoryState, context_schema=MemoryContext)",
-            '    builder.add_node("recall", recall)',
-            '    builder.add_node("remember", remember)',
-            '    builder.add_edge(START, "recall")',
-            '    builder.add_edge("recall", "agent")    # your model node: memory_prompt(state)',
-            '    builder.add_edge("agent", "remember")  # goes in its system prompt',
-            "",
-        ]
-    if tools:
-        lines += [
-            "    # the model looks things up itself: give it the tools",
-            "    create_agent(model, tools=[*MEMORY_TOOLS, ...], context_schema=MemoryContext)",
-            "",
-        ]
-    lines += [
-        "  Run with the end user's id; the model never chooses it:",
-        "",
-        f'    {run}(inputs, config={{"configurable": {{"thread_id": "t-1"}}}},',
-        '                 context={"user_id": "dana"})',
-        "",
-        f"  The key is {env.KEY} in .env. `langgraph dev` reads .env when langgraph.json",
-        '  has "env": ".env"; a plain script loads it itself.',
-        "  `twinmemory-cli doctor` checks it all.",
-    ]
-    return "\n".join(lines)
 
 
 def _quoted(command: str) -> str:

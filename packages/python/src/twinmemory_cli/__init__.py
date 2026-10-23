@@ -1,9 +1,10 @@
 """`twinmemory-cli`, in the manner of shadcn: what it writes is the developer's own code from
 then on, readable and editable, and nothing in this package reaches back into it.
 
-    twinmemory-cli init langgraph       memory for a LangGraph project you have
-    twinmemory-cli create langgraph X   a new LangGraph project with memory wired in
-    twinmemory-cli doctor               whether a project is set up for memory
+    twinmemory-cli init langgraph            memory for a LangGraph project you have
+    twinmemory-cli init openai-agents        ... or an OpenAI Agents SDK one
+    twinmemory-cli create <framework> X      a new project with memory wired in
+    twinmemory-cli doctor                    whether a project is set up for memory
 
 The standard library and the `twinmemory` client only. Never an installer of anything but the
 packages the written files import, and never a writer of a key it was not given.
@@ -21,7 +22,7 @@ from pathlib import Path
 from twinmemory_cli import create as creating
 from twinmemory_cli import doctor as checking
 from twinmemory_cli._version import __version__
-from twinmemory_cli.scaffold import PARTS, Options, init
+from twinmemory_cli.scaffold import MINIMUMS, PARTS, Options, init
 from twinmemory_cli.ui import Console
 
 
@@ -35,7 +36,7 @@ def _setup_flags(parser: argparse.ArgumentParser) -> None:
         "--async",
         dest="asynchronous",
         action="store_true",
-        help="async nodes and tools, for ainvoke",
+        help="async nodes and tools, for ainvoke (langgraph; openai-agents is async already)",
     )
     shape.add_argument(
         "--fast", action="store_true", help="search without the model filter: free, quicker"
@@ -65,20 +66,22 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     start = commands.add_parser("init", help="write memory into this project, as code you own")
-    start.add_argument("framework", help="langgraph")
+    start.add_argument("framework", help="langgraph or openai-agents")
     start.add_argument("--dir", type=Path, help="where to write the file (default: found)")
     start.add_argument("--file", default="memory.py", help="the file's name (default: memory.py)")
-    start.add_argument("--graph", help="which graph in langgraph.json it is for")
+    start.add_argument("--graph", help="which graph in langgraph.json it is for (langgraph)")
     start.add_argument("--force", action="store_true", help="replace a file already there")
     _setup_flags(start)
 
     new = commands.add_parser("create", help="a new project with memory wired in")
-    new.add_argument("framework", help="langgraph")
+    new.add_argument("framework", help="langgraph or openai-agents")
     new.add_argument("name", help="the project's directory and name")
     new.add_argument(
         "--model",
-        default=creating.DEFAULT_MODEL,
-        help=f"init_chat_model's name for it (default: {creating.DEFAULT_MODEL})",
+        help=(
+            f"the model: init_chat_model's name for it with langgraph (default: "
+            f"{creating.DEFAULT_MODEL}); with openai-agents, the SDK's (default: its own)"
+        ),
     )
     _setup_flags(new)
 
@@ -113,10 +116,11 @@ def main(argv: Sequence[str] | None = None, console: Console | None = None) -> i
         return checking.doctor(cwd, console or Console.for_terminal(yes=True))
     console = console or Console.for_terminal(yes=args.yes)
     if args.command == "create":
-        if args.framework != "langgraph":
-            console.fail(f"no template for {args.framework!r}; there is: langgraph")
+        if args.framework not in MINIMUMS:
+            console.fail(f"no template for {args.framework!r}; there is: {', '.join(MINIMUMS)}")
             return 2
-        return creating.create(args.name, cwd, args.model, _options(args), console)
+        model = args.model or (creating.DEFAULT_MODEL if args.framework == "langgraph" else "")
+        return creating.create(args.name, cwd, model, _options(args), console)
     return init(cwd, _options(args), console)
 
 

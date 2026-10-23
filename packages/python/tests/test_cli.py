@@ -180,7 +180,7 @@ def test_a_project_without_langgraph_stops_unless_told(project: Project) -> None
 
     code, console = project.init()
 
-    assert code == 1 and "not a LangGraph project" in said(console)
+    assert code == 1 and "this project does not use LangGraph;" in said(console)
     assert not (project.root / "memory.py").exists() and project.ran == []
 
 
