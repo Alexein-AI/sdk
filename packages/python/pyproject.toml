@@ -1,0 +1,65 @@
+[project]
+name = "twinmemory-cli"
+version = "0.1.0"
+description = "Add twin memory to a LangGraph project, as code you own: uvx twinmemory-cli init langgraph."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Alexein AI" }]
+keywords = ["memory", "llm", "agents", "langgraph", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+# The client, for the key's check; everything else is the standard library.
+dependencies = ["twinmemory>=0.2"]
+
+[project.scripts]
+twinmemory-cli = "twinmemory_cli:main"
+
+[project.urls]
+Homepage = "https://twinmemory.dev"
+Documentation = "https://twinmemory.dev/docs/integrations/langgraph"
+Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
+
+[dependency-groups]
+# LangGraph and LangChain only to run the written files in tests; the CLI never imports them.
+dev = ["pytest>=8", "anyio>=4", "ruff>=0.6", "pyright>=1.1.380", "langgraph>=1", "langchain>=1"]
+
+# Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it from the
+# twin-memory-python checkout). Then this goes, and the dependency above is met from PyPI.
+[tool.uv.sources]
+twinmemory = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/twinmemory_cli"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["twinmemory_cli"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.10"
+strict = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

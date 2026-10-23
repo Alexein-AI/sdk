@@ -1,0 +1,145 @@
+/**
+ * The agent: a model that remembers the people it talks to.
+ *
+ * Made by `twinmemory-cli create langgraph`. Memory comes from `memory.ts`, beside it:
+// >>> nodes
+ * `recall` looks up what memory holds before the model answers, and `remember` saves
+ * the turn after it.
+// <<< nodes
+// >>> both
+ * The model can also search memory itself, with `MEMORY_TOOLS`.
+// <<< both
+// >>> tools_only
+ * The model searches memory and saves to it itself, with `MEMORY_WRITE_TOOLS`.
+// <<< tools_only
+ *
+ * Whose memory a run reads is the `user_id` in its context, which your code sets:
+ *
+ *     await graph.invoke(inputs, { context: { user_id: "dana" } });
+ */
+
+import { SystemMessage } from "@langchain/core/messages";
+// >>> nodes
+import { END, START, StateGraph } from "@langchain/langgraph";
+// <<< nodes
+// >>> tools_only
+import {
+  END,
+  MessagesValue,
+  START,
+  StateGraph,
+  StateSchema,
+} from "@langchain/langgraph";
+// <<< tools_only
+// >>> tools
+import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
+// <<< tools
+import { initChatModel } from "langchain";
+
+// >>> both
+import {
+  MEMORY_TOOLS,
+  MemoryContext,
+  MemoryState,
+  memoryPrompt,
+  recall,
+  remember,
+} from "./memory.js";
+// <<< both
+// >>> nodes_only
+import {
+  MemoryContext,
+  MemoryState,
+  memoryPrompt,
+  recall,
+  remember,
+} from "./memory.js";
+// <<< nodes_only
+// >>> tools_only
+import { MEMORY_WRITE_TOOLS, MemoryContext } from "./memory.js";
+// <<< tools_only
+// >>> tools_only
+
+const State = new StateSchema({ messages: MessagesValue });
+// <<< tools_only
+// >>> nodes
+
+const State = MemoryState;
+// <<< nodes
+// >>> both
+
+// `remember` saves every turn, so the model is only given the tools that read.
+const TOOLS = MEMORY_TOOLS;
+// <<< both
+// >>> tools_only
+
+// Nothing else saves, so the model is given the tool that does.
+const TOOLS = MEMORY_WRITE_TOOLS;
+// <<< tools_only
+
+const SYSTEM =
+  "You are a helpful assistant. You remember the people you talk to across " +
+  "conversations; use what you remember where it helps, and never invent it.";
+
+/** The chat model `MODEL` in .env names, made on first use. */
+let chat: ReturnType<typeof bind> | undefined;
+
+async function bind() {
+  const name = process.env.MODEL ?? "{model}";
+  const model = await initChatModel(name);
+// >>> tools
+  return model.bindTools(TOOLS);
+// <<< tools
+// >>> nodes_only
+  return model;
+// <<< nodes_only
+}
+
+export async function agent(state: typeof State.State) {
+  let system = SYSTEM;
+// >>> nodes
+  const remembered = memoryPrompt(state);
+  if (remembered) system += "\n\n" + remembered;
+// <<< nodes
+  chat ??= bind();
+  const model = await chat;
+  const reply = await model.invoke([
+    new SystemMessage(system),
+    ...state.messages,
+  ]);
+  return { messages: [reply] };
+}
+
+export const graph = new StateGraph(State, MemoryContext)
+  .addNode("agent", agent)
+// >>> nodes
+  .addNode("recall", recall)
+  .addNode("remember", remember)
+// <<< nodes
+// >>> tools
+  .addNode("tools", new ToolNode(TOOLS))
+// <<< tools
+// >>> nodes
+  .addEdge(START, "recall")
+  .addEdge("recall", "agent")
+  .addEdge("remember", END)
+// <<< nodes
+// >>> tools_only
+  .addEdge(START, "agent")
+// <<< tools_only
+// >>> tools
+  .addEdge("tools", "agent")
+// <<< tools
+// >>> both
+  .addConditionalEdges("agent", toolsCondition, {
+    tools: "tools",
+    [END]: "remember",
+  })
+// <<< both
+// >>> tools_only
+  .addConditionalEdges("agent", toolsCondition, { tools: "tools", [END]: END })
+// <<< tools_only
+// >>> nodes_only
+  .addEdge("agent", "remember")
+// <<< nodes_only
+  .compile();

@@ -1,0 +1,40 @@
+# twinmemory-cli for JavaScript (packages/js). The twinmemory client comes from vendor/ until it is
+# on npm, so this needs nothing from any other repository.
+name: js
+
+on:
+  pull_request:
+    paths: ["packages/js/**", "vendor/**", ".github/workflows/js-*.yml"]
+  push:
+    branches: [main]
+    paths: ["packages/js/**", "vendor/**", ".github/workflows/js-*.yml"]
+
+concurrency:
+  group: js-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: packages/js
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "22"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx prettier --check .
+      - run: npx vitest run
+      - run: npm run build
+      - run: node dist/bin.js --version
