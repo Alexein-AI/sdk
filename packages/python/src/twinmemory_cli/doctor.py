@@ -26,7 +26,7 @@ def doctor(cwd: Path, console: Console) -> int:
         return 1
     console.line(f"twinmemory-cli {__version__} - checking {root}")
     written = _written(root, console)
-    minimums = _minimums(root, [framework for _, framework in written])
+    minimums = _minimums_for(root, [framework for _, framework in written])
     results = [bool(written), _dependencies(root, minimums, console)]
     results.append(_versions(root, minimums, console))
     results.append(_key(root, console, writes=any(_saves(path) for path, _ in written)))
@@ -59,7 +59,7 @@ def _written(root: Path, console: Console) -> list[tuple[Path, str]]:
     return [(path, framework) for path, framework, _ in found if framework in MINIMUMS]
 
 
-def _minimums(root: Path, frameworks: list[str]) -> dict[str, str]:
+def _minimums_for(root: Path, frameworks: list[str]) -> dict[str, str]:
     """What the project needs: for the frameworks its memory files are for, else for those it
     uses, else for LangGraph's."""
     chosen = frameworks or [f for f in MINIMUMS if project.uses(root, f)] or ["langgraph"]

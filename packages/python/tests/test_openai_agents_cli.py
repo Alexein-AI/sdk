@@ -10,9 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import httpx
 import pytest
-from conftest import async_memory, ok
+from conftest import answer, async_memory, routes
 from test_cli import Project, lint_clean, quiet, said
 from test_doctor_and_create import Recorder
 
@@ -158,21 +157,6 @@ def test_an_old_sdk_installed_stops_with_the_upgrade(project: Project) -> None:
     assert "uv add 'openai-agents>=0.3'" in said(console)
 
 
-PRESETS = [
-    pytest.param({}, id="both"),
-    pytest.param({"parts": ("nodes",)}, id="nodes-only"),
-    pytest.param({"parts": ("tools",)}, id="tools-only"),
-    pytest.param({"fast": True}, id="fast"),
-]
-
-
-@pytest.mark.parametrize("preset", PRESETS)
-def test_every_preset_writes_clean_code(project: Project, preset: dict[str, Any]) -> None:
-    agents_project(project)
-    init(project, **preset)
-    lint_clean(project.root / "memory.py")
-
-
 def test_main_parses_the_command(project: Project, monkeypatch: pytest.MonkeyPatch) -> None:
     agents_project(project)
     monkeypatch.chdir(project.root)
@@ -224,7 +208,7 @@ def test_create_makes_a_runnable_project(tmp_path: Path) -> None:
     assert not (root / "langgraph.json").exists()
     for path in ("__init__.py", "agent.py", "chat.py", "memory.py"):
         assert (root / "src" / "my_agent" / path).exists(), path
-    assert env.read(root / ".env") == {"OPENAI_API_KEY": "", env.KEY: ""}
+    assert env.read(root / ".env") == {"MODEL": "", "OPENAI_API_KEY": "", env.KEY: ""}
     assert recorder.ran == [["uv", "add", "twinmemory>=0.2", "openai-agents>=0.3", "python-dotenv"]]
     text = said(console)
     assert "fill in OPENAI_API_KEY and TWIN_MEMORY_API_KEY in .env" in text
@@ -247,6 +231,7 @@ CREATED = [
     pytest.param({}, id="both"),
     pytest.param({"parts": ("nodes",)}, id="nodes-only"),
     pytest.param({"parts": ("tools",)}, id="tools-only"),
+    pytest.param({"fast": True}, id="fast"),
 ]
 
 
@@ -269,14 +254,6 @@ from agents.testing.model import (  # noqa: E402
 )
 
 
-def answer(request: httpx.Request) -> httpx.Response:
-    if request.url.path.endswith("search"):
-        return ok({"query": "q", "found": 1, "known": ["Dana lives in Lisbon."]})
-    if request.url.path.endswith("add"):
-        return ok({"accepted": 1, "items": []}, status=202)
-    return ok()
-
-
 @pytest.fixture
 def created(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
     """Make a project with a preset, import its agent, stand in for its model and memory."""
@@ -295,10 +272,6 @@ def created(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
         return agent_module, memory_module.MemoryContext("dana"), recorded
 
     return make
-
-
-def routes(recorded: Any) -> list[str]:
-    return [r.url.path.rsplit("/", 1)[-1] for r in recorded.requests]
 
 
 @pytest.mark.anyio

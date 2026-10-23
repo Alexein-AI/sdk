@@ -3,16 +3,14 @@ against a recorded memory API."""
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
 import httpx
 import pytest
-from conftest import Answer, async_memory, memory, ok
+from conftest import Answer, answer, load_memory_file, memory, ok
 
 pytest.importorskip("langgraph")
 pytest.importorskip("langchain")
@@ -23,28 +21,6 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 from twinmemory import AuthenticationError, ServiceUnavailableError
 
-from twinmemory_cli.render import render
-
-SEARCHED = {
-    "query": "q",
-    "found": 1,
-    "known": ["Dana lives in Lisbon."],
-    "facts": [],
-    "hits": [{"path": "passages/p1.md", "id": "p1", "text": "Dana: I moved to Lisbon."}],
-}
-
-
-def answer(request: httpx.Request) -> httpx.Response:
-    route = request.url.path.rsplit("/", 1)[-1]
-    if route == "search":
-        return ok(SEARCHED)
-    if route == "read":
-        return ok({"path": "passages/p1.md", "text": "Dana: I moved to Lisbon."})
-    if route == "add":
-        items = json.loads(request.content)["items"]
-        return ok({"accepted": len(items), "items": []}, status=202)
-    return ok()
-
 
 def load(
     tmp_path: Path,
@@ -54,20 +30,16 @@ def load(
     asynchronous: bool = False,
     parts: tuple[str, ...] = ("nodes", "tools"),
 ) -> tuple[ModuleType, Any]:
-    """The file as `init` writes it, imported, its client answered by `answer` - made as the
-    file makes its own, failing open unless STRICT."""
     template = "memory_async.py.tmpl" if asynchronous else "memory.py.tmpl"
-    path = tmp_path / "memory.py"
-    path.write_text(render(f"langgraph/{template}", parts, {"version": "test", "fast": "False"}))
-    spec = importlib.util.spec_from_file_location("generated_memory", path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    monkeypatch.setitem(sys.modules, "generated_memory", module)
-    spec.loader.exec_module(module)
-    made = async_memory if asynchronous else memory
-    client, recorded = made(answer, fail_open=not module.STRICT, integration="langgraph")
-    monkeypatch.setattr(module, "_memory", lambda: client)
-    return module, recorded
+    return load_memory_file(
+        tmp_path,
+        monkeypatch,
+        f"langgraph/{template}",
+        answer,
+        parts=parts,
+        integration="langgraph",
+        asynchronous=asynchronous,
+    )
 
 
 @pytest.fixture

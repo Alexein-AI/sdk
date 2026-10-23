@@ -54,17 +54,18 @@ def create(name: str, cwd: Path, model: str, options: scaffold.Options, console:
         library, provider_key = PROVIDERS.get(provider, ("", ""))
     else:
         library, provider_key = "", "OPENAI_API_KEY"
+    packages = [*scaffold.requirements(root, options), "python-dotenv"]
+    packages += [library] if library else []
+    commands = [["uv", "add", *packages]]
+    commands += [["uv", "add", "--dev", "langgraph-cli[inmem]"]] if langgraph else []
     if options.dry_run:
-        _plan(root, package, library, options, console)
+        _plan(root, package, commands, options, console)
         return 0
     _skeleton(root, name, package, model, provider_key, options)
     console.step("made", f"{root}")
     scaffold.write(root / "src" / package, options)
     console.step("wrote", f"src/{package}/memory.py, {_MAIN[options.framework]}, chat.py")
-
-    packages = [*scaffold.requirements(root, options), "python-dotenv"]
-    packages += [library] if library else []
-    installed = _install(root, packages, options, console)
+    installed = _install(root, commands, options, console)
     if langgraph and not library:
         console.step("note", f"add the LangChain package for {model!r} yourself")
     scaffold.setup_key(root, options, console)
@@ -75,12 +76,14 @@ def create(name: str, cwd: Path, model: str, options: scaffold.Options, console:
     return 0 if installed else 1
 
 
-# The file each framework's project is built around, beside `memory.py` and `chat.py`.
+# The file each framework's project is built around, beside `memory.py` and `chat.py`, and
+# what the project is, for its pyproject.toml.
 _MAIN = {"langgraph": "graph.py", "openai-agents": "agent.py"}
+_DESCRIBED = {"langgraph": "A LangGraph agent", "openai-agents": "An OpenAI Agents SDK agent"}
 
 
 def _plan(
-    root: Path, package: str, library: str, options: scaffold.Options, console: Console
+    root: Path, package: str, commands: list[list[str]], options: scaffold.Options, console: Console
 ) -> None:
     """What `create` would do, nothing made and nothing run."""
     console.step("would", f"make {root}")
@@ -89,13 +92,9 @@ def _plan(
         console.step("would", f"write {path}")
     for path in (_MAIN[options.framework], "chat.py", "memory.py"):
         console.step("would", f"write src/{package}/{path}")
-    packages = [*scaffold.requirements(root, options), "python-dotenv"]
-    packages += [library] if library else []
     verb = "run" if options.install else "print"
-    shown = " ".join(f"'{p}'" if ">" in p else p for p in packages)
-    console.step("would", f"{verb} uv add {shown}")
-    if langgraph:
-        console.step("would", f"{verb} uv add --dev 'langgraph-cli[inmem]'")
+    for command in commands:
+        console.step("would", f"{verb} {_shown(command)}")
     console.line()
     console.line("Dry run: nothing was made.")
 
@@ -103,23 +102,31 @@ def _plan(
 def _skeleton(
     root: Path, name: str, package: str, model: str, provider_key: str, options: scaffold.Options
 ) -> None:
-    values = {"name": name, "package": package, "model": model, "provider_key": provider_key}
+    langgraph = options.framework == "langgraph"
+    values = {
+        "name": name,
+        "package": package,
+        "model": model,
+        "provider_key": provider_key,
+        "description": f"{_DESCRIBED[options.framework]} that remembers the people it talks to, "
+        "with twin memory.",
+    }
     preset = _preset(options)
+    own = f"{options.framework.replace('-', '_')}/project"
     files: dict[str, tuple[str, tuple[str, ...]] | None] = {
-        "pyproject.toml": ("pyproject.toml.tmpl", ()),
-        ".gitignore": ("gitignore.tmpl", ()),
-        "README.md": ("README.md.tmpl", ()),
-        f"src/{package}/chat.py": ("chat.py.tmpl", preset),
+        "pyproject.toml": ("project/pyproject.toml.tmpl", ()),
+        ".gitignore": ("project/gitignore.tmpl", ("langgraph",) if langgraph else ()),
+        "README.md": (f"{own}/README.md.tmpl", ()),
+        ".env.example": (f"{own}/env.example.tmpl", ("provider_key",) if provider_key else ()),
+        f"src/{package}/{_MAIN[options.framework]}": (
+            f"{own}/{_MAIN[options.framework]}.tmpl",
+            preset,
+        ),
+        f"src/{package}/chat.py": (f"{own}/chat.py.tmpl", preset),
         f"src/{package}/__init__.py": None,
     }
-    if options.framework == "langgraph":
-        files["langgraph.json"] = ("langgraph.json.tmpl", ())
-        files[".env.example"] = ("env.example.tmpl", ("provider_key",) if provider_key else ())
-        files[f"src/{package}/graph.py"] = ("graph.py.tmpl", preset)
-    else:
-        files[".env.example"] = ("env.example.tmpl", ("model",) if model else ("no_model",))
-        files[f"src/{package}/agent.py"] = ("agent.py.tmpl", preset)
-    directory = options.framework.replace("-", "_")
+    if langgraph:
+        files["langgraph.json"] = (f"{own}/langgraph.json.tmpl", ())
     for path, source in files.items():
         target = root / path
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -127,7 +134,7 @@ def _skeleton(
             target.write_text("")
             continue
         template, parts = source
-        target.write_text(render(f"{directory}/project/{template}", parts, values))
+        target.write_text(render(template, parts, values))
     example = (root / ".env.example").read_text()
     (root / ".env").write_text(
         "\n".join(line for line in example.splitlines() if not line.startswith("#")) + "\n"
@@ -144,12 +151,16 @@ def _preset(options: scaffold.Options) -> tuple[str, ...]:
     return tuple(parts)
 
 
-def _install(root: Path, packages: list[str], options: scaffold.Options, console: Console) -> bool:
-    commands = [["uv", "add", *packages]]
-    if options.framework == "langgraph":
-        commands += [["uv", "add", "--dev", "langgraph-cli[inmem]"]]
+def _shown(command: list[str]) -> str:
+    """A command as it would be typed: words with `>` or `[` quoted for the shell."""
+    return " ".join(f"'{w}'" if ">" in w or "[" in w else w for w in command)
+
+
+def _install(
+    root: Path, commands: list[list[str]], options: scaffold.Options, console: Console
+) -> bool:
     for command in commands:
-        shown = " ".join(f"'{w}'" if ">" in w or "[" in w else w for w in command)
+        shown = _shown(command)
         if not options.install:
             console.step("run", shown)
             continue

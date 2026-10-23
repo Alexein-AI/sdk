@@ -4,9 +4,7 @@ API."""
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -14,7 +12,7 @@ from typing import Any
 
 import httpx
 import pytest
-from conftest import Answer, async_memory, ok
+from conftest import Answer, answer, async_memory, load_memory_file, ok, routes
 
 pytest.importorskip("agents")
 
@@ -24,29 +22,7 @@ from agents.testing.model import ModelStep, ScriptedModel, assistant_message, fu
 from pydantic import BaseModel
 from twinmemory import AuthenticationError, ServiceUnavailableError
 
-from twinmemory_cli.render import render
-
 pytestmark = pytest.mark.anyio
-
-SEARCHED = {
-    "query": "q",
-    "found": 1,
-    "known": ["Dana lives in Lisbon."],
-    "facts": [],
-    "hits": [{"path": "passages/p1.md", "id": "p1", "text": "Dana: I moved to Lisbon."}],
-}
-
-
-def answer(request: httpx.Request) -> httpx.Response:
-    route = request.url.path.rsplit("/", 1)[-1]
-    if route == "search":
-        return ok(SEARCHED)
-    if route == "read":
-        return ok({"path": "passages/p1.md", "text": "Dana: I moved to Lisbon."})
-    if route == "add":
-        items = json.loads(request.content)["items"]
-        return ok({"accepted": len(items), "items": []}, status=202)
-    return ok()
 
 
 def down(request: httpx.Request) -> httpx.Response:
@@ -64,30 +40,20 @@ def load(
     *,
     parts: tuple[str, ...] = ("nodes", "tools"),
 ) -> tuple[ModuleType, Any]:
-    """The file as `init` writes it, imported, its client answered by `answer` - made as the
-    file makes its own, failing open unless STRICT."""
-    path = tmp_path / "memory.py"
-    values = {"version": "test", "fast": "False"}
-    path.write_text(render("openai_agents/memory.py.tmpl", parts, values))
-    spec = importlib.util.spec_from_file_location("generated_agents_memory", path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    monkeypatch.setitem(sys.modules, "generated_agents_memory", module)
-    spec.loader.exec_module(module)
-    client, recorded = async_memory(
-        answer, fail_open=not module.STRICT, integration="openai-agents"
+    return load_memory_file(
+        tmp_path,
+        monkeypatch,
+        "openai_agents/memory.py.tmpl",
+        answer,
+        parts=parts,
+        integration="openai-agents",
+        asynchronous=True,
     )
-    monkeypatch.setattr(module, "_memory", lambda: client)
-    return module, recorded
 
 
 @pytest.fixture
 def generated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[ModuleType, Any]:
     return load(tmp_path, monkeypatch, answer)
-
-
-def routes(recorded: Any) -> list[str]:
-    return [r.url.path.rsplit("/", 1)[-1] for r in recorded.requests]
 
 
 def told(call: Any) -> str:
