@@ -1,7 +1,8 @@
 /**
- * `twinmemory-cli create langgraph <name>`: a new LangGraph.js project with memory already wired
- * in - a graph, a terminal chat, `langgraph.json` for `langgraph dev`, and `memory.ts` as `init`
- * writes it - so there is something to run before there is anything to wire.
+ * `twinmemory-cli create <framework> <name>`: a new project with memory already wired in - for
+ * LangGraph.js a graph, a terminal chat, `langgraph.json` for `langgraph dev`; for the OpenAI
+ * Agents SDK an agent and a terminal chat; and `memory.ts` as `init` writes it - so there is
+ * something to run before there is anything to wire.
  *
  * The project is an npm one, in TypeScript, run with tsx.
  */
@@ -14,6 +15,10 @@ import { render } from "./render.js";
 import * as scaffold from "./scaffold.js";
 import type { Console } from "./ui.js";
 
+/**
+ * LangGraph's, as `initChatModel` names it. The OpenAI Agents SDK has a default of its own, which
+ * an agent gets when it names none.
+ */
 export const DEFAULT_MODEL = "anthropic:claude-sonnet-5-5";
 
 /**
@@ -33,7 +38,9 @@ export const PROVIDERS: Record<string, [string, string]> = {
 };
 
 const NAME = /^[a-z][a-z0-9-]{0,63}$/;
-const DEV = ["typescript", "tsx", "@types/node", "@langchain/langgraph-cli"];
+const DEV = ["typescript", "tsx", "@types/node"];
+/** The file each framework's project is built around, beside `memory.ts` and `chat.ts`. */
+const MAIN: Record<string, string> = { langgraph: "graph.ts", "openai-agents": "agent.ts" };
 
 /** Make the project; 0 when it is ready, 1 when something stopped it, 2 a bad command. */
 export async function create(
@@ -54,33 +61,36 @@ export async function create(
     console.fail(`${root} exists and is not empty. Nothing changed.`);
     return 1;
   }
-  const provider = model.includes(":") ? model.split(":")[0]! : "";
-  const [library, providerKey] = PROVIDERS[provider] ?? ["", ""];
+  const langgraph = o.framework === "langgraph";
+  const provider = langgraph && model.includes(":") ? model.split(":")[0]! : "";
+  const [library, providerKey] = langgraph
+    ? (PROVIDERS[provider] ?? ["", ""])
+    : ["", "OPENAI_API_KEY"];
   const packages = [
     ...Object.entries(scaffold.MINIMUMS[o.framework]!).map(([n, m]) =>
       n === "twinmemory" && o.sdk ? o.sdk : `${n}@>=${m}`,
     ),
-    "langchain@>=1.0",
+    ...(langgraph ? ["langchain@>=1.0"] : []),
     "dotenv",
     ...(library ? [library] : []),
   ];
   const commands = [
     ["npm", "install", ...packages],
-    ["npm", "install", "--save-dev", ...DEV],
+    ["npm", "install", "--save-dev", ...DEV, ...(langgraph ? ["@langchain/langgraph-cli"] : [])],
   ];
   if (o.dryRun) {
     console.step("would", `make ${root}`);
     for (const path of [
       "package.json",
       "tsconfig.json",
-      "langgraph.json",
+      ...(langgraph ? ["langgraph.json"] : []),
       "README.md",
       ".gitignore",
       ".env",
     ]) {
       console.step("would", `write ${path}`);
     }
-    for (const path of ["graph.ts", "chat.ts", "memory.ts"])
+    for (const path of [MAIN[o.framework]!, "chat.ts", "memory.ts"])
       console.step("would", `write src/${path}`);
     for (const command of commands)
       console.step("would", `${o.install ? "run" : "print"} ${quoted(command)}`);
@@ -91,7 +101,7 @@ export async function create(
   skeleton(root, name, model, providerKey, o);
   console.step("made", root);
   scaffold.write(join(root, "src"), { ...o, filename: "memory.ts" });
-  console.step("wrote", "src/memory.ts, graph.ts, chat.ts");
+  console.step("wrote", `src/memory.ts, ${MAIN[o.framework]}, chat.ts`);
   let installed = true;
   for (const command of commands) {
     if (!o.install) {
@@ -106,13 +116,13 @@ export async function create(
     }
     console.step("ran", quoted(command));
   }
-  if (!library)
+  if (langgraph && !library)
     console.step("note", `add the LangChain package for ${JSON.stringify(model)} yourself`);
   await scaffold.setupKey(root, o, console);
   const { key } = env.resolveKey(root);
   const unset = [...(providerKey ? [providerKey] : []), ...(key ? [] : [env.KEY])];
   console.line();
-  console.line(next(name, unset));
+  console.line(next(name, unset, langgraph));
   return installed ? 0 : 1;
 }
 
@@ -140,26 +150,31 @@ function skeleton(
 ): void {
   const values = { name, model, provider_key: providerKey };
   const parts = preset(o);
-  const files: Record<string, [string, string[]] | undefined> = {
+  const langgraph = o.framework === "langgraph";
+  const envParts = langgraph
+    ? providerKey
+      ? ["provider_key"]
+      : []
+    : model
+      ? ["model"]
+      : ["no_model"];
+  const files: Record<string, [string, string[]]> = {
     "package.json": ["package.json.tmpl", []],
     "tsconfig.json": ["tsconfig.json.tmpl", []],
-    "langgraph.json": ["langgraph.json.tmpl", []],
+    ...(langgraph ? { "langgraph.json": ["langgraph.json.tmpl", []] as [string, string[]] } : {}),
     ".gitignore": ["gitignore.tmpl", []],
     "README.md": ["README.md.tmpl", []],
-    ".env.example": ["env.example.tmpl", providerKey ? ["provider_key"] : []],
-    "src/graph.ts": ["graph.ts.tmpl", parts],
+    ".env.example": ["env.example.tmpl", envParts],
+    [`src/${MAIN[o.framework]}`]: [`${MAIN[o.framework]}.tmpl`, parts],
     "src/chat.ts": ["chat.ts.tmpl", parts],
   };
-  for (const [path, source] of Object.entries(files)) {
+  const directory = `${o.framework.replace("-", "_")}/project`;
+  for (const [path, [template, kept]] of Object.entries(files)) {
     const target = join(root, path);
     mkdirSync(dirname(target), { recursive: true });
-    if (source) writeFileSync(target, render(`langgraph/project/${source[0]}`, source[1], values));
+    writeFileSync(target, render(`${directory}/${template}`, kept, values));
   }
-  const example = render(
-    "langgraph/project/env.example.tmpl",
-    providerKey ? ["provider_key"] : [],
-    values,
-  );
+  const example = render(`${directory}/env.example.tmpl`, envParts, values);
   writeFileSync(
     join(root, ".env"),
     example
@@ -169,14 +184,16 @@ function skeleton(
   );
 }
 
-function next(name: string, unset: string[]): string {
+function next(name: string, unset: string[], langgraph: boolean): string {
   return [
     "  Next:",
     "",
     `    cd ${name}`,
     ...(unset.length ? [`    # fill in ${unset.join(" and ")} in .env`] : []),
     "    npm run chat -- --user dana       # talk to it",
-    "    npm run dev                       # or open it in LangGraph Studio",
+    ...(langgraph
+      ? ["    npm run dev                       # or open it in LangGraph Studio"]
+      : []),
     "    npx twinmemory-cli doctor         # check the setup",
   ].join("\n");
 }

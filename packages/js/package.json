@@ -1,7 +1,7 @@
 {
   "name": "twinmemory-cli",
   "version": "0.1.0",
-  "description": "Add twin memory to a LangGraph.js project, as code you own: npx twinmemory-cli init langgraph.",
+  "description": "Add twin memory to a LangGraph.js or OpenAI Agents SDK project, as code you own: npx twinmemory-cli init langgraph.",
   "license": "MIT",
   "author": "Alexein AI",
   "homepage": "https://twinmemory.dev/docs/integrations/langgraph",
@@ -15,6 +15,7 @@
     "llm",
     "agents",
     "langgraph",
+    "openai-agents",
     "cli"
   ],
   "type": "module",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@langchain/core": "^1.2.0",
     "@langchain/langgraph": "^1.5.0",
+    "@openai/agents": "^0.21.0",
     "@types/node": "^22.10.0",
     "langchain": "^1.5.0",
     "prettier": "^3.4.0",

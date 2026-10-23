@@ -1,0 +1,37 @@
+/**
+ * Talk to the agent in a terminal, as one of your users:
+ *
+ *     npm run chat -- --user dana
+ *
+ * Each run is a new conversation; what the agent remembers from the last one is memory's.
+ */
+
+import "dotenv/config";
+
+import { randomUUID } from "node:crypto";
+import { stdin, stdout } from "node:process";
+import { createInterface } from "node:readline/promises";
+import { parseArgs } from "node:util";
+
+import type { AgentInputItem } from "@openai/agents";
+
+import { reply } from "./agent.js";
+
+const { values } = parseArgs({
+  options: { user: { type: "string", default: "dana" } },
+});
+const user = values.user!;
+const context = { userId: user, sessionId: randomUUID() };
+
+console.log(`Talking as ${user}. An empty line ends the conversation.`);
+const rl = createInterface({ input: stdin, output: stdout });
+let history: AgentInputItem[] = [];
+for (;;) {
+  const line = (await rl.question("you> ")).trim();
+  if (!line) break;
+  const said: AgentInputItem = { role: "user", content: line };
+  const result = await reply([...history, said], context);
+  history = result.history;
+  console.log(`agent> ${result.finalOutput}`);
+}
+rl.close();

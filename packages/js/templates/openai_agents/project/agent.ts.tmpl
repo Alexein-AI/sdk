@@ -1,0 +1,71 @@
+/**
+ * The agent: a model that remembers the people it talks to.
+ *
+ * Made by `twinmemory-cli create openai-agents`. Memory comes from `memory.ts`, beside it:
+// >>> nodes
+ * `recall` looks up what memory holds before the model answers, and `remember` saves the
+ * turn after it.
+// <<< nodes
+// >>> both
+ * The model can also search memory itself, with `MEMORY_TOOLS`.
+// <<< both
+// >>> tools_only
+ * The model searches memory and saves to it itself, with `MEMORY_WRITE_TOOLS`.
+// <<< tools_only
+ *
+ * Whose memory a run reads is the `userId` in its context, which your code sets:
+ *
+ *     await reply("Where do I live?", { userId: "dana" });
+ */
+
+import { Agent, type AgentInputItem, run } from "@openai/agents";
+
+// >>> both
+import {
+  MEMORY_TOOLS,
+  type MemoryContext,
+  recall,
+  remember,
+} from "./memory.js";
+// <<< both
+// >>> nodes_only
+import { type MemoryContext, recall, remember } from "./memory.js";
+// <<< nodes_only
+// >>> tools_only
+import { MEMORY_WRITE_TOOLS, type MemoryContext } from "./memory.js";
+// <<< tools_only
+
+export const agent = new Agent<MemoryContext>({
+  name: "Assistant",
+  instructions:
+    "You are a helpful assistant. You remember the people you talk to across " +
+    "conversations; use what you remember where it helps, and never invent it.",
+  // `MODEL` in .env; unset, the OpenAI Agents SDK's default.
+  ...(process.env.MODEL ? { model: process.env.MODEL } : {}),
+// >>> both
+  // `remember` saves every turn, so the model is only given the tools that read.
+  tools: MEMORY_TOOLS,
+// <<< both
+// >>> tools_only
+  // Nothing else saves, so the model is given the tool that does.
+  tools: MEMORY_WRITE_TOOLS,
+// <<< tools_only
+});
+
+/** One turn. `said` is the user's message, or the conversation ending with it. */
+export async function reply(
+  said: string | AgentInputItem[],
+  context: MemoryContext,
+) {
+// >>> nodes
+  const result = await run(agent, said, {
+    context,
+    callModelInputFilter: recall,
+  });
+  await remember(result);
+  return result;
+// <<< nodes
+// >>> tools_only
+  return run(agent, said, { context });
+// <<< tools_only
+}
