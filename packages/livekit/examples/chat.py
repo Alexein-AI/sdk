@@ -59,7 +59,7 @@ class _Said(llm.LLMStream):
 
 def model() -> llm.LLM:
     if os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY"):
-        from livekit.plugins import openai  # uv run --with livekit-plugins-openai
+        from livekit.plugins import openai  # pyright: ignore[reportMissingImports]  # --with livekit-plugins-openai
 
         if os.environ.get("OPENROUTER_API_KEY"):
             return openai.LLM(
@@ -91,10 +91,11 @@ async def call(user: str) -> None:
     session = AgentSession(llm=model())
     memory.attach(session)
 
-    @session.on("conversation_item_added")
-    def _said(event: Any) -> None:
+    def said_by_agent(event: Any) -> None:
         if getattr(event.item, "role", "") == "assistant":
             print(f"agent> {event.item.text_content}")
+
+    session.on("conversation_item_added", said_by_agent)
 
     await session.start(ChatAgent(memory, instructions=INSTRUCTIONS, memory_tools=False))
     print(f"A call as {memory.user_id!r}, saved as session {memory.session_id}. /quit ends it.")
@@ -114,7 +115,7 @@ async def call(user: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
     parser.add_argument("user", help="the caller's end user id, e.g. dana")
     asyncio.run(call(parser.parse_args().user))
 
