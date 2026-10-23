@@ -65,12 +65,17 @@ def require_version(root: Path, console: Console) -> None:
             f"first - {tool} add 'crewai>={CREWAI_MINIMUM}' - then run init again. "
             "Nothing changed."
         )
-    if _minor(version) > _minor(CREWAI_TESTED):
+    if newer_than_tested(version):
         console.step(
             "warning",
             f"crewai {version} is newer than this release was tested with ({CREWAI_TESTED}); "
             "run `twinmemory-cli doctor` after upgrading",
         )
+
+
+def newer_than_tested(version: str) -> bool:
+    """Whether `version` is a newer minor release of CrewAI than this one was tested with."""
+    return _minor(version) > _minor(CREWAI_TESTED)
 
 
 def _minor(version: str) -> tuple[int, ...]:

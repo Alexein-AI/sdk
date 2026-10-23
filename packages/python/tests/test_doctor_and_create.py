@@ -64,7 +64,7 @@ def test_doctor_passes_a_project_that_is_set_up(tmp_path: Path) -> None:
     console = quiet()
     assert doctor(healthy(tmp_path), console) == 0
     text = said(console)
-    assert "✓ memory file app/memory.py (written by 0.2.0)" in text
+    assert "✓ memory file app/memory.py (written by 0.2.0, for LangGraph)" in text
     assert "✓ langgraph 1.2.16" in text
     assert "✓ key at the hosted service: scratch/demo, reads and writes" in text
     assert "All good." in text
