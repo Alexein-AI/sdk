@@ -77,9 +77,12 @@ class ChatAgent(TwinMemoryAgent):
     async def llm_node(
         self, chat_ctx: llm.ChatContext, tools: list[llm.Tool], model_settings: ModelSettings
     ) -> AsyncIterable[llm.ChatChunk | str]:
+        before = self.memory.last_recall
         await self.memory.enrich(chat_ctx)
         info = self.memory.last_recall
-        if info is not None and not info.reused:
+        if info is None or info is before:
+            print("   [memory: not searched, nothing to look up in that]")
+        elif not info.reused:
             how = "timed out" if info.timed_out else "failed" if info.failed else "ok"
             print(f"   [memory: {info.chars} chars in {info.ms:.0f} ms, {how}]")
         async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
