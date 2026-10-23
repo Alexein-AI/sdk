@@ -334,3 +334,11 @@ def test_create_dry_run_makes_nothing(tmp_path: Path) -> None:
     code, console, recorder = made(tmp_path, dry_run=True)
     assert code == 0 and recorder.ran == [] and list(tmp_path.iterdir()) == []
     assert "would    write src/my_agent/graph.py" in said(console)
+
+
+def test_create_lines_up_its_next_steps(tmp_path: Path) -> None:
+    for name in ("a", "a-much-longer-agent-name"):
+        _, console, _ = made(tmp_path / name, name=name, key="tm_k")
+        lines = said(console).splitlines()
+        steps = [line for line in lines if "  # " in line and "fill in" not in line]
+        assert len(steps) == 3 and len({line.index("# ") for line in steps}) == 1, steps

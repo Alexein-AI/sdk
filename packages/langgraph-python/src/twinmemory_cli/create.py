@@ -144,14 +144,19 @@ def _install(root: Path, packages: list[str], options: scaffold.Options, console
 
 def _next(name: str, package: str, unset: list[str]) -> str:
     fill = [f"    # fill in {' and '.join(unset)} in .env"] if unset else []
+    steps = [
+        (f"uv run python -m {package}.chat --user dana", "talk to it"),
+        ("uv run langgraph dev", "or open it in LangGraph Studio"),
+        ("uvx twinmemory-cli doctor", "check the setup"),
+    ]
+    # The comments line up however long the package's name makes the first command.
+    width = max(len(command) for command, _ in steps) + 3
     return "\n".join(
         [
             "  Next:",
             "",
             f"    cd {name}",
             *fill,
-            f"    uv run python -m {package}.chat --user dana   # talk to it",
-            "    uv run langgraph dev                         # or open it in LangGraph Studio",
-            "    uvx twinmemory-cli doctor                        # check the setup",
+            *(f"    {command.ljust(width)}# {why}" for command, why in steps),
         ]
     )
