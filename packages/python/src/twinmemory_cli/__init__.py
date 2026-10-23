@@ -65,7 +65,7 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     start = commands.add_parser("init", help="write memory into this project, as code you own")
-    start.add_argument("framework", help="langgraph")
+    start.add_argument("framework", help="langgraph or crewai")
     start.add_argument("--dir", type=Path, help="where to write the file (default: found)")
     start.add_argument("--file", default="memory.py", help="the file's name (default: memory.py)")
     start.add_argument("--graph", help="which graph in langgraph.json it is for")
