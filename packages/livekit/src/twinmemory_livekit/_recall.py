@@ -112,20 +112,25 @@ def wrap(context: str) -> str:
 
 def place(chat_ctx: llm.ChatContext, said: llm.ChatMessage, text: str) -> None:
     """Put `text` just before `said`, once: a tool's follow-up call sees the same context."""
+    items = chat_ctx.items
     ident = f"{MARK}_{said.id}"
-    if any(item.id == ident for item in chat_ctx.items):
+    if said not in items or any(item.id == ident for item in items):
         return
+    # By place, not by time: LiveKit 1.5 stamps the instructions within a millisecond of the
+    # user's words, and inserting by time put memory ahead of the system prompt. The time given
+    # keeps the list in order for whatever sorts it later.
+    at = items.index(said)
+    floor = items[at - 1].created_at if at else said.created_at - 1e-3
     # As the assistant, as LiveKit's own retrieval example does: on several providers a system
     # message after the first reaches the model as user-written <instructions>.
-    chat_ctx.insert(
-        llm.ChatMessage(
-            id=ident,
-            role="assistant",
-            content=[text],
-            created_at=said.created_at - 1e-3,
-            extra={MARK: "recall"},
-        )
+    recalled = llm.ChatMessage(
+        id=ident,
+        role="assistant",
+        content=[text],
+        created_at=max(floor, said.created_at - 1e-3),
+        extra={MARK: "recall"},
     )
+    items.insert(at, recalled)
 
 
 @dataclass

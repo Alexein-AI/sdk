@@ -23,9 +23,11 @@ def _memory(service: MemoryService, user: str | None = "dana", **kwargs: object)
 
 
 def _before_user(call: list[tuple[str, str]]) -> tuple[str, str]:
-    """What the model was shown just before the user's latest words."""
-    last = max(i for i, (role, _) in enumerate(call) if role == "user")
-    return call[last - 1]
+    """The message the model was shown just before the user's latest words (items that are not
+    messages, like LiveKit's agent config updates, never reach the model)."""
+    said = [(role, text) for role, text in call if role in ("system", "user", "assistant")]
+    last = max(i for i, (role, _) in enumerate(said) if role == "user")
+    return said[last - 1]
 
 
 def _memory_shown(call: list[tuple[str, str]]) -> list[str]:
@@ -53,6 +55,7 @@ async def test_a_reply_is_given_what_earlier_calls_said() -> None:
         await _say(session, "Where do I live now?")
     role, shown = _before_user(fake.calls[-1])
     assert role == "assistant" and "<memory>" in shown and LISBON in shown
+    assert fake.calls[-1][0] == ("system", "Be brief.")  # never ahead of the instructions
     scoped = [s for s in service.searches if s.get("scope")]
     assert len(scoped) == 1 and scoped[0]["fast"] is True
     # Earlier calls only: this call's own turns are left out by time, to the second.

@@ -19,7 +19,8 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Typing :: Typed",
 ]
-dependencies = ["twinmemory>=0.2", "livekit-agents>=1.8,<2"]
+# 1.5.1 is the oldest LiveKit Agents the tests pass on (CI runs it); 2.0 is a beta with a new API.
+dependencies = ["twinmemory>=0.2", "livekit-agents>=1.5.1,<2"]
 
 [project.urls]
 Homepage = "https://twinmemory.dev"

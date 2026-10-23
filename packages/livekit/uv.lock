@@ -2695,7 +2695,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "livekit-agents", specifier = ">=1.8,<2" },
+    { name = "livekit-agents", specifier = ">=1.5.1,<2" },
     { name = "twinmemory", path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" },
 ]
 

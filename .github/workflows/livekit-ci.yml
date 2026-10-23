@@ -37,3 +37,5 @@ jobs:
       - run: uv run ruff check .
       - run: uv run pyright
       - run: uv run pytest -q
+      # The oldest LiveKit Agents it supports, as pyproject's floor says.
+      - run: uv run --with "livekit-agents==1.5.1" pytest -q
