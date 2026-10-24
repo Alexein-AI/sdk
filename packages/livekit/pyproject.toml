@@ -1,0 +1,75 @@
+[project]
+name = "twinmemory-livekit"
+version = "0.1.0"
+description = "Long-term memory for LiveKit voice agents, from twin memory: recalled before each reply, every turn saved."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Alexein AI" }]
+keywords = ["memory", "llm", "agents", "livekit", "voice"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Typing :: Typed",
+]
+# 1.5.1 is the oldest LiveKit Agents the tests pass on (CI runs it); 2.0 is a beta with a new API.
+dependencies = ["twinmemory>=0.2", "livekit-agents>=1.5.1,<2"]
+
+[project.urls]
+Homepage = "https://twinmemory.dev"
+Documentation = "https://twinmemory.dev/docs/integrations/livekit"
+Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "pyright>=1.1.380"]
+
+# Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it from the
+# twin-memory-python checkout). Then this goes, and the dependency above is met from PyPI.
+[tool.uv.sources]
+twinmemory = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/twinmemory_livekit"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Words in Urdu, Russian and Chinese, which look like Latin letters to RUF001, are what these test.
+"e2e/scenarios.py" = ["RUF001"]
+"tests/test_parts.py" = ["RUF001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["twinmemory_livekit"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.10"
+typeCheckingMode = "strict"
+# livekit-agents leaves its generics unparameterised (AgentSession, LLM, FunctionTool) and its event
+# emitter untyped, so strict mode reports their Unknowns at every use; the rest of strict stays on.
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownParameterType = false
+reportMissingTypeArgument = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
