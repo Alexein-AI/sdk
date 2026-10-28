@@ -1,4 +1,4 @@
-"""twin memory for Python: long-term memory for your users, behind one API key.
+"""Alexein for Python: long-term memory for your users, behind one API key.
 
 ```python
 from twinmemory import Memory

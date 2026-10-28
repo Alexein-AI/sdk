@@ -48,12 +48,13 @@ from twinmemory._version import __version__
 
 T = TypeVar("T")
 
-DEFAULT_BASE_URL = "https://api.twinmemory.dev"
-# Long enough for a search that waits on the model filter at its slowest and an add that waits
-# for its items to land; a person-facing caller that cannot wait sets its own.
+DEFAULT_BASE_URL = "https://api.alexein.ai"
+# Long enough for the slowest search and for an add that waits for its items to land; a
+# person-facing caller that cannot wait sets its own.
 DEFAULT_TIMEOUT = 60.0
 DEFAULT_RETRIES = 2
-# What the API asks to be retried: too many requests in hand, or memory being rebuilt.
+# What the API asks to be retried: 429, too many requests in flight or reads too fast, and 503,
+# the service busy or briefly unavailable.
 _RETRIED = {429, 503}
 # A Retry-After past this is not waited out; the error is raised instead.
 _LONGEST_WAIT = 60.0
@@ -77,7 +78,7 @@ def _ride_out(error: TwinMemoryError, fail_open: bool, what: str, user: str) -> 
     caller answers empty. Memory being down costs a reply its memory, not the reply."""
     if not (fail_open and error.outage):
         raise error
-    log.warning("twin memory unavailable, %s for %s skipped: %s", what, user, error)
+    log.warning("Alexein unavailable, %s for %s skipped: %s", what, user, error)
 
 
 def _settings(
@@ -140,7 +141,7 @@ def _unreached(error: httpx.TransportError) -> APIConnectionError:
 
 
 class Memory:
-    """A twin memory client.
+    """An Alexein client.
 
     ```python
     memory = Memory()                # TWIN_MEMORY_API_KEY from the environment
@@ -319,8 +320,8 @@ class User:
         scope: str | None = None,
         fast: bool = False,
     ) -> SearchResult:
-        """What memory holds for a question. `fast` skips the model filter: free and quicker,
-        less precise. `before` and `after` are ISO dates."""
+        """What memory holds for a question. `fast` skips the relevance check: free and quicker,
+        a little less precise. `before` and `after` are ISO dates."""
         call = _calls.search(query, before=before, after=after, scope=scope, fast=fast)
         try:
             return self._send(call, self.id)
@@ -333,11 +334,11 @@ class User:
         return self._send(_calls.grep(pattern, scope=scope, limit=limit), self.id)
 
     def read(self, path: str) -> File:
-        """One file whole, by a path a result gave you."""
+        """One passage whole, by the path a result gave you."""
         return self._send(_calls.read(path), self.id)
 
     def ls(self, path: str = "") -> Listing:
-        """A directory's entries."""
+        """What is under a path; directories end in `/`."""
         return self._send(_calls.ls(path), self.id)
 
     def around(self, passage_id: str, *, width: int = 2) -> Passages:
@@ -356,7 +357,7 @@ class User:
         return self._send(call, self.id)
 
     def overview(self) -> Overview:
-        """The shape of this memory: directories, counts and its written index."""
+        """What this memory holds: its directories, counts, and a short written guide to it."""
         return self._send(_calls.overview(), self.id)
 
     def forget(
@@ -380,11 +381,11 @@ class User:
         return self._send(_calls.versions(item_id), self.id)
 
     def status(self, ids: Sequence[str]) -> dict[str, str]:
-        """How far each item has got: accepted, landed, read, folded, or unknown."""
+        """How far each item has got: `accepted`, `landed`, `read`, `folded` or `unknown`."""
         return self._send(_calls.status(ids), self.id)
 
     def lineage(self, ident: str) -> Lineage:
-        """What an item or event became, or what a fact was read from."""
+        """What an item or event became, or what a fact came from."""
         return self._send(_calls.lineage(ident), self.id)
 
 
@@ -436,8 +437,8 @@ class AsyncUser:
         scope: str | None = None,
         fast: bool = False,
     ) -> SearchResult:
-        """What memory holds for a question. `fast` skips the model filter: free and quicker,
-        less precise. `before` and `after` are ISO dates."""
+        """What memory holds for a question. `fast` skips the relevance check: free and quicker,
+        a little less precise. `before` and `after` are ISO dates."""
         call = _calls.search(query, before=before, after=after, scope=scope, fast=fast)
         try:
             return await self._send(call, self.id)
@@ -450,11 +451,11 @@ class AsyncUser:
         return await self._send(_calls.grep(pattern, scope=scope, limit=limit), self.id)
 
     async def read(self, path: str) -> File:
-        """One file whole, by a path a result gave you."""
+        """One passage whole, by the path a result gave you."""
         return await self._send(_calls.read(path), self.id)
 
     async def ls(self, path: str = "") -> Listing:
-        """A directory's entries."""
+        """What is under a path; directories end in `/`."""
         return await self._send(_calls.ls(path), self.id)
 
     async def around(self, passage_id: str, *, width: int = 2) -> Passages:
@@ -473,7 +474,7 @@ class AsyncUser:
         return await self._send(call, self.id)
 
     async def overview(self) -> Overview:
-        """The shape of this memory: directories, counts and its written index."""
+        """What this memory holds: its directories, counts, and a short written guide to it."""
         return await self._send(_calls.overview(), self.id)
 
     async def forget(
@@ -497,9 +498,9 @@ class AsyncUser:
         return await self._send(_calls.versions(item_id), self.id)
 
     async def status(self, ids: Sequence[str]) -> dict[str, str]:
-        """How far each item has got: accepted, landed, read, folded, or unknown."""
+        """How far each item has got: `accepted`, `landed`, `read`, `folded` or `unknown`."""
         return await self._send(_calls.status(ids), self.id)
 
     async def lineage(self, ident: str) -> Lineage:
-        """What an item or event became, or what a fact was read from."""
+        """What an item or event became, or what a fact came from."""
         return await self._send(_calls.lineage(ident), self.id)

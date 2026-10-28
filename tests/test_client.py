@@ -39,7 +39,7 @@ def test_a_user_call_sends_the_key_the_end_user_and_who_is_calling():
     client.user("dana").search("Where does Dana live?")
     request = sent.last
     assert request.method == "POST"
-    assert str(request.url) == "https://api.twinmemory.dev/v1/memory/search"
+    assert str(request.url) == "https://api.alexein.ai/v1/memory/search"
     assert request.headers["Authorization"] == "Bearer tm_test"
     assert request.headers["X-Twin-Account"] == "dana"
     assert request.headers["User-Agent"] == f"twinmemory-python/{__version__}"
@@ -65,9 +65,9 @@ def test_the_key_and_base_url_come_from_the_environment(monkeypatch, clean_env):
     with pytest.raises(TwinMemoryError, match="TWIN_MEMORY_API_KEY"):
         Memory()
     monkeypatch.setenv("TWIN_MEMORY_API_KEY", "tm_env")
-    monkeypatch.setenv("TWIN_MEMORY_BASE_URL", "http://localhost:8210/")
+    monkeypatch.setenv("TWIN_MEMORY_BASE_URL", "https://memory.example.com/")
     client = Memory()
-    assert client.base_url == "http://localhost:8210"
+    assert client.base_url == "https://memory.example.com"
     assert client._http.headers["Authorization"] == "Bearer tm_env"
 
 

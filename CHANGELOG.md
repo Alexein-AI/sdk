@@ -8,6 +8,7 @@
 - `TwinMemoryError.outage`: whether an error means memory is unavailable.
 - `Memory(integration=...)`: a word added to the `User-Agent`, counted in the request log.
   `twinmemory-cli`'s generated LangGraph code sends `langgraph`.
+- The default base URL is `https://api.alexein.ai`.
 
 ## 0.1.0 - unreleased
 

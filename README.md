@@ -1,4 +1,4 @@
-# twin memory for Python
+# Alexein for Python
 
 Long-term memory for your users and agents. Add what they say; search it later in plain language.
 
@@ -26,14 +26,12 @@ print(result.context())  # ready to paste into a prompt
 Create a key in the console under **API keys**. A key belongs to one project; each end user you name with
 `memory.user(...)` has a memory of their own inside it.
 
-| Setting  | Argument    | Environment variable   | Default                      |
-| -------- | ----------- | ---------------------- | ---------------------------- |
-| API key  | `api_key`   | `TWIN_MEMORY_API_KEY`  | required                     |
-| Base URL | `base_url`  | `TWIN_MEMORY_BASE_URL` | `https://api.twinmemory.dev` |
-| Timeout  | `timeout`   |                        | 60 seconds                   |
-| Retries  | `max_retries` |                      | 2                            |
-
-For a local stack, set `TWIN_MEMORY_BASE_URL=http://localhost:8210`.
+| Setting  | Argument      | Environment variable   | Default                  |
+| -------- | ------------- | ---------------------- | ------------------------ |
+| API key  | `api_key`     | `TWIN_MEMORY_API_KEY`  | required                 |
+| Base URL | `base_url`    | `TWIN_MEMORY_BASE_URL` | `https://api.alexein.ai` |
+| Timeout  | `timeout`     |                        | 60 seconds               |
+| Retries  | `max_retries` |                        | 2                        |
 
 ## Adding
 
@@ -55,7 +53,7 @@ dana.add("Moving house on 1 December.", kind="note", expires="2026-12-31")
 | ---------- | ------------------------------------------------------------------------ |
 | `text`     | required                                                                 |
 | `kind`     | `message` (default), `note`, or `document`                               |
-| `id`       | your id for it; send the same id again to replace it                     |
+| `id`       | your id for it; the same id again is an edit of that item                |
 | `session`  | groups messages into one conversation                                    |
 | `role`     | `user`, `assistant`, ...                                                 |
 | `author`   | a name, or `{"id", "name", "email", "handle", "self"}`                   |
@@ -73,15 +71,16 @@ never saves an item twice.
 
 ```python
 result = dana.search("What should I avoid cooking for Dana?")
-result.known  # what is true now, as lines
+result.known  # short lines: every value as stated, dated, newest first
 result.facts  # dated facts, each with the passage it came from
 result.hits  # whole passages, with their addresses
-result.held  # False when memory says it does not hold the answer
+result.held  # False when memory's own check finds it does not hold the answer
 result.context(max_chars=4000)
 ```
 
-`fast=True` skips the model filter: free and quicker, a little less precise. Use it when a reply can't wait,
-like a voice agent's turn. `result.filtered` says whether the filter ran.
+`fast=True` skips the relevance check: free and quicker, a little less precise. Use it when a reply can't
+wait, like a voice agent's turn. `result.filtered` says whether search's relevance check ran, and
+`result.held` is None when it did not.
 
 `before` and `after` (ISO dates) and `scope` (a path prefix) narrow a search.
 
@@ -93,22 +92,21 @@ like a voice agent's turn. `result.filtered` says whether the filter ran.
 | `user.history(subject, attribute=None)`         | every dated value recorded for one subject              |
 | `user.latest(k=10, place="", after=, before=)`  | the most recent passages, newest first                  |
 | `user.grep(pattern, scope=None, limit=50)`      | every passage holding an exact phrase                   |
-| `user.read(path)` / `user.ls(path)`             | one file, or a directory, by a path a result gave you   |
+| `user.read(path)` / `user.ls(path)`             | one passage whole, or what is under a path              |
 | `user.around(passage_id, width=2)`              | the passages either side of one you hold                |
-| `user.overview()`                               | the shape of this memory and its counts                 |
+| `user.overview()`                               | what this memory holds: directories, counts and a short written guide |
 | `user.forget(items=, sessions=, threads=, events=)` | erase every copy, for good; returns a receipt       |
 | `user.correct(record_id, replacement=None)`     | retract one fact, optionally saying what is true instead |
 | `user.versions(item_id)`                        | an item's versions, as they were sent                   |
 | `user.status(ids)`                              | how far each item has got: accepted, landed, read, ...  |
-| `user.lineage(id)`                              | what an item became, or what a fact was read from       |
+| `user.lineage(id)`                              | what an item became, or what a fact came from           |
 
 Every result is a typed object; `.raw` holds the JSON as the API sent it.
 
 ## LangGraph
 
-`uvx twinmemory-cli init langgraph` writes memory into a LangGraph project as code you own, using
-this client; `twinmemory-cli` lives in
-[twin-memory-integrations](https://github.com/Alexein-AI/twin-memory-integrations/tree/main/packages/python).
+`twinmemory-cli` (coming soon) will write memory into a LangGraph project as code you own, using this
+client. Until then, see [LangGraph](https://docs.alexein.ai/integrations/langgraph).
 
 ## Async
 
@@ -149,14 +147,6 @@ request (401, 403, 400) still raises. Pair it with a short `timeout` where a rep
 
 `Memory(integration="langgraph")` adds a word to the `User-Agent`, so the console's request log shows
 where requests came from.
-
-## Development
-
-```bash
-uv sync
-uv run pytest                       # unit and contract tests
-TWIN_MEMORY_LIVE=1 TWIN_MEMORY_API_KEY=tm_... TWIN_MEMORY_BASE_URL=http://localhost:8210 uv run pytest tests/test_live.py
-```
 
 ## License
 

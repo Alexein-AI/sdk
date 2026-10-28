@@ -19,7 +19,7 @@ class Author(TypedDict, total=False):
 
 class Item(TypedDict, total=False):
     """One thing to remember. Only `text` is required. Send it again with the same `id` to
-    replace it; set `expires` (an ISO date) for what stops being true."""
+    edit it; set `expires` (an ISO date) for what stops being true."""
 
     text: str
     kind: Literal["message", "document", "note"]
@@ -36,7 +36,7 @@ class Item(TypedDict, total=False):
 
 @dataclass(frozen=True)
 class Me:
-    """What a key is: `kind` is "key" for a customer's key."""
+    """What a key is: `kind` is "key" for an API key."""
 
     kind: str
     writes: bool
@@ -61,7 +61,7 @@ class Me:
 class AddedItem:
     id: str
     event_id: str
-    # None when the service landed it as it answered (no queue); else whether it has yet.
+    # Whether the item has landed, so is searchable; None when the answer does not say.
     landed: bool | None = None
     thread_id: str | None = None
     path: str | None = None
@@ -119,7 +119,7 @@ class Hit:
 
 @dataclass(frozen=True)
 class Fact:
-    """One dated line read from a passage; `source` is that passage."""
+    """One dated fact taken from what was said; `source` is the passage it came from."""
 
     text: str
     id: str
@@ -141,9 +141,11 @@ class Fact:
 @dataclass(frozen=True)
 class SearchResult:
     """What memory holds for a question: `known` lines first, then dated `facts`, then whole
-    passages (`hits`). `held` is False when memory says it does not hold the answer; `filtered`
-    is whether the model filter judged what came back. `failed` is True when a `fail_open`
-    client could not reach memory, and the result is empty for that reason."""
+    passages (`hits`). `filtered` is whether search's relevance check ran. `held` is False when
+    memory's own check finds it does not hold the answer, and None when that check did not run
+    (with `fast`, past your organisation's daily budget, or when it could not run) or the search
+    was narrowed by `scope` or `after`. `failed` is True when a `fail_open` client could not
+    reach memory, and the result is empty for that reason."""
 
     query: str
     found: int
@@ -178,8 +180,8 @@ class SearchResult:
         )
 
     def context(self, max_chars: int = 4000) -> str:
-        """A block to paste into a prompt: known lines, dated facts, then passages, whole
-        entries only, at most `max_chars` long. Empty when memory found nothing."""
+        """A block to paste into a prompt: known lines, worked-out lines, dated facts, then
+        passages, whole entries only, at most `max_chars` long. Empty when memory found nothing."""
         sections = [
             ("What is known", self.known),
             ("Worked out", self.worked_out),
@@ -228,7 +230,8 @@ class Passages:
 
 @dataclass(frozen=True)
 class File:
-    """One file by path. `error` is set, with the directory's `siblings`, when there is none."""
+    """One passage by its path. When there is none, `error` says so and `siblings` lists what is
+    next to the path."""
 
     path: str
     text: str | None
@@ -282,8 +285,9 @@ class History:
 
 @dataclass(frozen=True)
 class Versions:
-    """An added item's versions, as they were sent. `state` is "live", "forgotten" or
-    "expired"; once an item goes, its history is one line saying when and why."""
+    """An added item's versions, as they were sent. `state` is "live", "forgotten", "expired",
+    or "unknown" for an id memory never took; once an item goes, its history is one line saying
+    when and why."""
 
     id: str
     state: str
@@ -308,7 +312,10 @@ class TableChange:
 
 @dataclass(frozen=True)
 class Receipt:
-    """What a forget erased: each table's row count before and after."""
+    """What a forget erased: `events` is how many stored items went. `raw` is the whole receipt:
+    `threads_emptied`, `records`, `assertions`, `versions`, `inbox`, `queue` and further counts;
+    keep it whole as your record of the erasure. `tables` holds further before-and-after counts
+    when the API sends them; don't depend on its keys."""
 
     events: int
     tables: dict[str, TableChange]
@@ -325,7 +332,7 @@ class Receipt:
 
 @dataclass(frozen=True)
 class Correction:
-    """The record retracted, its text, and the id of the note holding the replacement."""
+    """The fact retracted, its text, and the id of the note holding the replacement, if any."""
 
     retracted: str
     text: str | None = None
@@ -344,7 +351,7 @@ class Correction:
 
 @dataclass(frozen=True)
 class Lineage:
-    """What an item, event or record became - or, for a record, what it was read from."""
+    """What an item or event became - or, for a fact, what it came from."""
 
     of: str
     events: list[str]
@@ -365,7 +372,8 @@ class Lineage:
 
 @dataclass(frozen=True)
 class Overview:
-    """The shape of this end user's memory: its directories, counts, and written index."""
+    """What this end user's memory holds: its directories, its counts, and `index`, a short
+    written guide to it for a model to read first."""
 
     directories: list[str]
     manifest: Json

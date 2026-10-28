@@ -32,7 +32,8 @@ T = TypeVar("T")
 # The API takes at most this many items in one add; a longer list is sent in batches.
 BATCH = 500
 # What the API accepts as an end user id, checked here so a typo fails before a round trip. The
-# API also bounds its length, which depends on the key's organisation and project.
+# API also bounds its length: up to 35 characters always fits, and the 400 for a longer one
+# states the maximum.
 _USER_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 
 

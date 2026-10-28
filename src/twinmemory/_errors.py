@@ -7,7 +7,8 @@ from typing import cast
 
 class TwinMemoryError(Exception):
     """Every error this package raises. `status` is the HTTP status, when there was a response;
-    `detail` is the API's own explanation; `request_id` finds the request in the service's log."""
+    `detail` is the API's own explanation; `request_id` is the response's `X-Request-Id`, to
+    quote when you ask for help."""
 
     def __init__(
         self,
@@ -39,7 +40,8 @@ class PermissionDeniedError(TwinMemoryError):
 
 
 class NotFoundError(TwinMemoryError):
-    """404: nothing was ever written for this end user, or no such record."""
+    """404: nothing was ever written for this end user, or `correct` named a fact this end user
+    does not hold: not yet `read`, already retracted, or mistyped."""
 
 
 class InvalidRequestError(TwinMemoryError):
@@ -48,12 +50,15 @@ class InvalidRequestError(TwinMemoryError):
 
 
 class RateLimitError(TwinMemoryError):
-    """429: too many requests in hand for this end user or organisation. Retried for you."""
+    """429: too many requests in flight, or reads too fast. Retried for you: after `Retry-After`
+    seconds, or with backoff when there is none. A `Retry-After` over 60 seconds is not waited
+    out; this error is raised instead."""
 
 
 class ServiceUnavailableError(TwinMemoryError):
-    """503: the end user's memory is being rebuilt, or the service is at capacity. Retried for
-    you."""
+    """503: the service is busy or briefly unavailable. Retried for you: after `Retry-After`
+    seconds, or with backoff when there is none. A `Retry-After` over 60 seconds is not waited
+    out; this error is raised instead."""
 
 
 class APIConnectionError(TwinMemoryError):
@@ -95,7 +100,8 @@ def for_status(status: int, detail: object, request_id: str | None) -> TwinMemor
 def _said(detail: object) -> str:
     if not isinstance(detail, list):
         return "" if detail is None else str(detail)
-    # FastAPI's validation errors: one line per field, as `body.query: Field required`.
+    # The API's validation errors (422): one line per field, as
+    # `body.query: String should have at least 1 character`.
     lines: list[str] = []
     for error in cast("list[object]", detail):
         if isinstance(error, dict):
