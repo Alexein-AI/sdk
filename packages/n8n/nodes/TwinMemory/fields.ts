@@ -60,7 +60,7 @@ export const operations: INodeProperties[] = [
 			{
 				name: 'Get Lineage',
 				value: 'lineage',
-				description: 'What an item became, or what a fact was read from',
+				description: 'What an item became, or what a fact came from',
 				action: 'Get the lineage of an item',
 			},
 			{
@@ -90,14 +90,14 @@ export const operations: INodeProperties[] = [
 			{
 				name: 'List',
 				value: 'ls',
-				description: "A directory's entries, by a path a result gave you",
-				action: 'List a memory directory',
+				description: 'What is under a path a result gave you',
+				action: 'List what is under a path',
 			},
 			{
 				name: 'Read',
 				value: 'read',
-				description: 'One file whole, by a path a result gave you',
-				action: 'Read a memory file',
+				description: 'One passage, whole, by the path a result gave you',
+				action: 'Read a passage',
 			},
 			{
 				name: 'Search',
@@ -116,7 +116,7 @@ export const operations: INodeProperties[] = [
 		default: '',
 		placeholder: 'e.g. user_42',
 		description:
-			"Your ID for the person whose memory this is, usually an expression from the trigger, such as the Telegram user. Each end user has a memory of their own. Letters, digits, '.', '_' and '-', starting with a letter or digit.",
+			"Your ID for the person whose memory this is, usually an expression from the trigger, such as the Telegram user. Each end user has a memory of their own. Letters, digits, '.', '_' and '-', starting with a letter or digit. Up to 35 characters always fits.",
 	},
 ];
 
@@ -137,7 +137,11 @@ export const fields: INodeProperties[] = [
 		name: 'kind',
 		type: 'options',
 		options: [
-			{ name: 'Document', value: 'document', description: 'A whole document, read as one' },
+			{
+				name: 'Document',
+				value: 'document',
+				description: 'A whole text, such as a file or a page',
+			},
 			{ name: 'Message', value: 'message', description: 'One turn of a conversation' },
 			{ name: 'Note', value: 'note', description: 'A fact on its own' },
 		],
@@ -151,7 +155,7 @@ export const fields: INodeProperties[] = [
 		default: false,
 		...show('add'),
 		description:
-			'Whether to answer only once the items can be found. Off, an add is accepted at once and searchable a moment later.',
+			"Whether to wait, up to 10 seconds, until the items can be found; the output's pending counts any not yet searchable. Off, an add is accepted at once and searchable a moment later.",
 	},
 	{
 		displayName: 'Additional Fields',
@@ -188,7 +192,8 @@ export const fields: INodeProperties[] = [
 				name: 'id',
 				type: 'string',
 				default: '',
-				description: 'Your ID for this item. Send the same ID again to replace it.',
+				description:
+					'Your ID for this item. The same ID again is an edit of it: use it to fix the same statement, and a new ID when something changes.',
 			},
 			{
 				displayName: 'Metadata',
@@ -246,7 +251,7 @@ export const fields: INodeProperties[] = [
 		default: false,
 		...show('search'),
 		description:
-			'Whether to skip the model filter: free and quicker, a little less precise. For replies that cannot wait.',
+			'Whether to skip the relevance check: free and quicker, a little less precise. For replies that cannot wait.',
 	},
 	{
 		displayName: 'Options',
@@ -346,7 +351,8 @@ export const fields: INodeProperties[] = [
 				name: 'place',
 				type: 'string',
 				default: '',
-				description: 'A provider, channel or repository, such as slack or eng',
+				description:
+					'Where to look: a name from a passage path under passages/, such as memory or notes. Everywhere when empty.',
 			},
 		],
 	},

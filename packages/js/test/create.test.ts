@@ -328,8 +328,26 @@ describe("doctor", () => {
     const text = said(console);
     expect(text).toContain("✓ memory file src/memory.ts (written by 0.1.0)");
     expect(text).toContain("✓ @langchain/langgraph 1.5.2");
-    expect(text).toContain("✓ key at the hosted service: scratch/demo, reads and writes");
+    expect(text).toContain("✓ key: scratch/demo, reads and writes");
     expect(text).toContain("All good.");
+  });
+
+  it("names the address the key is checked at, when the project sets one", async () => {
+    const p = healthy().file(
+      ".env",
+      `${env.KEY}=tm_x\n${env.BASE_URL}=https://memory.example.com\n`,
+    );
+    const checked: [string, string | undefined][] = [];
+    const console = quiet();
+    const recording: env.Checker = async (key, baseUrl) => {
+      checked.push([key, baseUrl]);
+      return good(key, baseUrl);
+    };
+    expect(await doctor(p.root, console, recording)).toBe(0);
+    expect(checked).toEqual([["tm_x", "https://memory.example.com"]]);
+    expect(said(console)).toContain(
+      "✓ key at https://memory.example.com: scratch/demo, reads and writes",
+    );
   });
 
   it("says what is missing, and how to fix it", async () => {
@@ -359,7 +377,7 @@ describe("doctor", () => {
       ),
     ).toBe(1);
     expect(said(bad)).toContain("✗ @langchain/langgraph 0.4.0 is older than 1.0");
-    expect(said(bad)).toContain("✗ key at the hosted service: the service does not know this key");
+    expect(said(bad)).toContain("✗ key: the service does not know this key");
     const readOnly = quiet();
     expect(
       await doctor(

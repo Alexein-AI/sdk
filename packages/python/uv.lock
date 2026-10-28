@@ -5622,7 +5622,7 @@ dependencies = [
     { name = "httpx" },
 ]
 wheels = [
-    { filename = "twinmemory-0.2.0-py3-none-any.whl", hash = "sha256:581679ea1acf0fa2610d4c9053315fd73abf27a5f024721ef1b29036dba11000" },
+    { filename = "twinmemory-0.2.0-py3-none-any.whl", hash = "sha256:8fe0b1b64bbe47c04d7bf4c42e3e1e0d729017eaa400fb3a67fa10c10b0c7ea5" },
 ]
 
 [package.metadata]

@@ -1,8 +1,8 @@
 # twinmemory-cli for JavaScript
 
-Memory from [twin memory](https://twinmemory.dev) in a LangGraph.js or OpenAI Agents SDK project,
-as code you own: one command writes it, and from then on it is your file, in the manner of shadcn.
-The written code uses the [`twinmemory`](https://github.com/Alexein-AI/twin-memory-js) client.
+Memory from [Alexein](https://alexein.ai) in a LangGraph.js or OpenAI Agents SDK project, as code
+you own: one command writes it, and from then on it is your file, in the manner of shadcn. The
+written code uses the [`twinmemory`](https://docs.alexein.ai/sdks/typescript) client.
 
 ```bash
 npx twinmemory-cli init langgraph                 # a project you have
@@ -11,8 +11,8 @@ npx twinmemory-cli create langgraph my-agent      # a new one, with memory wired
 npx twinmemory-cli doctor                         # is it all set up?
 ```
 
-Node 20 or newer, LangGraph.js 1.0 or newer, `@openai/agents` 0.6 or newer. For Python, see
-[`../python`](../python). The OpenAI Agents SDK has its own section,
+Node 20 or newer, LangGraph.js 1.0 or newer, `@openai/agents` 0.6 or newer. For Python, see the
+[docs](https://docs.alexein.ai/integrations/langgraph). The OpenAI Agents SDK has its own section,
 [below](#the-openai-agents-sdk); everything up to it is LangGraph's, and what the two share - the
 key, the presets, `doctor` - works the same for both.
 
@@ -34,7 +34,7 @@ saves.
 | Flag                           | What it does                                            |
 | ------------------------------ | ------------------------------------------------------- |
 | `--nodes-only`, `--tools-only` | the file holds only the nodes, or only the tools        |
-| `--fast`                       | searches skip the model filter: free and quicker        |
+| `--fast`                       | searches skip the relevance check: free and quicker     |
 | `--key`, `--base-url`          | the key and memory's address, written into `.env`       |
 | `--skip-key`                   | do not ask for a key                                    |
 | `--dir`, `--file`, `--graph`   | where the file goes, and what it is called              |
@@ -128,17 +128,6 @@ it too. A wrong key throws.
 `create openai-agents <name>` makes an npm project in TypeScript with `src/agent.ts`, a terminal
 chat and `memory.ts`. `--model` names the model (`MODEL` in `.env`); without it, the agent uses the
 SDK's default.
-
-## Development
-
-```bash
-npm install          # twinmemory comes from ../../vendor until it is on npm
-npm run check        # types, formatting, and the tests: the CLI, and every file it writes run
-                     # inside real LangGraph.js graphs and the OpenAI Agents SDK's runner (with
-                     # a scripted model), type-checked and formatted as written
-npm run build        # dist/bin.js
-node dist/bin.js init langgraph --sdk /path/to/twin-memory-js
-```
 
 ## License
 

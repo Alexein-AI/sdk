@@ -1,12 +1,10 @@
 """What earlier conversations said, line by line: the passages a search found, cut back into the
 turns they hold, so a reply is shown what the caller said and not whole conversations.
 
-A passage is one stretch of a conversation, "**user** 11:25 · ..." after a "Context: ..., 23 Oct
-2026. ..." header (the engine's `passages.turn`). Kept: each distinct thing said once, the agent's
-words marked as its own ("you said"), a short reply with the question it answers ("the second
-one"), and statements ahead of questions - a question asked before is no answer to the one asked
-now: measured over 26 questions at 2,000 characters, 24 held the answer this way, 17 without.
-Not a summary: every line is said as it was said, or left out.
+Kept: each distinct thing said once, the agent's words marked as its own ("you said"), a short
+reply with the question it answers ("the second one"), and statements ahead of questions - a
+question asked before is no answer to the one asked now. Not a summary: every line is said as it
+was said, or left out.
 """
 
 from __future__ import annotations
@@ -18,7 +16,6 @@ from twinmemory import Hit
 
 _TURN = re.compile(r"\*\*([^*]{1,64})\*\* ((?:\d{1,2} \w{3} \d{4} )?\d{1,2}:\d{2}) · ")
 _DAY = re.compile(r"^Context: [^,]*, (\d{1,2} \w{3} \d{4})")
-# A note's or a document's header: where and when, then its title, which repeats its first words.
 _HEADER = re.compile(r"^Context: [^,]*, \d{1,2} \w{3} \d{4}\. ")
 _ASKED_CHARS = 200
 _AGENT = "assistant"
@@ -28,8 +25,8 @@ _WORDS = re.compile(r"[^\W_]+")
 # A reply like "yes" or "the second one" says nothing a search can find on its own; with the
 # agent's question before it, it says what was asked. Shared by recall's query and its lines.
 SHORT = 4
-# Unfiltered search returns six to eight passages for anything, "thanks" included: these turns
-# only fill the prompt with noise - unless they answer a question ("yes", after "Shall I book?").
+# Small talk holds nothing to look up, and what a search returns for it only fills the prompt
+# with noise - unless it answers a question ("yes", after "Shall I book?").
 SMALL_TALK = frozenset(
     {"hi", "hello", "hey", "thanks", "thank", "you", "ok", "okay", "bye", "goodbye", "cheers"}
     | {"hmm", "um", "uh", "mhm", "right", "cool", "great", "yes", "no", "yeah", "sure"}
@@ -66,7 +63,8 @@ class Line:
 
 
 def _turns(text: str) -> list[tuple[str, str, str]]:
-    """(speaker, time, words) for each turn in a passage; one unnamed turn for a note."""
+    """(speaker, time, words) for each turn a passage holds; a passage with none, such as a note,
+    is one turn with no speaker."""
     marks = list(_TURN.finditer(text))
     if not marks:
         body = _untitled(_HEADER.sub("", text, count=1).strip())
@@ -79,7 +77,7 @@ def _turns(text: str) -> list[tuple[str, str, str]]:
 
 
 def _untitled(body: str) -> str:
-    """A note's text without the title in front of it that only repeats its opening words."""
+    """Drops a lead-in that only repeats the text's own opening words."""
     for at in (m.start() for m in re.finditer(r"\. ", body)):
         title, rest = body[:at], body[at + 2 :]
         if _key(rest).startswith(_key(title)):

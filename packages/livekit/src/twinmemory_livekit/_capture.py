@@ -124,7 +124,7 @@ def item(
         metadata=metadata,
     )
     if message.role == "user":
-        # The person whose memory this is: what lets memory say "you" and not "a user".
+        # The person whose memory this is, so memory knows whose details these are.
         turn["author"] = Author(self=True)
     return turn
 
@@ -155,7 +155,7 @@ class Writer:
                 self.dropped += 1
                 if self.dropped == 1:
                     log.warning(
-                        "twin memory unreachable for %d turns, dropping the oldest", self.max_buffer
+                        "Alexein unreachable for %d turns, dropping the oldest", self.max_buffer
                     )
         self._waiting.append(turn)
         self._idle.clear()
@@ -185,7 +185,7 @@ class Writer:
             self._task = None
         if left:
             why = "memory was unreachable" if self._user else "no user was ever bound"
-            log.warning("twin memory: %d turns of this call were not saved, %s", left, why)
+            log.warning("Alexein: %d turns of this call were not saved, %s", left, why)
 
     def _ensure(self) -> None:
         """The writer task, started once there is a user and an event loop to run it on."""
@@ -238,14 +238,14 @@ class Writer:
             # Not the service's answer (a proxy's page, a closed client): like an outage, wait.
             if type(error).__name__ not in self._failed:
                 self._failed.add(type(error).__name__)
-                log.warning("twin memory save failed (%s), will retry", how(error))
+                log.warning("Alexein save failed (%s), will retry", how(error))
             return False
         return not result.failed
 
     def _refuse(self, error: TwinMemoryError) -> None:
         if not self._refused:
             self._refused = True
-            log.error("twin memory refused this call's turns, not saved (%s)", how(error))
+            log.error("Alexein refused this call's turns, not saved (%s)", how(error))
 
 
 def _among(turn: Item, batch: list[Item]) -> bool:
@@ -255,4 +255,4 @@ def _among(turn: Item, batch: list[Item]) -> bool:
 def _reported(task: asyncio.Task[None]) -> None:
     error = None if task.cancelled() else task.exception()
     if isinstance(error, Exception):
-        log.error("twin memory capture stopped (%s)", how(error))
+        log.error("Alexein: capture stopped (%s)", how(error))

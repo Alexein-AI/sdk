@@ -214,7 +214,7 @@ def python(run: Run) -> None:
         "#create",
         f"{cli} create langgraph py-bot --key {key} --base-url {url}",
         py,
-        contains=("ran      uv add", "checked  key: ", "reads and writes", "uv run python -m py_bot.chat --user dana"),
+        contains=("ran      uv add", "checked  key: ", "reads and writes", "uv run -m py_bot.chat --user dana"),
         files=("py-bot/src/py_bot/memory.py", "py-bot/src/py_bot/graph.py", "py-bot/src/py_bot/chat.py", "py-bot/langgraph.json", "py-bot/.env"),
     )
     lock = (bot / "uv.lock").read_text() if (bot / "uv.lock").exists() else ""
@@ -267,7 +267,7 @@ def python(run: Run) -> None:
         "uv run python outage.py",
         bot,
         env={"TWIN_MEMORY_BASE_URL": "http://127.0.0.1:9"},
-        contains=("twin memory unavailable", "reply: 'Happy to help anyway.'"),
+        contains=("Alexein unavailable", "reply: 'Happy to help anyway.'"),
     )
 
 
@@ -397,7 +397,7 @@ def typescript(run: Run) -> None:
         "npx tsx outage.ts",
         bot,
         env={"TWIN_MEMORY_API_KEY": "tm_any", "TWIN_MEMORY_BASE_URL": "http://127.0.0.1:9"},
-        contains=("twin memory unavailable", 'reply: "Happy to help anyway."'),
+        contains=("Alexein unavailable", 'reply: "Happy to help anyway."'),
     )
 
 

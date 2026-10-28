@@ -40,9 +40,8 @@ AUTO_GUIDE = (
 
 # Said to the model in tools mode, after your instructions: the tools are its only memory there,
 # and a model that is not told when to save rarely does (n8n's Add tool says as much).
-# Measured on 20 conversations (e2e/scenarios.py, gpt-4.1-mini): told the rules alone, the
-# model left out a booking's time, an order number and a choice, and said "I've noted that" with
-# nothing saved; the examples are what a small model follows.
+# Told the rules alone, a small model left out details and said "I've noted that" with nothing
+# saved; the examples are what it follows.
 GUIDE = (
     "You have a long-term memory of this caller, across calls; nothing you are told is kept "
     "unless you save it. Before you answer anything where what you know of them could matter - a "
@@ -94,7 +93,7 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
             return UNAVAILABLE
         if found.failed:
             return UNAVAILABLE
-        hits = [*found.hits, *memory.recent]  # the last calls too: a search by words misses much
+        hits = [*found.hits, *memory.recent]  # the last calls too: they hold what goes unnamed
         lines = said(memory.known, hits, query, agent=True, max_chars=s.recall_max_chars)
         if not lines:
             return NOTHING
@@ -148,13 +147,10 @@ def tools(memory: TwinMemory, *, write: bool) -> list[llm.FunctionTool]:
 
 
 def _note(text: str, session: str, nth: int) -> Item:
-    """A saved fact as a line the agent wrote in this call, at the time it wrote it.
-
-    Not a `note` item: a note is shown under its day alone, so "lives in Berlin" and, a call
-    later, "moved to Lisbon" read as equally recent, and the model answered Berlin. As the agent's
-    words in the call's own thread each fact keeps its time, and a call's facts stay together.
-    The same fact said twice in a call is one: its id is the call and the words. No author: the
-    agent wrote it down, and an author marked `self` with no role is refused."""
+    """A saved fact as a line the agent wrote in this call, at the time it wrote it, so facts from
+    different calls are told apart by when, and a call's facts stay together. The same fact said
+    twice in a call is one: its id is the call and the words. No author: the agent wrote it down,
+    and an author marked `self` with no role is refused."""
     digest = hashlib.sha256(text.lower().encode()).hexdigest()[:16]
     return Item(
         id=f"lk:{session}:note:{digest}",

@@ -109,7 +109,7 @@ def _skeleton(
         "model": model,
         "provider_key": provider_key,
         "description": f"{_DESCRIBED[options.framework]} that remembers the people it talks to, "
-        "with twin memory.",
+        "with Alexein.",
     }
     preset = _preset(options)
     own = f"{options.framework.replace('-', '_')}/project"
@@ -174,7 +174,7 @@ def _install(
 
 def _next(name: str, package: str, unset: list[str], *, langgraph: bool) -> str:
     fill = [f"    # fill in {' and '.join(unset)} in .env"] if unset else []
-    steps = [(f"uv run python -m {package}.chat --user dana", "talk to it")]
+    steps = [(f"uv run -m {package}.chat --user dana", "talk to it")]
     steps += [("uv run langgraph dev", "or open it in LangGraph Studio")] if langgraph else []
     steps += [("uvx twinmemory-cli doctor", "check the setup")]
     # The comments line up however long the package's name makes the first command.

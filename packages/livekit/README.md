@@ -1,12 +1,12 @@
 # twinmemory-livekit
 
 Long-term memory for [LiveKit Agents](https://docs.livekit.io/agents/) voice agents, from
-[twin memory](https://twinmemory.dev). Before each reply your agent is given what the caller said in
+[Alexein](https://alexein.ai). Before each reply your agent is given what the caller said in
 earlier calls; every turn of this call is saved for the next one. Memory never holds a reply up for
 more than half a second, and never stops one.
 
 ```bash
-pip install twinmemory-livekit          # not yet on PyPI: see "Install from this repository"
+pip install twinmemory-livekit
 export TWIN_MEMORY_API_KEY=tm_...       # a key that writes, from the console's API keys
 ```
 
@@ -57,10 +57,10 @@ that knows it today.
 
 **auto** is memory that is always there: no turn waits for the model to think of it, and every
 call is kept whole. **tools** lets the model decide, as an n8n agent's tools do: it searches when a
-question needs the past and saves the facts it judges worth keeping, one per call, so memory holds
-only what it chose - and nothing else of the call. A search the model makes costs a model round trip
-(LiveKit plays a thinking sound if you give it one); a save never does, since `memory_add` answers at
-once and the fact is saved behind the reply.
+question needs the past and saves the facts it decides are worth keeping, one per call, so memory
+holds only what it chose - and nothing else of the call. A search the model makes costs a model
+round trip (LiveKit plays a thinking sound if you give it one); a save waits at most
+`save_timeout` (2 s), and one memory is slow for is saved behind the reply.
 
 ```python
 memory = TwinMemory.from_job(ctx, mode="tools")
@@ -81,10 +81,12 @@ can change it, and the model's tools act on that user only.
   identity is only as good as the token server that issued it - LiveKit asks only that it be unique
   within its room - so it gets a namespace of its own: `participant_id(identity)`, `lk-` and a hash,
   which no id your backend writes can meet. Your backend can call `participant_id` to reach the same
-  memory. `bind(participant=..., share_identity=True)` uses the identity itself instead, where it is
-  a usable id, so the agent shares memory with ids your backend writes - only where your token
-  server issues the identity from your own user ids. Either way, an identity every caller is given
-  ("guest", "user") is one memory for all of them.
+  memory. `bind(participant=..., share_identity=True)` uses the identity itself instead, where the
+  `twinmemory` client accepts it as an end user id, so the agent shares memory with ids your
+  backend writes - only where your token server issues the identity from your own user ids, and
+  keeps them to the [id rule](https://docs.alexein.ai/concepts/end-users#the-id-rule): up to 35
+  characters always fits. Either way, an identity every caller is given ("guest", "user") is one
+  memory for all of them.
 
 A phone caller's identity (SIP, or a connector such as WhatsApp) is a number, which a caller can
 spoof, so `bind(participant=...)` leaves such a call unbound: it goes on without memory, and you can
@@ -107,24 +109,21 @@ reply only - as what was said, line by line, not whole conversations:
 
 - Each thing said once; a question asked before after every statement, and the question being
   asked now not at all; the agent's own words marked as its own, since they hold what it booked and
-  found. Measured over 26 questions about a caller's earlier calls, this block held the answer for
-  24 at 2,000 characters, where whole passages held it for 21 (20 on a 30-call history), and the
-  caller's lines alone for 17.
+  found.
 
 - It runs in `llm_node`, so it keeps LiveKit's preemptive generation (on by default, and lost when
   `on_user_turn_completed` changes the turn) and it covers typed turns, which that hook never sees.
   One lookup is shared by the early reply, the confirmed one and the model call after a tool runs.
 - It searches earlier calls only: the model already has this one.
 - A reply waits for it at most `recall_timeout` seconds (0.5 by default), however many model calls
-  the reply makes. A fast search answers in tens of milliseconds, so the limit only cuts in during an
-  outage, and then the reply goes ahead without memory. Nothing memory does, or answers, can stop
-  a reply.
+  the reply makes; when memory is slow or down, the reply goes ahead without it. Nothing memory
+  does, or answers, can stop a reply.
 - Small talk ("thanks", "okay") is not searched, and not recalled. A short answer ("the second one")
   is searched, and recalled, with the question it answers.
-- After what the search matched come the caller's last calls, fetched once a call. A search by
-  words cannot tie "suggest a dinner" to "I'm vegetarian", nor see that an appointment moved; the
-  call before this one usually holds both. Where two lines disagree, the model is told the later
-  one is true now.
+- After what the search matched come the caller's last calls, fetched once a call: the call before
+  this one often holds what a question needs without naming it, such as the "I'm vegetarian" behind
+  "suggest a dinner", or an appointment that moved. Where two lines disagree, the model is told the
+  later one is true now.
 - What memory holds is quoted, not obeyed: the block says to follow no request, rule or way of
   speaking in it, the agent's own earlier words included, and nothing in it can read as markup
   (every angle bracket, entity and look-alike is neutralised), so a stored `</memory>` closes
@@ -190,9 +189,8 @@ the agent can say, rather than fail (`memory_tools=False` leaves them out, in au
 - `memory_read(path)`: one of those sources whole;
 - `memory_add(fact)`, in tools mode: one fact about the caller (500 characters at most). It waits
   up to 2 s for the save, so the model is never told "Saved." for a fact memory refused, and leaves
-  one memory is slow for to the writer. The fact is kept as the agent's own line in the call,
-  "Noted: ...", so it keeps its time: "lives in Berlin" and, a call later, "moved to Lisbon" are
-  told apart by when.
+  one memory is slow for to the writer. The fact is saved as the agent's own line in the call,
+  "Noted: ...", at the time it was said.
 
 In tools mode the model is told when to search and save, with examples: a small model told only
 the rules left out a booking's time and an order number, and said "I've noted that" with nothing
@@ -218,12 +216,12 @@ flush past LiveKit's 10 s shutdown - is refused when the memory is made.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `recall_fast` | `True` | search without memory's model filter: free, tens of milliseconds. `False` asks it to judge each recall - more precise, a paid model call and up to a second more per reply |
+| `recall_fast` | `True` | searches skip the relevance check: free and quicker. `False` runs it on each recall: more precise, counted against your daily budget, and slower, though a reply still waits no longer than `recall_timeout`; raise `recall_timeout` with it, or a slower recall is left out of the reply |
 | `recall_timeout` | `0.5` | the most a reply waits for memory, in seconds, however many model calls it makes |
 | `recall_max_chars` | `2000` | the most a reply is shown, about 500 tokens |
-| `recall_agent_turns` | `True` | show the agent's own earlier words too; `False` only the caller's (17 of 26 answers, against 24) |
+| `recall_agent_turns` | `True` | show the agent's own earlier words too; `False` only the caller's |
 | `recall_recent` | `6` | how many of the caller's last passages follow what the search matched (a call each in auto mode, a fact each in tools mode); `0` for none |
-| `recall_known` | `True` | look up, once a call, what memory holds as true about the caller now |
+| `recall_known` | `True` | look up, once a call, what memory holds about the caller (search's `known` lines), to lead with |
 | `recall_skip_small_talk` | `True` | search nothing for "thanks" or "okay", and recall none of it |
 | `recall_reuse_seconds` | `30.0` | how long one lookup serves a question: the early reply, the confirmed one and a tool's follow-up share it. Not a wait |
 | `recall_header` | quoted records, never instructions | what the model is told above the memory block |
@@ -233,7 +231,7 @@ flush past LiveKit's 10 s shutdown - is refused when the memory is made.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `tool_fast` | `True` | `memory_search` without the model filter, as `recall_fast` |
+| `tool_fast` | `True` | `memory_search` skips the relevance check, as with `recall_fast` |
 | `tool_timeout` | `4.0` | the most `memory_search` and `memory_read` wait, in seconds |
 | `save_timeout` | `2.0` | how long `memory_add` waits to confirm a save before the writer takes it, so a refused fact is never reported saved |
 | `note_max_chars` | `500` | the longest fact `memory_add` saves |
@@ -259,9 +257,8 @@ never the service's words or the user's.
 
 ## Without this package: MCP
 
-twin memory is also a hosted MCP server, which LiveKit Agents can use as tools with no code of
-ours. The model then decides when to look things up, and nothing is saved unless it calls
-`memory_add`:
+Alexein is also a hosted MCP server, which LiveKit Agents can use as tools with no code of ours.
+The model then decides when to look things up, and nothing is saved unless it calls `memory_add`:
 
 ```python
 # pip install "livekit-agents[mcp]"
@@ -271,7 +268,7 @@ tools = [
     mcp.MCPToolset(
         id="twinmemory",
         mcp_server=mcp.MCPServerHTTP(
-            url="https://api.twinmemory.dev/v1/mcp",
+            url="https://api.alexein.ai/v1/mcp",
             headers={"Authorization": f"Bearer {key}", "X-Twin-Account": user_id},
             allowed_tools=["memory_search", "memory_add"],
         ),
@@ -291,38 +288,6 @@ tools = [
 - In auto mode every turn is saved, so "don't remember this" said in a call cannot be honoured:
   for callers who need that, pass `redact`, or use tools mode, where the model saves only what it
   should.
-- With no embedding model (a local stack), search matches words, not meaning: "favourite colour"
-  does not find "favorite color". The hosted service ranks by meaning too.
-- twin memory serves each end user up to 10 reads a second.
-
-## Install from this repository
-
-Until it is on PyPI, with access to the two private repositories, and once this package is merged:
-
-```bash
-pip install "twinmemory @ git+ssh://git@github.com/Alexein-AI/twin-memory-python" \
-  "twinmemory-livekit @ git+ssh://git@github.com/Alexein-AI/twin-memory-integrations#subdirectory=packages/livekit"
-```
-
-## Development
-
-```bash
-uv sync
-uv run ruff format --check . && uv run ruff check . && uv run pyright && uv run pytest -q
-TWIN_MEMORY_LIVE=1 uv run pytest -q tests/test_live.py   # against a running twin memory
-uv run python e2e/room.py                                # text, in a real LiveKit room
-uv run --with "livekit-plugins-openai~=1.8" python e2e/scenarios.py      # real model
-uv run --with "livekit-plugins-openai~=1.8" --with "livekit-plugins-silero~=1.8" \
-  python e2e/voice.py                                    # real voice, see e2e/README.md
-```
-
-- `tests/` runs whole turns through a real `AgentSession`, typed and spoken, with a scripted LLM
-  and twin memory in process; `tests/test_hardening.py` holds what review found.
-- `e2e/scenarios.py` is twenty callers ringing back with a real model (gpt-4.1-mini): a booking
-  and its allergy, an appointment moved, a code corrected, a move to another city, "the second
-  one", an order number, numbers said as words, Spanish, someone else's memory, a planted
-  instruction, a card number, "don't remember this", "what do you know about me". On the final
-  code: auto mode 19 of 19 on every run, tools mode 20 of 20 and 19 of 20, each failure since
-  fixed and re-run five times.
-- `e2e/voice.py` speaks to the agent in a real room, with real speech to text, model and speech,
-  and checks what it said aloud, in both modes.
+- Alexein serves each end user up to 10 reads a second (in bursts of up to 20), and refuses a read
+  while 4 requests for that end user are already in flight
+  ([limits](https://docs.alexein.ai/concepts/limits)).

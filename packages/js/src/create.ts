@@ -156,7 +156,7 @@ function skeleton(
   o: scaffold.Options,
 ): void {
   const langgraph = o.framework === "langgraph";
-  const description = `${DESCRIBED[o.framework]} that remembers the people it talks to, with twin memory.`;
+  const description = `${DESCRIBED[o.framework]} that remembers the people it talks to, with Alexein.`;
   const values = { name, model, provider_key: providerKey, description };
   const parts = preset(o);
   const own = `${o.framework.replace("-", "_")}/project`;

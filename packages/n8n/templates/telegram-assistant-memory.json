@@ -1,5 +1,5 @@
 {
-  "name": "Telegram assistant with long-term memory (twin memory)",
+  "name": "Telegram assistant with long-term memory (Alexein)",
   "nodes": [
     {
       "id": "ac7323bc-2321-4f46-b35a-548a9dcb7623",
@@ -13,7 +13,7 @@
       "parameters": {
         "width": 420,
         "height": 520,
-        "content": "## Telegram assistant with long-term memory\n\nA Telegram bot that remembers what each person tells it, across chats and days, with **twin memory**. Simple Memory keeps the last few messages; twin memory keeps everything else and finds it again.\n\n### Set up\n1. Install the community node **n8n-nodes-twinmemory** (Settings > Community Nodes).\n2. Create a Telegram bot with @BotFather and add its token to **Telegram Trigger** and **Send Reply**.\n3. Add your OpenAI key to **OpenAI Chat Model**.\n4. Create an API key at twinmemory.dev (Console > API keys) and add it to both twin memory tools.\n5. Activate the workflow and message your bot.\n\nEach Telegram user is their own end user in twin memory, by their Telegram user ID, so one bot keeps every person's memory apart."
+        "content": "## Telegram assistant with long-term memory\n\nA Telegram bot that remembers what each person tells it, across chats and days, with **Alexein**. Simple Memory keeps the last few messages; Alexein keeps everything else and finds it again.\n\n### Set up\n1. Install the community node **n8n-nodes-twinmemory** (Settings > Community Nodes).\n2. Create a Telegram bot with @BotFather and add its token to **Telegram Trigger** and **Send Reply**.\n3. Add your OpenAI key to **OpenAI Chat Model**.\n4. Create an API key at app.alexein.ai (Console > API keys) and add it to both memory tools.\n5. Activate the workflow and message your bot.\n\nEach Telegram user is their own end user in Alexein, by their Telegram user ID, so one bot keeps every person's memory apart."
       }
     },
     {
@@ -94,7 +94,7 @@
       ],
       "parameters": {
         "descriptionType": "manual",
-        "toolDescription": "Search this person's long-term memory (twin memory) with a plain-words question. Call it before answering anything about them: their life, work, the people around them, their plans and preferences, or anything they told you before.",
+        "toolDescription": "Search this person's long-term memory (Alexein) with a plain-words question. Call it before answering anything about them: their life, work, the people around them, their plans and preferences, or anything they told you before.",
         "resource": "memory",
         "operation": "search",
         "endUser": "={{ $('Telegram Trigger').item.json.message.from.id }}",
@@ -112,7 +112,7 @@
       ],
       "parameters": {
         "descriptionType": "manual",
-        "toolDescription": "Save to this person's long-term memory (twin memory), which their other apps read too. Call this on your own, without being asked, on every turn where they say anything new: about themselves, their work, or the people, places, projects and things around them - preferences, facts, opinions, decisions, plans, dates, names and numbers, small details and passing remarks. Also save what was asked, tried, decided or built together, and why. When in doubt, save.\n\nOne fact per call, as a note, in their words. Never save secrets, passwords, keys or payment details, or your own suggestions as facts about them.",
+        "toolDescription": "Save to this person's long-term memory (Alexein), which their other apps read too. Call this on your own, without being asked, on every turn where they say anything new: about themselves, their work, or the people, places, projects and things around them - preferences, facts, opinions, decisions, plans, dates, names and numbers, small details and passing remarks. Also save what was asked, tried, decided or built together, and why. When in doubt, save.\n\nOne fact per call, as a note, in their words. Never save secrets, passwords, keys or payment details, or your own suggestions as facts about them.",
         "resource": "memory",
         "operation": "add",
         "endUser": "={{ $('Telegram Trigger').item.json.message.from.id }}",

@@ -1,9 +1,9 @@
 # twinmemory-cli
 
-Memory from [twin memory](https://twinmemory.dev) in a LangGraph project, a CrewAI crew or an
+Memory from [Alexein](https://alexein.ai) in a LangGraph project, a CrewAI crew or an
 OpenAI Agents SDK agent, as code you own: one command writes it, and from then on it is your file, in
 the manner of shadcn. The written code uses the
-[`twinmemory`](https://github.com/Alexein-AI/twin-memory-python) client.
+[`twinmemory`](https://docs.alexein.ai/sdks/python) client.
 
 ```bash
 uvx twinmemory-cli init langgraph                 # a project you have
@@ -36,7 +36,7 @@ key it is given is checked, and a key that only reads is called out when the fil
 | ---------------------------- | --------------------------------------------------------------- |
 | `--nodes-only`, `--tools-only` | the file holds only the nodes, or only the tools              |
 | `--async`                    | async nodes and tools, for `ainvoke`, `langgraph dev` and Platform |
-| `--fast`                     | searches skip the model filter: free and quicker                |
+| `--fast`                     | searches skip the relevance check: free and quicker             |
 | `--key`, `--base-url`        | the key and memory's address, written into `.env`               |
 | `--skip-key`                 | do not ask for a key                                            |
 | `--dir`, `--file`, `--graph` | where the file goes, and what it is called                      |
@@ -87,8 +87,9 @@ is logged on the `twinmemory` logger. A wrong key still raises - that is a mista
 ## `create`
 
 `create langgraph <name>` makes a uv project with a graph, a terminal chat
-(`uv run python -m <name>.chat --user dana`), `langgraph.json` for `langgraph dev`, and `memory.py`
-as `init` writes it, wired in. It takes `init`'s presets and key flags, and `--model` for the model,
+(`uv run -m <package>.chat --user dana`, where `<package>` is the name in lower case with `-` as
+`_`: `my_agent` for `my-agent`), `langgraph.json` for `langgraph dev`, and `memory.py` as `init`
+writes it, wired in. It takes `init`'s presets and key flags, and `--model` for the model,
 by `init_chat_model`'s name (default `anthropic:claude-sonnet-5-5`), whose LangChain package it
 adds.
 
@@ -104,7 +105,7 @@ request) and that `.env` is not committed. Each failure says how to fix it.
 or newer; a newer minor than the one this release was tested with works, with a warning. Flows are
 not supported yet.
 
-By default the file holds `TwinMemory`, CrewAI's own memory kept in twin memory. Give it to the crew
+By default the file holds `TwinMemory`, CrewAI's own memory kept in Alexein. Give it to the crew
 and CrewAI recalls the user's memory before every task, saves what each task found, and gives every
 agent its "Search memory" and "Save to memory" tools:
 
@@ -192,21 +193,6 @@ a tool, as the SDK's `UserError` with memory's error as its cause.
 
 `create openai-agents <name>` makes a uv project with `agent.py`, a terminal chat and `memory.py`.
 `--model` names the model (`MODEL` in `.env`); without it, the agent uses the SDK's default.
-
-## Development
-
-```bash
-uv sync                  # twinmemory comes from ../../vendor until it is on PyPI
-uv run pytest            # the CLI, and every file it writes run inside real LangGraph graphs,
-                         # and the OpenAI Agents SDK's Runner with its scripted model
-uv run ruff check . && uv run pyright
-```
-
-From a checkout, installing a checkout of the client into the project instead of PyPI:
-
-```bash
-uvx --from . twinmemory-cli init langgraph --sdk /path/to/twin-memory-python
-```
 
 ## License
 

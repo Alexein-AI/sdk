@@ -19,8 +19,8 @@ import { init, MINIMUMS, options, PARTS, type Part } from "./scaffold.js";
 import { Console } from "./ui.js";
 import { VERSION } from "./version.js";
 
-const HELP = `twinmemory-cli ${VERSION} - twin memory for LangGraph.js and the OpenAI Agents SDK,
-as code you own
+const HELP = `twinmemory-cli ${VERSION} - memory from Alexein for LangGraph.js and the
+OpenAI Agents SDK, as code you own
 
 Usage:
   twinmemory-cli init <framework> [options]          write memory into this project
@@ -32,11 +32,11 @@ Usage:
 What the memory file holds:
   --nodes-only          recall and remember, no tools
   --tools-only          tools for the model, no nodes
-  --fast                search without the model filter: free, quicker
+  --fast                searches skip the relevance check: free and quicker
 
 The key (all of it can be skipped, and done later):
   --key <key>           your API key, written into .env and checked
-  --base-url <url>      memory's address, if not the hosted service
+  --base-url <url>      memory's address, written into .env
   --skip-key            do not ask for a key
 
 init only:
@@ -54,6 +54,8 @@ create only:
   --dry-run             check everything, say what would happen, change nothing
   --version, --help`;
 
+// `sdk` is for development only: it installs the client from a path instead of npm, and `--help`
+// leaves it out. Its note sits here, not beside it, so that the bundle does not carry it.
 const FLAGS = {
   "nodes-only": { type: "boolean" },
   "tools-only": { type: "boolean" },
@@ -69,7 +71,6 @@ const FLAGS = {
   yes: { type: "boolean", short: "y" },
   "no-install": { type: "boolean" },
   "dry-run": { type: "boolean" },
-  // Installs the client from a path instead of npm, while it is not published there.
   sdk: { type: "string" },
   version: { type: "boolean" },
   help: { type: "boolean", short: "h" },

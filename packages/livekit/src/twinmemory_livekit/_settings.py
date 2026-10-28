@@ -1,8 +1,7 @@
-"""`Settings`: every choice the package makes for a call, with the default it was measured or
-reasoned to, in one place.
+"""`Settings`: every choice the package makes for a call, with its default, in one place.
 
 `TwinMemory` takes each as a keyword and keeps them here, read-only, as `memory.settings`. Not
-configuration of LiveKit or of twin memory: only of what this package does between them.
+configuration of LiveKit or of Alexein: only of what this package does between them.
 """
 
 from __future__ import annotations
@@ -27,27 +26,30 @@ HEADER = (
 @dataclass(frozen=True)
 class Settings:
     """What a call's memory does. Each is a keyword of `TwinMemory`; the README says what each
-    changes, and why its default is what it is."""
+    changes."""
 
     mode: Mode = "auto"
     """"auto": recall before every reply and save every turn. "tools": the model decides."""
 
     # -- recall, before each reply (auto mode)
     recall_fast: bool = True
-    """Search without memory's model filter: free and in tens of milliseconds. False asks it to
-    judge each recall - more precise, one paid model call and up to a second more per reply."""
+    """Searches skip the relevance check: free and quicker. False runs it on each recall: more
+    precise, counted against your daily budget, and slower, though a reply still waits no longer
+    than `recall_timeout`; raise `recall_timeout` with it, or a slower recall is left out of the
+    reply."""
     recall_timeout: float = 0.5
     """The longest a reply waits for memory, in seconds, however many model calls it makes."""
     recall_max_chars: int = 2000
-    """The most a reply is shown, in characters: about 500 tokens. 24 of 26 answers at 2,000."""
+    """The most a reply is shown, in characters: about 500 tokens."""
     recall_agent_turns: bool = True
     """Show the agent's own earlier words too, marked as its own: they hold what it booked and
-    found. False shows only what the caller said (17 of 26 answers, against 24)."""
+    found. False shows only what the caller said."""
     recall_recent: int = 6
     """How many of the caller's last passages to show after what the search matched - a call
     each in auto mode, a saved fact each in tools mode. 0 shows none."""
     recall_known: bool = True
-    """Look up, once a call, what memory holds as true about the caller now, to lead with."""
+    """Look up, once a call, what memory holds about the caller (search's `known` lines), to
+    lead with."""
     recall_skip_small_talk: bool = True
     """Search nothing for "thanks" or "okay", and recall none of it."""
     recall_reuse_seconds: float = 30.0
@@ -61,7 +63,7 @@ class Settings:
 
     # -- the model's tools
     tool_fast: bool = True
-    """memory_search without memory's model filter, as `recall_fast`."""
+    """memory_search skips the relevance check, as with `recall_fast`."""
     tool_timeout: float = 4.0
     """The longest memory_search and memory_read wait, in seconds."""
     save_timeout: float = 2.0

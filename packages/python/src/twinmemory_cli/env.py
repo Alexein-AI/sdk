@@ -62,17 +62,24 @@ def ignored(root: Path) -> bool:
 
 @dataclass(frozen=True)
 class Check:
-    """What trying a key found. `ok` is whether it works; `writes` is None when the service
-    does not say; `detail` is the line to print."""
+    """What trying a key found. `ok` is whether it works; `writes` is None when it was not
+    checked; `detail` is the line to print."""
 
     ok: bool
     writes: bool | None
     detail: str
 
 
+def address(base_url: str | None) -> str:
+    """Where the client sends requests: `base_url`, else its own default. Nothing is sent."""
+    with Memory("tm_unsent", base_url=base_url) as memory:  # the client is made with a key
+        return memory.base_url
+
+
 def check(key: str, base_url: str | None, timeout: float = 10.0) -> Check:
-    """Try a key against memory: `GET /v1/me` where the service has it, else a free search
-    for an end user nobody has written for, which a working key answers 404."""
+    """Try a key with `GET /v1/me`: its organisation and project, and whether it writes. Should
+    that answer 404, a free fast search for an end user nobody has written for stands in: a 404
+    there means the key works, and `writes` is then None."""
     try:
         with Memory(key, base_url=base_url, timeout=timeout, max_retries=0) as memory:
             try:
@@ -91,7 +98,7 @@ def check(key: str, base_url: str | None, timeout: float = 10.0) -> Check:
 def _probe(memory: Memory) -> Check:
     with contextlib.suppress(NotFoundError):  # a working key, and nobody written for
         memory.user("twinmemory-key-check").search("key check", fast=True)
-    return Check(True, None, "works; this service does not say whether it writes")
+    return Check(True, None, "works; whether it writes was not checked")
 
 
 def resolve(root: Path) -> tuple[str, str | None]:

@@ -296,7 +296,7 @@ def setup_key(root: Path, options: Options, console: Console) -> None:
     if given is None and not key and not options.skip_key:
         given = (
             console.secret(
-                "Your twin memory API key (from the console, under API keys; Enter to skip):"
+                "Your Alexein API key (from the console, under API keys; Enter to skip):"
             )
             or None
         )

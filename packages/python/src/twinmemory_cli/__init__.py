@@ -41,11 +41,11 @@ def _setup_flags(parser: argparse.ArgumentParser) -> None:
         help="async nodes and tools, for ainvoke (langgraph; openai-agents is async already)",
     )
     shape.add_argument(
-        "--fast", action="store_true", help="search without the model filter: free, quicker"
+        "--fast", action="store_true", help="searches skip the relevance check: free and quicker"
     )
     key = parser.add_argument_group("the key (all of it can be skipped, and done later)")
     key.add_argument("--key", help="your API key, written into .env and checked")
-    key.add_argument("--base-url", help="memory's address, if not the hosted service")
+    key.add_argument("--base-url", help="memory's address, written into .env")
     key.add_argument("--skip-key", action="store_true", help="do not ask for a key")
     parser.add_argument("--yes", "-y", action="store_true", help="answer yes; ask nothing")
     parser.add_argument(
@@ -62,7 +62,9 @@ def _setup_flags(parser: argparse.ArgumentParser) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="twinmemory-cli", description="twin memory from the command line."
+        prog="twinmemory-cli",
+        description="Memory from Alexein for LangGraph, CrewAI and the OpenAI Agents SDK, "
+        "as code you own.",
     )
     parser.add_argument("--version", action="version", version=f"twinmemory-cli {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)

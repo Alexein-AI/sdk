@@ -1,7 +1,7 @@
 [project]
 name = "twinmemory-livekit"
 version = "0.1.0"
-description = "Long-term memory for LiveKit voice agents, from twin memory: recalled before each reply, every turn saved."
+description = "Long-term memory for LiveKit voice agents, from Alexein: recalled before each reply, every turn saved."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -23,15 +23,15 @@ classifiers = [
 dependencies = ["twinmemory>=0.2", "livekit-agents>=1.5.1,<2"]
 
 [project.urls]
-Homepage = "https://twinmemory.dev"
-Documentation = "https://twinmemory.dev/docs/integrations/livekit"
+Homepage = "https://alexein.ai"
+Documentation = "https://docs.alexein.ai/integrations/livekit"
 Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "pyright>=1.1.380"]
 
-# Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it from the
-# twin-memory-python checkout). Then this goes, and the dependency above is met from PyPI.
+# Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it). Then
+# this goes, and the dependency above is met from PyPI.
 [tool.uv.sources]
 twinmemory = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
 
@@ -41,6 +41,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/twinmemory_livekit"]
+
+# The source distribution holds what the wheel is built from and the pages a user reads: no
+# tests, e2e runs, examples, lock file or CONTRIBUTING.md. pyproject.toml and PKG-INFO are
+# always added.
+[tool.hatch.build.targets.sdist]
+include = ["/src/twinmemory_livekit", "/README.md", "/CHANGELOG.md", "/LICENSE"]
 
 [tool.ruff]
 line-length = 100

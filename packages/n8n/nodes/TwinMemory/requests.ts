@@ -14,14 +14,15 @@ export interface Request {
 // The API takes at most this many items in one add.
 export const BATCH = 500;
 
-// What the API accepts as an end user ID, checked before a round trip.
+// An end user ID's characters and the longest any ID can be, checked before a round trip. The API can
+// refuse a shorter one, and its 400 states the maximum.
 const USER_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
 export function checkedUser(value: unknown): string {
 	const user = String(value ?? '').trim();
 	if (!USER_ID.test(user)) {
 		throw new Error(
-			`End User "${user}" is not a usable ID: letters, digits, '.', '_' and '-', starting with a letter or digit, up to 64 characters`,
+			`End User "${user}" is not a usable ID: letters, digits, '.', '_' and '-', starting with a letter or digit. Up to 35 characters always fits.`,
 		);
 	}
 	return user;

@@ -1,10 +1,10 @@
 {
   "name": "twinmemory-cli",
   "version": "0.1.0",
-  "description": "Add twin memory to a LangGraph.js or OpenAI Agents SDK project, as code you own: npx twinmemory-cli init langgraph.",
+  "description": "Add memory from Alexein to a LangGraph.js or OpenAI Agents SDK project, as code you own: npx twinmemory-cli init langgraph.",
   "license": "MIT",
   "author": "Alexein AI",
-  "homepage": "https://twinmemory.dev/docs/integrations/langgraph",
+  "homepage": "https://docs.alexein.ai/integrations/langgraph",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Alexein-AI/twin-memory-integrations.git",
@@ -37,7 +37,7 @@
     "check": "tsc --noEmit && prettier --check . && vitest run",
     "test": "vitest run",
     "format": "prettier --write .",
-    "prepublishOnly": "npm run check && npm run build"
+    "prepublishOnly": "node -e \"if (/^file:/.test(require('./package.json').dependencies.twinmemory)) { console.error('twinmemory must come from npm: publish it first, then depend on it by version'); process.exit(1) }\" && npm run check && npm run build"
   },
   "dependencies": {
     "twinmemory": "file:../../vendor/twinmemory-0.1.0.tgz"

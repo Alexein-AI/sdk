@@ -1,4 +1,4 @@
-"""Long-term memory for LiveKit voice agents, from twin memory.
+"""Long-term memory for LiveKit voice agents, from Alexein.
 
 ```python
 from twinmemory_livekit import TwinMemory, TwinMemoryAgent

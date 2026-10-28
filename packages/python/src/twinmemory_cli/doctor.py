@@ -139,10 +139,10 @@ def _versions(root: Path, minimums: dict[str, str], console: Console) -> bool:
 
 def _key(root: Path, console: Console, *, writes: bool) -> bool:
     key, base_url = env.resolve(root)
-    where = base_url or "the hosted service"
     if not key:
         fix = f"put a key in .env as {env.KEY}= (console, under API keys)"
         return _mark(console, False, f"no {env.KEY}", fix)
+    where = env.address(base_url)  # the client's, so it is where the check goes
     kept_out = env.ignored(root) or _mark(
         console, False, ".env is not in .gitignore", "add .env to .gitignore"
     )

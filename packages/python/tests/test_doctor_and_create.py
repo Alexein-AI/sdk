@@ -11,9 +11,11 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 from conftest import answer, async_memory, memory, routes
 from test_cli import lint_clean
+from twinmemory import Memory
 
 from twinmemory_cli import create as creating
 from twinmemory_cli import env
@@ -22,6 +24,9 @@ from twinmemory_cli.doctor import doctor
 from twinmemory_cli.render import render
 from twinmemory_cli.scaffold import Options
 from twinmemory_cli.ui import Console
+
+# The key's real check, kept before the fixture below answers it here.
+real_check = env.check
 
 
 @pytest.fixture(autouse=True)
@@ -40,6 +45,12 @@ def quiet(**fields: Any) -> Console:
 
 def said(console: Console) -> str:
     return "\n".join(console.said)
+
+
+def default_address() -> str:
+    """Where the client sends requests when nothing names an address: its own default."""
+    with Memory("tm_x") as client:
+        return client.base_url
 
 
 # --------------------------------------------------------------------------------- doctor --
@@ -65,8 +76,44 @@ def test_doctor_passes_a_project_that_is_set_up(tmp_path: Path) -> None:
     text = said(console)
     assert "✓ memory file app/memory.py (written by 0.2.0, for LangGraph)" in text
     assert "✓ langgraph 1.2.16" in text
-    assert "✓ key at the hosted service: scratch/demo, reads and writes" in text
+    assert f"✓ key at {default_address()}: scratch/demo, reads and writes" in text
     assert "All good." in text
+
+
+def test_doctor_names_the_address_the_client_calls(tmp_path: Path) -> None:
+    """The client's own address, not one written here: its default when nothing names one,
+    else the project's, as the client reads it."""
+    root = healthy(tmp_path)
+    console = quiet()
+    assert doctor(root, console) == 0
+    assert f"✓ key at {default_address()}: scratch/demo" in said(console)
+
+    (root / ".env").write_text(f"{env.KEY}=tm_x\n{env.BASE_URL}=https://memory.example.com/\n")
+    console = quiet()
+    assert doctor(root, console) == 0
+    assert "✓ key at https://memory.example.com: scratch/demo" in said(console)
+
+
+@pytest.mark.parametrize("base_url", [None, "https://memory.example.com/"])
+def test_the_key_is_checked_where_doctor_says(
+    base_url: str | None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The real check, with its request answered here: it goes to `env.address`, the address
+    doctor names."""
+    named = env.address(base_url)
+    sent: list[str] = []
+
+    def answered(request: httpx.Request) -> httpx.Response:
+        sent.append(str(request.url))
+        return httpx.Response(200, json={"kind": "key", "org": "o", "project": "p", "writes": True})
+
+    def client(key: str, **options: Any) -> Memory:
+        http = httpx.Client(transport=httpx.MockTransport(answered))
+        return Memory(key, http_client=http, **options)
+
+    monkeypatch.setattr(env, "Memory", client)
+    assert real_check("tm_x", base_url) == env.Check(True, True, "o/p, reads and writes")
+    assert sent == [f"{named}/v1/me"]
 
 
 def test_doctor_says_what_is_missing_and_how_to_fix_it(tmp_path: Path) -> None:
@@ -94,7 +141,7 @@ def test_doctor_catches_an_old_version_and_a_bad_key(
     assert doctor(root, console) == 1
 
     assert "✗ langgraph 0.6.0 is older than 1.0" in said(console)
-    assert "✗ key at the hosted service: the service does not know this key" in said(console)
+    assert f"✗ key at {default_address()}: the service does not know this key" in said(console)
 
 
 def test_doctor_outside_a_project(tmp_path: Path) -> None:
@@ -159,7 +206,7 @@ def test_create_makes_a_runnable_project(tmp_path: Path) -> None:
         ],
         ["uv", "add", "--dev", "langgraph-cli[inmem]"],
     ]
-    assert "uv run python -m my_agent.chat --user dana" in said(console)
+    assert "uv run -m my_agent.chat --user dana" in said(console)
     assert ".env is not in .gitignore" not in said(console)
 
 

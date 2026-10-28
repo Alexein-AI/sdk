@@ -19,8 +19,10 @@ import re
 
 from livekit import rtc
 
-# twin memory's end user ids (the `X-Twin-Account` header), as the client checks them: a UUID or a
-# user id of your own passes as it is, and is the same memory your backend writes to.
+# Alexein's end user ids (the `X-Twin-Account` header), as the client checks them: letters,
+# digits, `.`, `_` and `-`, starting with a letter or digit. One of your own that passes is used
+# as it is, the same memory your backend writes to. Up to 35 characters always fits; the 400 for
+# a longer one states the maximum.
 _USABLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 # What this module makes: an identity that already looks like one is hashed again, so nobody can
 # pick an identity that lands in somebody else's memory.
@@ -29,9 +31,10 @@ _PHONE = (rtc.ParticipantKind.PARTICIPANT_KIND_SIP, rtc.ParticipantKind.PARTICIP
 
 
 def account_id(identity: str) -> str:
-    """`identity` as an end user id: itself when twin memory can use it as one, else `lk-` and a
-    hash of it (27 characters), which names nobody's number or address and that no other identity
-    maps to."""
+    """`identity` as an end user id: itself when it passes the client's id check (`_USABLE`),
+    else `lk-` and a hash of it (27 characters), which names nobody's number or address and that
+    no other identity maps to. Up to 35 characters always fits; a longer identity that passes the
+    check is used as it is, and the service may refuse it with 400."""
     if not identity:
         raise ValueError("an empty identity names nobody")
     if _USABLE.fullmatch(identity) and not _MADE.fullmatch(identity):

@@ -220,13 +220,13 @@ describe("the key", () => {
 
   it("writes a key it is given, and checks it", async () => {
     const p = project().npm().file(".env", `${env.KEY}=\nOTHER=1\n`);
-    const [, console] = await p.init({ key: "tm_new", baseUrl: "http://localhost:8210" });
+    const [, console] = await p.init({ key: "tm_new", baseUrl: "https://memory.example.com" });
     expect(env.read(join(p.root, ".env"))).toEqual({
       [env.KEY]: "tm_new",
       OTHER: "1",
-      [env.BASE_URL]: "http://localhost:8210",
+      [env.BASE_URL]: "https://memory.example.com",
     });
-    expect(p.checked).toEqual([["tm_new", "http://localhost:8210"]]);
+    expect(p.checked).toEqual([["tm_new", "https://memory.example.com"]]);
     expect(said(console)).toContain("key: scratch/demo, reads and writes");
   });
 

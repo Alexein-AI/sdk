@@ -48,10 +48,7 @@ class TwinMemory:
     By default the client is made from `api_key` and `base_url`, else TWIN_MEMORY_API_KEY and
     TWIN_MEMORY_BASE_URL, and closed with the call; `client` is one of your own (make it with
     `max_retries=0`). `session_id` names the call in memory. Every other keyword is a field of
-    `Settings`, which says what each does and why its default is what it is; they are kept, read
-    only, as `memory.settings`. Measured defaults (README, "Settings"): recall in tens of
-    milliseconds, waited for at most half a second; 2,000 characters of what was said, the agent's
-    words too, which held 24 of 26 answers where whole passages held 21.
+    `Settings`, which says what each does; they are kept, read only, as `memory.settings`.
     """
 
     def __init__(
@@ -157,7 +154,8 @@ class TwinMemory:
 
     @property
     def known(self) -> list[str]:
-        """What memory holds as true about the user now, looked up once when they were bound."""
+        """What memory holds about the user (search's `known` lines), looked up once when they
+        were bound."""
         return list(self._recall.known)
 
     @property
@@ -191,7 +189,7 @@ class TwinMemory:
                 participant, trust_phone=trust_phone, share_identity=share_identity
             )
             if user_id is None:
-                log.warning("twin memory: participant kind %s not bound", participant.kind)
+                log.warning("Alexein: participant kind %s not bound", participant.kind)
                 return None
         assert user_id is not None
         if self._user is not None:
@@ -230,7 +228,7 @@ class TwinMemory:
         except asyncio.CancelledError:
             raise
         except Exception as error:  # a reply is never stopped by memory
-            log.warning("twin memory recall failed (%s), reply goes on", how(error))
+            log.warning("Alexein recall failed (%s), reply goes on", how(error))
             return
         if text:
             place(chat_ctx, said, text)
@@ -261,7 +259,7 @@ class TwinMemory:
     async def _close(self) -> None:
         if self._session is None:
             if self.mode == "auto":
-                log.warning("twin memory was never attached to a session: no turn was saved")
+                log.warning("Alexein: memory was never attached to a session, so no turn was saved")
         else:
             if self.mode == "auto":
                 self._session.off("conversation_item_added", self._on_item)
@@ -287,4 +285,4 @@ class TwinMemory:
 def _reported(task: asyncio.Task[None]) -> None:
     error = None if task.cancelled() else task.exception()
     if isinstance(error, Exception):
-        log.warning("twin memory close failed (%s)", how(error))
+        log.warning("Alexein: close failed (%s)", how(error))

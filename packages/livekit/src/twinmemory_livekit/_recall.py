@@ -40,9 +40,10 @@ _REUSED = 8
 # calls of the same day are kept and this call is left out (the brief's `before` is a whole day).
 _EARLIER_CALLS = "passages/memory"
 _ABOUT = "What should I know about this person?"
-# The last passages (`recall_recent`), newest first, are shown after what the search matched: a
-# search by words cannot tie "suggest a dinner" to "I'm vegetarian", nor see that an appointment
-# moved, but the call before this one usually holds both. Fetched once a call, so no turn waits.
+# The last passages (`recall_recent`), newest first, are shown after what the search matched: the
+# call before this one often holds what a question needs without naming it, such as the "I'm
+# vegetarian" behind "suggest a dinner", or an appointment that moved. Fetched once a call, so no
+# turn waits.
 
 # The marker on what recall adds to a prompt, so capture never saves it as something said.
 MARK = "twinmemory"
@@ -259,7 +260,7 @@ class Recall:
     async def _ask(
         self, user: AsyncUser, query: str, *, fast: bool, **where: str
     ) -> SearchResult | None:
-        """Never raises: a call goes on whatever memory does, a proxy's HTML page included."""
+        """Never raises: a call goes on however memory fails, a proxy's HTML page included."""
         try:
             found = await user.search(query, fast=fast, **where)
         except NotFoundError:  # nothing has been saved for this user yet
@@ -277,9 +278,7 @@ class Recall:
             return
         self._warned.add(kind)
         level = logging.ERROR if isinstance(error, TwinMemoryError) and not error.outage else 0
-        log.log(
-            level or logging.WARNING, "twin memory recall failed (%s), replies go on", how(error)
-        )
+        log.log(level or logging.WARNING, "Alexein recall failed (%s), replies go on", how(error))
 
     def _done(self, started: float, chars: int, **how: bool) -> None:
         ms = (time.monotonic() - started) * 1000

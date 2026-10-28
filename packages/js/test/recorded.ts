@@ -36,7 +36,7 @@ export function answer(path: string): Response {
   return Response.json({});
 }
 
-export const down = () => Response.json({ detail: "rebuilding" }, { status: 503 });
+export const down = () => Response.json({ detail: "briefly unavailable" }, { status: 503 });
 
 export function client(respond: Respond, integration: string, failOpen = true) {
   const sent: Sent[] = [];

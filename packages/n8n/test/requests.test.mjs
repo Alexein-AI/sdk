@@ -76,7 +76,7 @@ test('forget and status refuse to name nothing', () => {
 
 test('an end user ID is checked before a round trip', () => {
 	assert.equal(checkedUser(' 1234567 '), '1234567');
-	for (const bad of ['', '-dana', 'dana smith', 'x'.repeat(65)]) {
+	for (const bad of ['', '-dana', 'dana smith', 'dana/smith', 'x'.repeat(65)]) {
 		assert.throws(() => checkedUser(bad), /not a usable ID/, bad);
 	}
 });

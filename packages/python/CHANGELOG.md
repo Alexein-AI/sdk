@@ -14,7 +14,7 @@ First release, moved here from the `twinmemory` client, where it was `twinmemory
   `remember(result)`, which saves the turn; and the same tools, as `function_tool`s. It needs
   `openai-agents` 0.3 or newer and goes beside the file that builds the `Agent`.
 - `init crewai`: a `memory.py` for a CrewAI crew, classic or JSON. `TwinMemory` is CrewAI's own memory
-  kept in twin memory - recall before every task, saves after, and the Search and Save memory tools -
+  kept in Alexein - recall before every task, saves after, and the Search and Save memory tools -
   with the user held per run from `inputs["user_id"]`, and the key checked at kickoff. Needs CrewAI
   1.15 or newer. `--tools-only` writes `memory_tools` and `save_result` instead.
 - `create langgraph <name>`, `create openai-agents <name>` and `create crewai <name>`: a new uv

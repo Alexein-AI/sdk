@@ -68,8 +68,8 @@ export function ignored(root: string): boolean {
 }
 
 /**
- * What trying a key found. `ok` is whether it works; `writes` is undefined when the service does
- * not say; `detail` is the line to print.
+ * What trying a key found. `ok` is whether it works; `writes` is whether it writes, undefined when
+ * it does not work or the service does not say; `detail` is the line to print.
  */
 export interface Check {
   ok: boolean;
@@ -80,8 +80,9 @@ export interface Check {
 export type Checker = (key: string, baseUrl: string | undefined) => Promise<Check>;
 
 /**
- * Try a key against memory: `GET /v1/me` where the service has it, else a free search for an end
- * user nobody has written for, which a working key answers 404.
+ * Try a key against memory with one free request, `GET /v1/me`. Where that answers 404, a free
+ * search stands in, for an end user nobody has written for: a working key gets an answer or a 404,
+ * and whether it writes stays unknown.
  */
 export const check: Checker = async (key, baseUrl) => {
   try {

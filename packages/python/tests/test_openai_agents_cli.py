@@ -214,7 +214,7 @@ def test_create_makes_a_runnable_project(tmp_path: Path) -> None:
     assert recorder.ran == [["uv", "add", "twinmemory>=0.2", "openai-agents>=0.3", "python-dotenv"]]
     text = said(console)
     assert "fill in OPENAI_API_KEY and TWIN_MEMORY_API_KEY in .env" in text
-    assert "uv run python -m my_agent.chat --user dana" in text and "langgraph" not in text
+    assert "uv run -m my_agent.chat --user dana" in text and "langgraph" not in text
 
 
 def test_create_with_a_model(tmp_path: Path) -> None:

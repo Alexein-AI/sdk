@@ -4,7 +4,8 @@
 //
 // Builds the package, starts n8n, creates the owner, the credential (and runs its Test), imports a
 // workflow - Webhook -> Add -> Search -> Respond -> Forget - and calls it. Then asks the memory API
-// itself that the item was forgotten. It asks no model: the search is fast, and the MCP check greps.
+// itself that the item was forgotten. The search is fast and the MCP check greps, so the only
+// budget a run spends is on the facts taken from the two items it adds.
 //
 // TWIN_MEMORY_BASE_URL is the API as this machine reaches it (default http://localhost:8210);
 // n8n, in Docker, reaches the same port on host.docker.internal.

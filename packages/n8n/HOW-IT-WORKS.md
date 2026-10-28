@@ -6,6 +6,9 @@ the wire, how an AI Agent uses the node, and every setting and variable involved
 
 Version 0.1.0, tested with n8n 2.44.6.
 
+This is a note for whoever works on the node, and it is not published: it describes the engine and the local
+stack. What users read is the README and https://docs.alexein.ai/integrations/n8n.
+
 ## Contents
 
 1. [The whole picture](#1-the-whole-picture)
@@ -73,12 +76,13 @@ packages/n8n/
 ├── test/                              unit tests, run with Node's own test runner against dist/
 ├── e2e/                               real n8n in Docker against a memory API
 ├── eslint.config.mjs, tsconfig.json, .prettierrc.js   n8n's standard tooling, from its scaffold
+├── CONTRIBUTING.md, HOW-IT-WORKS.md, TESTING-AND-PUBLISHING.md   notes for whoever works on the node (not shipped)
 └── AGENTS.md, CLAUDE.md, .agents/     n8n's scaffold guidance for whoever edits the node next (not shipped)
 ```
 
 Only `dist/` (the compiled JavaScript, the icons and the codex file), `package.json`, `README.md` and `LICENSE`
-are published to npm. That's the `"files": ["dist"]` entry in `package.json`; npm adds the README, licence and
-package.json itself.
+are published to npm. That's the `files` entry in `package.json`: `dist`, less its source maps and the copy of
+`package.json` that `tsc` puts there; npm adds the README, licence and package.json itself.
 
 ## 3. How n8n finds the node
 
@@ -116,7 +120,7 @@ File: `credentials/TwinMemoryApi.credentials.ts`. n8n shows it as **Twin Memory 
 | Field      | Internal name | Required | Default                      | Stored encrypted |
 | ---------- | ------------- | -------- | ---------------------------- | ---------------- |
 | API Key    | `apiKey`      | yes      | (empty)                      | yes (password field) |
-| Base URL   | `baseUrl`     | yes      | `https://api.twinmemory.dev` | yes (n8n encrypts every credential) |
+| Base URL   | `baseUrl`     | yes      | `https://api.alexein.ai`     | yes (n8n encrypts every credential) |
 
 **How it signs requests.** The `authenticate` block tells n8n to add one header to every request the node
 makes through `httpRequestWithAuthentication`:
@@ -246,7 +250,8 @@ The node asks n8n for the full response and to not throw on HTTP errors (`return
 - **It never retries.** n8n's community-node rules forbid timers, so there is no sleeping between attempts. Use
   the node's **Settings > Retry On Fail**.
 - **It sends no Idempotency-Key.** That key only helps a client that retries the same request itself. To make
-  repeated adds safe, set **Item ID**: the same ID again replaces the item rather than adding a copy.
+  repeated adds safe, set **Item ID**: the same ID again is the same item (an edit, if the text differs) rather
+  than a copy.
 - **It caches nothing** and keeps no state between runs.
 
 ## 7. Each operation, as sent and as returned
@@ -314,7 +319,7 @@ Passages:
 
 | Where it fails | What n8n shows |
 | -------------- | -------------- |
-| End User is not a usable ID | `End User "dana smith" is not a usable ID: letters, digits, '.', '_' and '-', starting with a letter or digit, up to 64 characters`. No request is made |
+| End User is not a usable ID | `End User "dana smith" is not a usable ID: letters, digits, '.', '_' and '-', starting with a letter or digit. Up to 35 characters always fits.` No request is made. The node refuses an ID over 64 characters itself; a shorter one can still be too long for the API, whose `400` states the maximum |
 | Add with empty Text | `Text is empty: there is nothing to remember` |
 | Metadata that isn't a JSON object | `Metadata must be a JSON object` |
 | Forget naming nothing; Get Status with no IDs | `Nothing to forget: ...` / `IDs is empty: ...` |
@@ -362,7 +367,7 @@ Because the node sets `usableAsTool: true`, n8n creates **Twin Memory Tool**. Pu
 
 **The save policy** (the template uses it; the README and docs give it to paste):
 
-> Save to this person's long-term memory (twin memory), which their other apps read too. Call this on your own,
+> Save to this person's long-term memory (Alexein), which their other apps read too. Call this on your own,
 > without being asked, on every turn where they say anything new: about themselves, their work, or the people,
 > places, projects and things around them - preferences, facts, opinions, decisions, plans, dates, names and
 > numbers, small details and passing remarks. Also save what was asked, tried, decided or built together, and why.
@@ -532,7 +537,7 @@ same end user can hit the per-second limit; Retry On Fail handles that.
 
 | Command | What it checks | Needs |
 | ------- | -------------- | ----- |
-| `npm test` | builds, then 13 unit tests: every operation's route and body, item building, ID checks, the context text, Add batching (1,201 → 500/500/201, two users split, outputs in order), API errors, Continue On Fail | nothing |
+| `npm test` | builds, then 15 unit tests: every operation's route and body, item building, ID checks, the context text, Add batching (1,201 → 500/500/201, two users split, outputs in order), API errors, Continue On Fail, the names saved workflows use, and the credential's default address and documentation links | nothing |
 | `npm run lint` | n8n's community-node rules (the same ones verification uses) | nothing |
 | `node e2e/run.mjs` | real n8n 2.44.6 in Docker against a memory API (section 14) | Docker, a running API and a key |
 

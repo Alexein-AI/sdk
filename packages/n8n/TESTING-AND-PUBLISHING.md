@@ -8,8 +8,8 @@ from your laptop. Part C is the proper publish, the one n8n Cloud needs. How the
 
 - **Accounts:** none for Part A. An npmjs.com account for B and C.
 - **Tools:** Docker Desktop running, Node.js 20 or newer, `npm`, `git` and `gh` (logged in to GitHub).
-- **Repos:** `twin-memory`, `twin-memory-frontend` and `twin-memory-integrations` cloned side by side, each on `main`.
-- **Package name:** `n8n-nodes-twinmemory` is still free on npm (checked 2026-10-22).
+- **Repos:** `twin-memory-integrations`, and `twin-memory-app` with the repositories its README lists beside it
+  (`twin-memory`, `twin-memory-docs`), cloned side by side, each on `main`.
 
 **One fact that shapes Parts B and C.** npm only accepts a package published from GitHub Actions *with provenance*
 (signed proof of which repo and commit built it) when the GitHub repo is **public**. n8n requires that provenance
@@ -30,14 +30,14 @@ cd ~/repos/twin-wrapper/twin-memory-integrations
 git switch main && git pull
 cd packages/n8n
 npm ci
-npm test            # builds, then 13 unit tests
+npm test            # builds, then 15 unit tests
 npm run lint        # n8n's own rules; should print no errors
 ```
 
 ### A2. Start the twin memory stack
 
 ```bash
-cd ~/repos/twin-wrapper/twin-memory-frontend
+cd ~/repos/twin-wrapper/twin-memory-app
 git switch main && git pull
 git -C ../twin-memory switch main && git -C ../twin-memory pull
 docker compose up -d --build
@@ -69,7 +69,8 @@ TWIN_MEMORY_API_KEY=tm_... TWIN_MEMORY_BASE_URL=http://localhost:8210 node e2e/r
 ```
 
 It takes about a minute: it starts n8n 2.44.6 in Docker with the node installed. Every line should say `ok:`,
-ending with `all passed`. It makes no paid call.
+ending with `all passed`. Its search is fast and its MCP check greps, so the only budget it spends is on the facts
+taken from the two items it adds.
 
 A wrong key should now fail the credential Test, because your stack has real keys. To see it, run the test once
 with `TWIN_MEMORY_API_KEY=tm_wrong`. It stops at the credential step, and the line printed for the wrong key's
@@ -156,8 +157,8 @@ http://localhost:5679, and install from the UI.
 
 ### B4. Bump the version for Part C
 
-In `package.json` set `"version": "0.1.1"`, add a `## 0.1.1` entry to `CHANGELOG.md`, then commit, open a PR and
-merge.
+In `package.json` set `version` to the next patch version, add its entry to `CHANGELOG.md`, then commit, open a
+PR and merge.
 
 ---
 
@@ -175,10 +176,13 @@ gh repo edit Alexein-AI/twin-memory-integrations --visibility public --accept-vi
 Check nothing private is in it first: `git log -p | grep -i "tm_\|secret\|password"` should only show test
 values. The e2e password is a local throwaway.
 
+How the engine works must stay private too, and this file, HOW-IT-WORKS.md and the repository's history
+describe it and the local stack. Making the repository public is the owner's decision, taken before this step.
+
 ### C2. An npm token, for the first publish only
 
 npm only lets you add a trusted publisher to a package that already exists, so the very first publish uses a
-token. If you did Part B, the package exists: skip to C6 and use the trusted publisher straight away.
+token. The package exists since 0.1.0, so no token is needed: do C6 first, then carry on from C3.
 
 1. On npmjs.com, go to **Access Tokens > Generate New Token > Granular Access Token**:
    - Name: `twin-memory-integrations first publish`
@@ -192,16 +196,16 @@ token. If you did Part B, the package exists: skip to C6 and use the trusted pub
 
 ### C3. Check the version
 
-`packages/n8n/package.json` `version` is what gets published, and the tag must match it: `0.1.0`, or `0.1.1`
-after Part B.
+`packages/n8n/package.json` `version` is what gets published, and the tag must match it. Version 0.1.0 is already
+on npm and can't be published again, so bump it first (B4); the commands below assume 0.1.1.
 
 ### C4. Tag and push
 
 ```bash
 cd ~/repos/twin-wrapper/twin-memory-integrations
 git switch main && git pull
-git tag n8n-v0.1.0            # n8n-v0.1.1 after Part B
-git push origin n8n-v0.1.0
+git tag n8n-v0.1.1
+git push origin n8n-v0.1.1
 ```
 
 ### C5. Watch it
@@ -224,7 +228,7 @@ If it fails:
 
 | Error | Fix |
 | ----- | --- |
-| "tag ... is not n8n-v<version>" | the tag doesn't match `package.json`. Delete the tag (`git push --delete origin n8n-v0.1.0`), fix, and tag again |
+| "tag ... is not n8n-v<version>" | the tag doesn't match `package.json`. Delete the tag (`git push --delete origin n8n-v0.1.1`), fix, and tag again |
 | `E403` or "You do not have permission" | the token lacks publish rights, or 2FA blocked it: make a new token with Bypass 2FA |
 | "provenance ... private repository" | the repo is still private: do C1 |
 | `E409` or "cannot publish over the previously published version" | that version exists already: bump the version |
@@ -256,15 +260,18 @@ and packed package already passed its checks locally.
 
 1. Open https://creators.n8n.io/nodes and sign in.
 2. Submit `n8n-nodes-twinmemory`. The text for every field is in
-   `twin-memory-frontend/notes/outreach-n8n.md`, section 1.
+   `twin-memory-app/notes/outreach-n8n.md`, section 1.
 3. n8n reviews it. There is no published timeline. Once approved, it appears in n8n Cloud's nodes panel.
 
 ### C9. Afterwards
 
-- **The site:** the n8n integration's badge changes from "Soon" to "Live" in `twin-memory-frontend`
-  (`lib/site/integrations.ts`, and the "Soon" line at the top of `content/docs/integrations/n8n.mdx`).
-- **The template:** submit it to n8n's library with the text in `notes/outreach-n8n.md`, section 2.
-- **The MCP registry:** send the request in section 3, once `api.twinmemory.dev/v1/mcp` is live with sign-in.
+- **The badge:** the n8n integration changes from "Soon" to "Live" in `twin-memory-app`
+  (`lib/site/integrations.ts`, which the app's Integrations pages read).
+- **The docs:** in `twin-memory-docs`, the opening line of `content/docs/(integrations)/integrations/n8n.mdx`
+  still says the node is "Soon" on npm and describes 0.1.0. Change it to the version just released.
+- **The template:** submit it to n8n's library with the text in `twin-memory-app/notes/outreach-n8n.md`,
+  section 2.
+- **The MCP registry:** send the request in section 3, once `api.alexein.ai/v1/mcp` is live with sign-in.
 
 ---
 
@@ -279,4 +286,4 @@ and packed package already passed its checks locally.
 - [ ] C6: trusted publisher added, token deleted
 - [ ] C7: scanner passes
 - [ ] C8: submitted to creators.n8n.io
-- [ ] C9: site badge Live; template and MCP registry requests sent
+- [ ] C9: badge Live and the docs page's opening line updated; template and MCP registry requests sent

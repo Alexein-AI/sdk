@@ -122,7 +122,7 @@ async function key(
   check: env.Checker,
 ): Promise<boolean> {
   const { key, baseUrl } = env.resolveKey(root);
-  const where = baseUrl ?? "the hosted service";
+  const where = baseUrl ? ` at ${baseUrl}` : "";
   if (!key)
     return mark(
       console,
@@ -138,16 +138,16 @@ async function key(
     return mark(
       console,
       false,
-      `key at ${where}: ${checked.detail}`,
+      `key${where}: ${checked.detail}`,
       `check ${env.KEY} and ${env.BASE_URL}`,
     );
   if (saves && checked.writes === false) {
     return mark(
       console,
       false,
-      `key at ${where} only reads, and the memory file saves: remember and memory_add will be refused`,
+      `key${where} only reads, and the memory file saves: remember and memory_add will be refused`,
       "use a key that writes (console, under API keys)",
     );
   }
-  return mark(console, true, `key at ${where}: ${checked.detail}`) && keptOut;
+  return mark(console, true, `key${where}: ${checked.detail}`) && keptOut;
 }

@@ -301,7 +301,7 @@ export async function setupKey(root: string, o: Options, console: Console): Prom
   if (given === undefined && !key && !o.skipKey) {
     given =
       (await console.secret(
-        "Your twin memory API key (from the console, under API keys; Enter to skip):",
+        "Your Alexein API key (from the console, under API keys; Enter to skip):",
       )) || undefined;
   }
   if (given) {
