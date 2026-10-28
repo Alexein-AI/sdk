@@ -1,5 +1,5 @@
 /**
- * twin memory for JavaScript and TypeScript: long-term memory for your users, behind one API key.
+ * Alexein for JavaScript and TypeScript: long-term memory for your users, behind one API key.
  *
  * ```ts
  * import { Memory } from "twinmemory";

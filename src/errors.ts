@@ -9,7 +9,7 @@ export class TwinMemoryError extends Error {
   readonly status: number | undefined;
   /** The API's own explanation. */
   readonly detail: unknown;
-  /** Finds the request in the service's log. */
+  /** The response's `X-Request-Id`: quote it when you ask for help. */
   readonly requestId: string | undefined;
 
   constructor(
@@ -39,7 +39,11 @@ export class AuthenticationError extends TwinMemoryError {}
 /** 403: the key reads, and the call writes. */
 export class PermissionDeniedError extends TwinMemoryError {}
 
-/** 404: nothing was ever written for this end user, or no such record. */
+/**
+ * 404: nothing was ever written for this end user, or `correct` named a fact this end user does
+ * not hold: not yet `read`, mistyped, or already retracted. A `correct` retried after it went
+ * through gets this too: the fact is already retracted, so treat that as done.
+ */
 export class NotFoundError extends TwinMemoryError {}
 
 /**
@@ -48,10 +52,18 @@ export class NotFoundError extends TwinMemoryError {}
  */
 export class InvalidRequestError extends TwinMemoryError {}
 
-/** 429: too many requests in hand for this end user or organisation. Retried for you. */
+/**
+ * 429: too many requests in flight, or reads too fast. Retried for you: after `Retry-After`
+ * seconds, or with backoff when there is none. A `Retry-After` over 60 seconds is not waited
+ * out; this error is thrown instead.
+ */
 export class RateLimitError extends TwinMemoryError {}
 
-/** 503: the end user's memory is being rebuilt, or the service is at capacity. Retried for you. */
+/**
+ * 503: the service is busy or briefly unavailable. Retried for you: after `Retry-After` seconds,
+ * or with backoff when there is none. A `Retry-After` over 60 seconds is not waited out; this
+ * error is thrown instead.
+ */
 export class ServiceUnavailableError extends TwinMemoryError {}
 
 /** The service could not be reached. Retried for you. */
@@ -90,7 +102,8 @@ function describe(detail: unknown): string {
   if (!Array.isArray(detail)) {
     return detail === undefined || detail === null ? "" : String(detail);
   }
-  // FastAPI's validation errors: one line per field, as `body.query: Field required`.
+  // The API's validation errors: one line per field, as
+  // `body.query: String should have at least 1 character`.
   return detail
     .filter((error): error is Record<string, unknown> => typeof error === "object" && !!error)
     .map((error) => {

@@ -1,6 +1,8 @@
 /**
- * What the API answers, as typed values. Fields are camelCase; each result keeps the JSON it was
- * read from in `raw`, so a field this version does not know yet is still reachable.
+ * What the API answers, as typed values. Typed fields are camelCase; JSON passed through as it
+ * came (`assertions`, `history`, `records`, `manifest`) keeps the API's names. Every result except
+ * `status()`, which is a plain map of phases, keeps the whole answer in `raw`, so a field this
+ * version does not know yet is still reachable.
  */
 
 export type Json = Record<string, unknown>;
@@ -14,8 +16,8 @@ export interface Author {
 }
 
 /**
- * One thing to remember. Only `text` is required. Send it again with the same `id` to replace
- * it; set `expires` (an ISO date) for what stops being true.
+ * One thing to remember. Only `text` is required. The same `id` again is an edit of it; set
+ * `expires` (an ISO date) for what stops being true.
  */
 export interface Item {
   text: string;
@@ -40,7 +42,7 @@ const count = (value: unknown): number => (typeof value === "number" ? value : N
 const object = (value: unknown): Json =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Json) : {};
 
-/** What a key is: `kind` is "key" for a customer's key. */
+/** What a key is: `kind` is "key" for an API key. */
 export interface Me {
   kind: string;
   writes: boolean;
@@ -64,7 +66,7 @@ export function parseMe(raw: Json): Me {
 export interface AddedItem {
   id: string;
   eventId: string;
-  /** Undefined when the service landed it as it answered (no queue); else whether it has yet. */
+  /** Whether it has landed, stored and searchable; undefined when the answer does not say. */
   landed?: boolean;
   threadId?: string;
   path?: string;
@@ -116,7 +118,7 @@ function parseHit(raw: unknown): Hit {
   };
 }
 
-/** One dated line read from a passage; `source` is that passage. */
+/** One dated fact; `source` is the passage it came from. */
 export interface Fact {
   text: string;
   id: string;
@@ -127,8 +129,8 @@ export interface Fact {
 
 /**
  * What memory holds for a question: `known` lines first, then dated `facts`, then whole passages
- * (`hits`). `held` is false when memory says it does not hold the answer; `filtered` is whether
- * the model filter judged what came back. `failed` is true when a `failOpen` client could not
+ * (`hits`). `held` is false when memory's own check finds it does not hold the answer; `filtered`
+ * is whether search's relevance check ran. `failed` is true when a `failOpen` client could not
  * reach memory, and the result is empty for that reason.
  */
 export class SearchResult {
@@ -177,8 +179,8 @@ export class SearchResult {
   }
 
   /**
-   * A block to paste into a prompt: known lines, dated facts, then passages, whole entries only,
-   * at most `maxChars` long. Empty when memory found nothing.
+   * A block to paste into a prompt: known lines, worked-out lines, dated facts, then passages,
+   * whole entries only, at most `maxChars` long. Empty when memory found nothing.
    */
   context(maxChars = 4000): string {
     const sections: [string, string[]][] = [
@@ -226,7 +228,10 @@ export const parsePassages = (raw: Json): Passages => ({
   raw,
 });
 
-/** One file by path. `error` is set, with the directory's `siblings`, when there is none. */
+/**
+ * One passage, by path. When there is none, `error` says so and `siblings` lists what is next
+ * to it.
+ */
 export interface File {
   path: string;
   text?: string;
@@ -276,8 +281,9 @@ export const parseHistory = (raw: Json): History => ({
 });
 
 /**
- * An added item's versions, as they were sent. `state` is "live", "forgotten" or "expired"; once
- * an item goes, its history is one line saying when and why.
+ * An added item's versions, as they were sent. `state` is "live", "forgotten", "expired", or
+ * "unknown" for an id memory never took; once an item goes, its history is one line saying when
+ * and why.
  */
 export interface Versions {
   id: string;
@@ -298,7 +304,12 @@ export interface TableChange {
   after: number;
 }
 
-/** What a forget erased: each table's row count before and after. */
+/**
+ * What a forget erased: `events` is how many stored items went, `0` when nothing matched. `raw` is
+ * the whole receipt: `threads_emptied`, `records`, `assertions`, `versions`, `inbox`, `queue` and
+ * further counts for your records. Keep it whole with your record of the request. `tables` holds
+ * further before-and-after counts when the API sends them; don't depend on its keys.
+ */
 export interface Receipt {
   events: number;
   tables: Record<string, TableChange>;
@@ -314,7 +325,7 @@ export function parseReceipt(raw: Json): Receipt {
   return { events: count(raw.events), tables, raw };
 }
 
-/** The record retracted, its text, and the id of the note holding the replacement. */
+/** The fact retracted, its text, and the id of the note holding what is true instead. */
 export interface Correction {
   retracted: string;
   text?: string;
@@ -329,7 +340,13 @@ export const parseCorrection = (raw: Json): Correction => ({
   raw,
 });
 
-/** What an item, event or record became - or, for a record, what it was read from. */
+/**
+ * What an item or event became: the event ids it names (`events`), its `passages`, and the facts
+ * taken from it (`records`). For a fact id, use `passages`, the passages it came from; the fact
+ * is in `raw.record`, and the events it came from, each with its `id`, in `raw.events`. An id
+ * memory does not know comes back with empty `events`, `passages` and `records` and the reason in
+ * `raw.error`, not as a `NotFoundError`.
+ */
 export interface Lineage {
   of: string;
   events: string[];
@@ -346,7 +363,10 @@ export const parseLineage = (raw: Json): Lineage => ({
   raw,
 });
 
-/** The shape of this end user's memory: its directories, counts, and written index. */
+/**
+ * What this end user's memory holds: its top directories, its counts (`manifest`), and `index`,
+ * a short written guide for a model to read first.
+ */
 export interface Overview {
   directories: string[];
   manifest: Json;

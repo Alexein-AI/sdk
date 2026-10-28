@@ -1,20 +1,20 @@
 {
   "name": "twinmemory",
   "version": "0.1.0",
-  "description": "JavaScript and TypeScript client for twin memory: long-term memory for your users and agents.",
+  "description": "JavaScript and TypeScript client for Alexein: long-term memory for your users and agents.",
   "license": "MIT",
   "author": "Alexein AI",
-  "homepage": "https://twinmemory.dev/docs/sdks/typescript",
+  "homepage": "https://docs.alexein.ai/sdks/typescript",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Alexein-AI/twin-memory-js.git"
   },
   "keywords": [
     "memory",
-    "llm",
+    "long-term-memory",
     "agents",
-    "ai",
-    "rag"
+    "ai-agents",
+    "ai"
   ],
   "type": "module",
   "engines": {
@@ -37,7 +37,10 @@
     }
   },
   "files": [
-    "dist",
+    "dist/*.js",
+    "dist/*.cjs",
+    "dist/*.d.ts",
+    "dist/*.d.cts",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"

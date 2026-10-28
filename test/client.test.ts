@@ -39,7 +39,7 @@ describe("Memory", () => {
     await client.user("dana").search("Where does Dana live?");
     const request = sent.last;
     expect(request.method).toBe("POST");
-    expect(String(request.url)).toBe("https://api.twinmemory.dev/v1/memory/search");
+    expect(String(request.url)).toBe("https://api.alexein.ai/v1/memory/search");
     expect(request.headers.Authorization).toBe("Bearer tm_test");
     expect(request.headers["X-Twin-Account"]).toBe("dana");
     expect(request.headers["User-Agent"]).toBe(`twinmemory-js/${VERSION}`);
@@ -99,6 +99,20 @@ describe("add", () => {
       wait: true,
     });
     expect(sent.last.headers["Idempotency-Key"]!.length).toBeGreaterThan(16);
+  });
+
+  it("reads each item's id, event id and whether it has landed", async () => {
+    const answer = {
+      items: [{ id: "diet", event_id: "ev_1", landed: true }],
+      queued: 1,
+      pending: 0,
+    };
+    const { client } = memory(() => ok(answer));
+    const added = await client
+      .user("dana")
+      .add({ id: "diet", text: "Vegetarian." }, { wait: true });
+    expect(added.items).toEqual([{ id: "diet", eventId: "ev_1", landed: true }]);
+    expect(added.raw).toEqual(answer);
   });
 
   it("refuses an item without text, and an empty add, before sending", async () => {
@@ -199,6 +213,7 @@ describe("every other method", () => {
     const got = await client.user("dana").forget({ items: ["diet"] });
     expect(got.events).toBe(1);
     expect(got.tables.events!.after).toBe(2);
+    expect(got.raw).toEqual(receipt);
   });
 
   it("reads status phases", async () => {

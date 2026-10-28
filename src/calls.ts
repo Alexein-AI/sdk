@@ -37,7 +37,8 @@ import {
 export const BATCH = 500;
 
 // What the API accepts as an end user id, checked here so a typo fails before a round trip. The
-// API also bounds its length, which depends on the key's organisation and project.
+// API also bounds its length: up to 35 characters always fits, and the 400 for a longer one
+// states the maximum.
 const USER_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
 export interface Call<T> {
@@ -124,13 +125,19 @@ export function merged(results: AddResult[]): AddResult {
 }
 
 export interface SearchOptions {
-  /** ISO date: only what happened before it. */
+  /**
+   * ISO date: the question is answered as of that day; nothing said after it is used. In a ranked
+   * list (with `after` or `scope`), a date alone stops at the start of that day (UTC).
+   */
   before?: string;
-  /** ISO date: only what happened after it. */
+  /**
+   * ISO date: only memory from this day on (a date alone means from the start of that day, UTC).
+   * The answer is then a ranked list, without `known`, `workedOut`, `notes` or `held`.
+   */
   after?: string;
-  /** A path prefix the search stays inside. */
+  /** A path prefix the search stays inside; the answer is then a ranked list. */
   scope?: string;
-  /** Skip the model filter: free and quicker, a little less precise. */
+  /** Skip the relevance check: free and quicker, a little less precise. */
   fast?: boolean;
 }
 

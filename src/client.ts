@@ -2,8 +2,7 @@
  * The client, `Memory`, and the end user views it hands out.
  *
  * A client holds a key and the settings it sends with; `memory.user("dana")` is a view that sends
- * `X-Twin-Account: dana` on every call. What each call sends is in `calls.ts`, once; here is only
- * how it is sent: the key, the retries, the timeout, and the error a failed response becomes.
+ * `X-Twin-Account: dana` on every call.
  */
 
 import * as calls from "./calls.js";
@@ -26,27 +25,30 @@ import {
 } from "./types.js";
 import { VERSION } from "./version.js";
 
-export const DEFAULT_BASE_URL = "https://api.twinmemory.dev";
+export const DEFAULT_BASE_URL = "https://api.alexein.ai";
 /**
- * Long enough for a search that waits on the model filter at its slowest and an add that waits for
- * its items to land; a person-facing caller that cannot wait sets its own.
+ * Long enough for the slowest search and for an add that waits for its items to land; a
+ * person-facing caller that cannot wait sets its own.
  */
 export const DEFAULT_TIMEOUT_MS = 60_000;
 export const DEFAULT_RETRIES = 2;
-/** What the API asks to be retried: too many requests in hand, or memory being rebuilt. */
+/**
+ * What the API asks to be retried: 429, too many requests in flight or reads too fast, and 503,
+ * the service busy or briefly unavailable.
+ */
 const RETRIED = new Set([429, 503]);
 /** A Retry-After past this is not waited out; the error is thrown instead. */
 const LONGEST_WAIT_MS = 60_000;
 /**
- * What `integration` may add to the User-Agent: one short token, so the request log can count
- * requests by where they came from (`twinmemory-js/0.1.0 langgraph`).
+ * What `integration` may add to the User-Agent: one short token, so the console's request logs
+ * show where requests came from (`twinmemory-js/0.1.0 langgraph`).
  */
 const INTEGRATION = /^[a-z0-9][a-z0-9._-]{0,31}$/;
 
 export interface MemoryOptions {
   /** Defaults to `TWIN_MEMORY_API_KEY` from the environment. */
   apiKey?: string;
-  /** Defaults to `TWIN_MEMORY_BASE_URL`, else the hosted service. */
+  /** Defaults to `TWIN_MEMORY_BASE_URL`, else `https://api.alexein.ai`. */
   baseUrl?: string;
   /** Milliseconds one attempt may take. */
   timeout?: number;
@@ -58,7 +60,10 @@ export interface MemoryOptions {
    * warning logged, instead of throwing. A wrong key or request still throws.
    */
   failOpen?: boolean;
-  /** A word added to the User-Agent, counted in the request log: `"langgraph"`. */
+  /**
+   * A word added to the User-Agent, so the console's request logs show where requests came from:
+   * `"langgraph"`.
+   */
   integration?: string;
   /** Where warnings go when failing open; `console.warn` by default. */
   logger?: (message: string) => void;
@@ -77,7 +82,7 @@ function environment(name: string): string | undefined {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * A twin memory client.
+ * An Alexein client, for one API key; `user(id)` is the memory of one of your end users.
  *
  * ```ts
  * const memory = new Memory();          // TWIN_MEMORY_API_KEY from the environment
@@ -258,12 +263,12 @@ export class User {
     return this.send(calls.grep(pattern, options.scope, options.limit ?? 50), this.id);
   }
 
-  /** One file whole, by a path a result gave you. */
+  /** One passage, whole, by the `path` a result gave you. */
   read(path: string): Promise<File> {
     return this.send(calls.read(path), this.id);
   }
 
-  /** A directory's entries. */
+  /** What is under a path; directories end in `/`. */
   ls(path = ""): Promise<Listing> {
     return this.send(calls.ls(path), this.id);
   }
@@ -283,7 +288,7 @@ export class User {
     return this.send(calls.latest(options), this.id);
   }
 
-  /** The shape of this memory: directories, counts and its written index. */
+  /** What this memory holds: its top directories, its counts, and a short written guide. */
   overview(): Promise<Overview> {
     return this.send(calls.overview(), this.id);
   }
@@ -303,12 +308,12 @@ export class User {
     return this.send(calls.versions(itemId), this.id);
   }
 
-  /** How far each item has got: accepted, landed, read, ... */
+  /** How far each item has got: `accepted`, `landed`, `read`, `folded` or `unknown`. */
   status(ids: string[]): Promise<Record<string, string>> {
     return this.send(calls.status(ids), this.id);
   }
 
-  /** What an item became, or what a fact was read from. */
+  /** What an item became, or what a fact came from. */
   lineage(id: string): Promise<Lineage> {
     return this.send(calls.lineage(id), this.id);
   }
@@ -319,7 +324,7 @@ export class User {
    */
   #rideOut(error: unknown, what: string): void {
     if (!(this.failOpen && error instanceof TwinMemoryError && error.outage)) throw error;
-    this.log(`twin memory unavailable, ${what} for ${this.id} skipped: ${error.message}`);
+    this.log(`Alexein unavailable, ${what} for ${this.id} skipped: ${error.message}`);
   }
 }
 

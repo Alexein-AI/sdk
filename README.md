@@ -1,4 +1,4 @@
-# twin memory for JavaScript and TypeScript
+# Alexein for JavaScript and TypeScript
 
 Long-term memory for your users and agents. Add what they say; search it later in plain language.
 
@@ -7,6 +7,8 @@ npm install twinmemory
 ```
 
 Node 20 or newer (or any runtime with `fetch`). No dependencies. ESM and CommonJS, with types.
+
+The full guide is at [docs.alexein.ai](https://docs.alexein.ai/sdks/typescript).
 
 ## Quickstart
 
@@ -29,16 +31,17 @@ console.log(result.context()); // ready to paste into a prompt
 Create a key in the console under **API keys**. A key belongs to one project; each end user you name
 with `memory.user(...)` has a memory of their own inside it.
 
-| Setting     | Option        | Environment variable   | Default                      |
-| ----------- | ------------- | ---------------------- | ---------------------------- |
-| API key     | `apiKey`      | `TWIN_MEMORY_API_KEY`  | required                     |
-| Base URL    | `baseUrl`     | `TWIN_MEMORY_BASE_URL` | `https://api.twinmemory.dev` |
-| Timeout     | `timeout`     |                        | 60000 ms per attempt         |
-| Retries     | `maxRetries`  |                        | 2                            |
-| Fail open   | `failOpen`    |                        | `false`                      |
-| Integration | `integration` |                        | none                         |
+| Setting     | Option        | Environment variable   | Default                  |
+| ----------- | ------------- | ---------------------- | ------------------------ |
+| API key     | `apiKey`      | `TWIN_MEMORY_API_KEY`  | required                 |
+| Base URL    | `baseUrl`     | `TWIN_MEMORY_BASE_URL` | `https://api.alexein.ai` |
+| Timeout     | `timeout`     |                        | 60000 ms per attempt     |
+| Retries     | `maxRetries`  |                        | 2                        |
+| Fail open   | `failOpen`    |                        | `false`                  |
+| Integration | `integration` |                        | none                     |
 
-For a local stack, set `TWIN_MEMORY_BASE_URL=http://localhost:8210`.
+Run it on your server: a key in a browser bundle can be copied, and it speaks for every user of the
+project.
 
 ## Adding
 
@@ -55,19 +58,19 @@ await dana.add(
 await dana.add("Moving house on 1 December.", { kind: "note", expires: "2026-12-31" });
 ```
 
-| Item field | Meaning                                              |
-| ---------- | ---------------------------------------------------- |
-| `text`     | required                                             |
-| `kind`     | `message` (default), `note`, or `document`           |
-| `id`       | your id for it; send the same id again to replace it |
-| `session`  | groups messages into one conversation                |
-| `role`     | `user`, `assistant`, ...                             |
-| `author`   | a name, or `{ id, name, email, handle, self }`       |
-| `title`    | a document's title                                   |
-| `about`    | work it names, as `kind:name` (`project:atlas`)      |
-| `at`       | when it was said, ISO date or time                   |
-| `expires`  | when it stops being true; it is erased then          |
-| `metadata` | your own JSON                                        |
+| Item field | Meaning                                                     |
+| ---------- | ----------------------------------------------------------- |
+| `text`     | required                                                    |
+| `kind`     | `message` (default), `note`, or `document`                  |
+| `id`       | your id for it; the same id again is an edit                |
+| `session`  | groups messages into conversations: one per session per day |
+| `role`     | `user`, `assistant`, ...                                    |
+| `author`   | a name, or `{ id, name, email, handle, self }`              |
+| `title`    | a document's title                                          |
+| `about`    | work it names, as `kind:name` (`project:atlas`)             |
+| `at`       | when it was said, ISO date or time                          |
+| `expires`  | when it stops being true; it is erased then                 |
+| `metadata` | your own JSON                                               |
 
 An add is accepted at once and searchable a moment later; `wait: true` returns once it is
 searchable. Arrays longer than 500 items are sent in batches. Every add carries an
@@ -77,34 +80,36 @@ searchable. Arrays longer than 500 items are sent in batches. Every add carries 
 
 ```ts
 const result = await dana.search("What should I avoid cooking for Dana?");
-result.known; // what is true now, as lines
+result.known; // short lines: every value as stated, dated, newest first
 result.facts; // dated facts, each with the passage it came from
 result.hits; // whole passages, with their addresses
-result.held; // false when memory says it does not hold the answer
+result.held; // false when memory's own check finds it does not hold the answer
 result.context(4000);
 ```
 
-`fast: true` skips the model filter: free and quicker, a little less precise. `before` and `after`
-(ISO dates) and `scope` (a path prefix) narrow a search.
+`fast: true` skips the relevance check: free and quicker, a little less precise. `before` and
+`after` (ISO dates) and `scope` (a path prefix) narrow a search.
 
 ## Everything else
 
-| Method                                              | What it does                                             |
-| --------------------------------------------------- | -------------------------------------------------------- |
-| `memory.me()`                                       | the key's organisation, project, and whether it writes   |
-| `user.history(subject, { attribute })`              | every dated value recorded for one subject               |
-| `user.latest({ k, place, after, before })`          | the most recent passages, newest first                   |
-| `user.grep(pattern, { scope, limit })`              | every passage holding an exact phrase                    |
-| `user.read(path)` / `user.ls(path)`                 | one file, or a directory, by a path a result gave you    |
-| `user.around(passageId, { width })`                 | the passages either side of one you hold                 |
-| `user.overview()`                                   | the shape of this memory and its counts                  |
-| `user.forget({ items, sessions, threads, events })` | erase every copy, for good; returns a receipt            |
-| `user.correct(recordId, replacement?)`              | retract one fact, optionally saying what is true instead |
-| `user.versions(itemId)`                             | an item's versions, as they were sent                    |
-| `user.status(ids)`                                  | how far each item has got: accepted, landed, read, ...   |
-| `user.lineage(id)`                                  | what an item became, or what a fact was read from        |
+| Method                                              | What it does                                                                   |
+| --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `memory.me()`                                       | the key's organisation, project, and whether it writes                         |
+| `user.history(subject, { attribute })`              | every dated value recorded for one subject                                     |
+| `user.latest({ k, place, after, before })`          | the most recent passages, newest first                                         |
+| `user.grep(pattern, { scope, limit })`              | every passage holding an exact phrase                                          |
+| `user.read(path)` / `user.ls(path)`                 | one passage whole, or what is under a path                                     |
+| `user.around(passageId, { width })`                 | the passages either side of one you hold                                       |
+| `user.overview()`                                   | what this memory holds: top directories, counts and a short written guide      |
+| `user.forget({ items, sessions, threads, events })` | erase every copy, for good; returns a receipt                                  |
+| `user.correct(recordId, replacement?)`              | retract one fact, optionally saying what is true instead                       |
+| `user.versions(itemId)`                             | an item's versions, as they were sent                                          |
+| `user.status(ids)`                                  | how far each item has got: `accepted`, `landed`, `read`, `folded` or `unknown` |
+| `user.lineage(id)`                                  | what an item became, or what a fact came from                                  |
 
-Every result keeps the JSON the API sent as `.raw`.
+Typed fields are camelCase; JSON passed through as it came (`assertions`, `history`, `records`,
+`manifest`) keeps the API's names. Every result except `status()`, which is a plain map of phases,
+keeps the whole answer as `.raw`.
 
 ## Errors
 
@@ -122,8 +127,9 @@ whether it means memory is unavailable rather than that the request or key is wr
 | `APIConnectionError`      | the service couldn't be reached, after retries   |
 | `APITimeoutError`         | the service didn't answer in time, after retries |
 
-429 and 503 are retried twice, waiting as the `Retry-After` header says. Connection errors are
-retried the same way.
+429 and 503 are retried twice: after `Retry-After` seconds, or with backoff when there is none. A
+`Retry-After` over 60 seconds is not waited out; the error is thrown instead. Connection errors and
+timeouts are retried with backoff.
 
 ### Failing open
 
@@ -134,25 +140,12 @@ key or a wrong request (401, 403, 400) still throws. Pair it with a short `timeo
 cannot wait.
 
 `new Memory({ integration: "langgraph" })` adds a word to the `User-Agent`, so the console's
-request log shows where requests came from.
+request logs show where requests came from.
 
 ## LangGraph.js
 
-`npx twinmemory-cli init langgraph` writes memory into a LangGraph.js project as code you own,
-using this client; `twinmemory-cli` lives in
-[twin-memory-integrations](https://github.com/Alexein-AI/twin-memory-integrations/tree/main/packages/js).
-
-## Development
-
-```bash
-npm install
-npm run check                 # types, formatting, tests
-TWIN_MEMORY_LIVE=1 TWIN_MEMORY_API_KEY=tm_... TWIN_MEMORY_BASE_URL=http://localhost:8210 npx vitest run test/live.test.ts
-npm run build                 # dist/: ESM, CommonJS and types
-```
-
-`test/openapi-memory.json` is the API's own document, pinned; `scripts/refresh-openapi.sh` refreshes
-it from a running service, and `test/contract.test.ts` holds every method to it.
+`twinmemory-cli` (on npm soon) will write memory into a LangGraph.js project as code you own,
+using this client. See [LangGraph](https://docs.alexein.ai/integrations/langgraph).
 
 ## License
 
