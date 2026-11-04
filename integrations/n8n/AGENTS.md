@@ -14,6 +14,15 @@ Community nodes can also be submitted for approval to be used on n8n Cloud
 version. In that case there are rules that the node needs to follow in order to
 be approved
 
+## This package
+`@alexein/n8n-nodes-alexein`: one programmatic node, **Alexein** (`nodes/Alexein/`, type `alexein`), and
+one credential, **Alexein API** (`credentials/AlexeinApi.credentials.ts`, `alexeinApi`). The node calls the
+Alexein API's `/v2/memory/<route>` routes over n8n's HTTP helper, with `X-Alexein-User` naming the app user;
+the contract is `contract/openapi.json` and the shared surface and its names `docs/DESIGN.md`, both at the
+repository root. Use Alexein's public words in everything a user or a model reads: memories, facts,
+excerpts, refs, app users. How it works: `HOW-IT-WORKS.md`; testing and releasing:
+`TESTING-AND-PUBLISHING.md` and `CONTRIBUTING.md`.
+
 ## Important notes
 - Follow the **rules and guidelines in this document and the linked docs
   below** over any code examples.

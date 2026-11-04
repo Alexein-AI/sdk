@@ -1,23 +1,26 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - Unreleased
 
-- The credential's Base URL defaults to `https://api.alexein.ai`. A credential made with 0.1.0 can still hold
-  the old address: if its Base URL is anything else, set it to `https://api.alexein.ai`.
-- The End User field and its error message say what the docs do: up to 35 characters always fits.
-- The node's and credential's descriptions, error messages, links, README and template now follow Alexein's
-  documentation at https://docs.alexein.ai/integrations/n8n. The node, the credential and every field keep
-  their names, so workflows made with 0.1.0 work unchanged.
+The first release on npm, as `@alexein/n8n-nodes-alexein`, on the Alexein API's `/v2` surface. Renamed from
+`n8n-nodes-twinmemory` 0.1.0, which was never published; nothing made with it carries over.
+
+- **Names.** The node is **Alexein** (`alexein`; as an AI tool, **Alexein Tool**), the credential **Alexein
+  API** (`alexeinApi`). The **End User** field is now **App User** (`user`), and takes what the API takes: 1 to
+  35 letters, digits, `.`, `_` and `-`, beginning with a letter or digit.
+- **v2.** Every request is `POST {Base URL}/v2/memory/<route>` with `X-Alexein-User` (none on List App Users),
+  and the credential's **Test** is `GET /v2/me`. A Base URL with a trailing `/` or `/v2` means the same host.
+  Answers are the API's v2 shapes: memories, facts and excerpts, each with a ref.
+- **Operations.** Read is now **Open**, by a ref; Get Overview is **Get Summary**; Get Surrounding Passages is
+  **Get Surrounding Excerpts**, by a ref. **Correct** takes a fact's ref, **Forget** takes item IDs, sessions
+  and refs, and **Get Status** takes item IDs and answers `queued`, `stored`, `processed` or `unknown`. List and
+  Get Lineage are gone: Open shows what a fact was learned from.
+- **New operations:** List Facts, List Items, Get Item, Get Open Items, Get Sources, Export, List App Users and
+  Delete App User. The listing ones return a page, with a Cursor, or every page with **Return All**.
+- **Search, Get Latest and Find Phrase** narrow by **Provider**, **Source** and **Kind**; Search and Get Latest
+  also by **Filters** (author, mentions, metadata). Search's old Scope, and Find Phrase's, are gone.
+- **Search's `context`** is the notes, then each memory on a line (excerpts dated), as the SDKs give it.
+- **Add** sends an `Idempotency-Key` with every request, the same when Retry On Fail sends it again, so a retry
+  never saves an item twice; and has a **Redact** option. Each item answers `{ id, status, waiting }`.
+- **Errors** carry the API's `detail`; on a `422`, the description names each field.
 - The npm package holds only what n8n loads, with the README and licence.
-
-## 0.1.0 - 2026-10-23
-
-First release.
-
-- Twin Memory node, usable as an AI Agent tool: Add, Search, Get History, Get Latest, Find Phrase,
-  Read, List, Get Surrounding Passages, Get Overview, Get Versions, Get Status, Get Lineage, Forget
-  and Correct.
-- Add sends each end user's items together, up to 500 per request. Search returns a ready-to-paste
-  `context` beside the raw answer.
-- Twin Memory API credential: an API key and a base URL, tested against `GET /v1/me`.
-- Template: a Telegram assistant with long-term memory.

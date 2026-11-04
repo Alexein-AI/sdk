@@ -1,6 +1,6 @@
 # n8n with this package installed as a community node, for e2e/run.mjs. The package is the build
 # (package.json and dist/) copied to e2e/.package by run.mjs, mounted where `n8n-node dev` links it.
-name: twinmemory-n8n-e2e
+name: alexein-n8n-e2e
 
 services:
   n8n:
@@ -14,4 +14,4 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     volumes:
-      - ./.package:/home/node/.n8n/custom/node_modules/n8n-nodes-twinmemory:ro
+      - ./.package:/home/node/.n8n/custom/node_modules/@alexein/n8n-nodes-alexein:ro

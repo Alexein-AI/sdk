@@ -2,10 +2,10 @@ name: n8n
 
 on:
   pull_request:
-    paths: ["packages/n8n/**", ".github/workflows/n8n-*.yml"]
+    paths: ["integrations/n8n/**", "contract/**", ".github/workflows/n8n-*.yml"]
   push:
     branches: [main]
-    paths: ["packages/n8n/**", ".github/workflows/n8n-*.yml"]
+    paths: ["integrations/n8n/**", "contract/**", ".github/workflows/n8n-*.yml"]
 
 concurrency:
   group: n8n-${{ github.ref }}
@@ -16,7 +16,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: packages/n8n
+    working-directory: integrations/n8n
 
 jobs:
   check:
@@ -27,8 +27,9 @@ jobs:
         with:
           node-version: "lts/*"
           cache: npm
-          cache-dependency-path: packages/n8n/package-lock.json
+          cache-dependency-path: integrations/n8n/package-lock.json
       - run: npm ci
       - run: npx prettier --check nodes credentials test e2e
       - run: npm run lint
+      # Builds, then the unit tests, which also check every route and field against contract/.
       - run: npm test

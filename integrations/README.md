@@ -1,15 +1,12 @@
-# twin memory integrations
+# Integrations
 
-Integrations of [twin memory](https://twinmemory.dev) with other tools, one package per folder.
+Memory from Alexein in other tools, one package per folder. The framework modules themselves
+(`alexein.langgraph`, `@alexein/sdk/langgraph`, ...) live in the clients, in [`../python`](../python) and
+[`../typescript`](../typescript); what is here sits on top of them.
 
-| Package                        | What it is                                                     | Status |
-| ------------------------------ | -------------------------------------------------------------- | ------ |
-| [`packages/n8n`](packages/n8n) | `n8n-nodes-twinmemory`, a community node and AI tool for n8n   | 0.1.0, not yet on npm |
-| [`packages/python`](packages/python) | `twinmemory-cli` for Python: `uvx twinmemory-cli init langgraph` / `init crewai` writes memory into a LangGraph project or a CrewAI crew | 0.1.0, not yet on PyPI |
-| [`packages/js`](packages/js) | `twinmemory-cli` for JavaScript: `npx twinmemory-cli init langgraph` for LangGraph.js | 0.1.0, not yet on npm |
-| [`packages/livekit`](packages/livekit) | `twinmemory-livekit`, memory for LiveKit voice agents: recalled before each reply, every turn saved | 0.1.0, not yet on PyPI |
-
-The clients are repositories of their own: [twin-memory-python](https://github.com/Alexein-AI/twin-memory-python)
-(`twinmemory` on PyPI) and [twin-memory-js](https://github.com/Alexein-AI/twin-memory-js) (`twinmemory` on npm).
-
-MIT licensed.
+| Folder | Package | What it is |
+| --- | --- | --- |
+| [`cli-python`](cli-python) | `alexein-cli` | `uvx alexein-cli init langgraph \| crewai \| openai-agents`: wires memory into a project you have; `create` starts one; `doctor` checks it |
+| [`cli-js`](cli-js) | `@alexein/cli` | `npx @alexein/cli init langgraph \| openai-agents`, `create`, `doctor` |
+| [`livekit`](livekit) | `alexein-livekit` | Memory for LiveKit voice agents |
+| [`n8n`](n8n) | `@alexein/n8n-nodes-alexein` | An n8n community node and AI tool |

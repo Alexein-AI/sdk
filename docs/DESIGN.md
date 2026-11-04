@@ -155,9 +155,11 @@ Results:
 
 - `SearchResult(query, answerable: bool|None, notes: list[str], memories: list[Memory], sources: list|None, failed: bool)`
   with `.known`, `.facts`, `.excerpts` (the memories of that type), `.refs` (every ref, in order),
-  and `.context(max_chars=4000)` / `context(maxChars?)`: the text to paste into a prompt - notes,
-  then each memory one per line (`- ` + text, excerpts prefixed with their date when known),
-  cut at a whole memory so it never exceeds `max_chars`; "" when nothing was found.
+  and `.context(max_chars=4000)` / `context(maxChars?)`: the text to paste into a prompt, exactly:
+  each note on its own line, then one blank line (only when there are notes and memories), then
+  each memory on its own line as `- <text>`, an excerpt with a date as `- <YYYY-MM-DD>: <text>`
+  (the date's first 10 characters). Cut at a whole memory so it never exceeds `max_chars`; ""
+  when there are no memories. The n8n node writes the same text.
   `SearchResult.unavailable(query)` for fail-open.
 - `Memories(memories, pattern?, total?, places?)` for grep / latest / around, iterable.
 - `Opened(memory: Fact|Excerpt, sources: list[Excerpt])`.

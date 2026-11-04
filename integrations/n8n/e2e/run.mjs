@@ -1,13 +1,13 @@
 // End to end: real n8n (e2e/docker-compose.yml) with this package, against a running memory API.
 //
-//   TWIN_MEMORY_API_KEY=tm_... node e2e/run.mjs
+//   ALEXEIN_API_KEY=tm_... node e2e/run.mjs
 //
 // Builds the package, starts n8n, creates the owner, the credential (and runs its Test), imports a
-// workflow - Webhook -> Add -> Search -> Respond -> Forget - and calls it. Then asks the memory API
+// workflow - Webhook -> Add -> Search -> Respond -> Forget - and calls it. Then asks the Alexein API
 // itself that the item was forgotten. The search is fast and the MCP check greps, so the only
 // budget a run spends is on the facts taken from the two items it adds.
 //
-// TWIN_MEMORY_BASE_URL is the API as this machine reaches it (default http://localhost:8210);
+// ALEXEIN_API_URL is the API as this machine reaches it (default http://localhost:8210);
 // n8n, in Docker, reaches the same port on host.docker.internal.
 
 import { execSync } from 'node:child_process';
@@ -19,10 +19,22 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const N8N = `http://localhost:${process.env.N8N_PORT ?? 5679}`;
-const API = (process.env.TWIN_MEMORY_BASE_URL ?? 'http://localhost:8210').replace(/\/+$/, '');
+const API = (process.env.ALEXEIN_API_URL ?? 'http://localhost:8210').replace(/(?:\/v2)?\/*$/, '');
 const FROM_N8N = API.replace(/\/\/(localhost|127\.0\.0\.1)/, '//host.docker.internal');
-const KEY = process.env.TWIN_MEMORY_API_KEY;
-if (!KEY) throw new Error('Set TWIN_MEMORY_API_KEY to a key that writes');
+const KEY = process.env.ALEXEIN_API_KEY;
+if (!KEY) throw new Error('Set ALEXEIN_API_KEY to a key that writes');
+
+// The Alexein API itself, as the app user `user`.
+const api = (path, user, body) =>
+	fetch(`${API}/v2/memory/${path}`, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${KEY}`,
+			'X-Alexein-User': user,
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify(body),
+	});
 
 const sh = (command, cwd = root) => execSync(command, { cwd, stdio: 'inherit' });
 const step = (said) => console.log(`\n- ${said}`);
@@ -86,12 +98,12 @@ try {
 	});
 }
 const types = await n8n('/types/nodes.json');
-const node = types.find((t) => t.name.endsWith('.twinMemory'));
-const tool = types.find((t) => t.name.endsWith('.twinMemoryTool'));
+const node = types.find((t) => t.name.endsWith('.alexein'));
+const tool = types.find((t) => t.name.endsWith('.alexeinTool'));
 check(
 	node && tool,
-	'Twin Memory and its AI tool variant are loaded',
-	types.map((t) => t.name).filter((n) => /twin/i.test(n)),
+	'Alexein and its AI tool variant are loaded',
+	types.map((t) => t.name).filter((n) => /alexein/i.test(n)),
 );
 check(
 	tool.properties.some((p) => p.name === 'toolDescription'),
@@ -102,10 +114,10 @@ check(
 step('credential, and its Test');
 const data = { apiKey: KEY, baseUrl: FROM_N8N };
 const credential = (
-	await n8n('/rest/credentials', { name: 'twin memory e2e', type: 'twinMemoryApi', data })
+	await n8n('/rest/credentials', { name: 'alexein e2e', type: 'alexeinApi', data })
 ).data;
 const tested = (await n8n('/rest/credentials/test', { credentials: { ...credential, data } })).data;
-check(tested.status === 'OK', 'the credential Test passes (GET /v1/me)', tested);
+check(tested.status === 'OK', 'the credential Test passes (GET /v2/me)', tested);
 const bad = (
 	await n8n('/rest/credentials/test', {
 		credentials: { ...credential, data: { ...data, apiKey: 'tm_wrong' } },
@@ -115,11 +127,11 @@ console.log(`  a wrong key's Test: ${bad.status} ${bad.message ?? ''}`);
 
 step('workflow: Webhook -> Add -> Search -> Respond -> Forget');
 const user = `n8n-e2e-${randomUUID().slice(0, 8)}`;
-const path = `twin-e2e-${randomUUID().slice(0, 8)}`;
-const creds = { twinMemoryApi: { id: credential.id, name: credential.name } };
+const path = `alexein-e2e-${randomUUID().slice(0, 8)}`;
+const creds = { alexeinApi: { id: credential.id, name: credential.name } };
 const body = "$('Webhook').item.json.body";
 const workflow = {
-	name: 'twin memory e2e',
+	name: 'alexein e2e',
 	nodes: [
 		{
 			id: randomUUID(),
@@ -140,7 +152,7 @@ const workflow = {
 			parameters: {
 				resource: 'memory',
 				operation: 'add',
-				endUser: `={{ ${body}.user }}`,
+				user: `={{ ${body}.user }}`,
 				text: `={{ ${body}.text }}`,
 				kind: 'note',
 				wait: true,
@@ -157,7 +169,7 @@ const workflow = {
 			parameters: {
 				resource: 'memory',
 				operation: 'search',
-				endUser: `={{ ${body}.user }}`,
+				user: `={{ ${body}.user }}`,
 				query: `={{ ${body}.question }}`,
 				fast: true,
 			},
@@ -184,7 +196,7 @@ const workflow = {
 			parameters: {
 				resource: 'memory',
 				operation: 'forget',
-				endUser: `={{ ${body}.user }}`,
+				user: `={{ ${body}.user }}`,
 				items: `={{ ${body}.id }}`,
 			},
 		},
@@ -213,58 +225,41 @@ check(
 	'search found what Add saved, with a context',
 	answer,
 );
-check(answer.filtered === false, 'a fast search was not filtered', answer);
+check(answer.answerable === null, 'a fast search was not checked for relevance', answer);
 
 step('memory itself says the item was forgotten');
 let state = '';
 for (let tries = 0; tries < 20 && state !== 'forgotten'; tries++) {
 	await new Promise((resolve) => setTimeout(resolve, 500));
-	const versions = await fetch(`${API}/v1/memory/versions`, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${KEY}`,
-			'X-Twin-Account': user,
-			'content-type': 'application/json',
-		},
-		body: JSON.stringify({ id: 'tea' }),
-	});
-	state = (await versions.json()).state;
+	state = (await (await api('versions', user, { id: 'tea' })).json()).state;
 }
 check(state === 'forgotten', 'Forget erased it', { state });
 
-step("n8n's own MCP Client reaches /v1/mcp with the key and the end user as headers");
+step("n8n's own MCP Client reaches /v1/mcp with the key and the app user as headers");
 const mcpUser = `n8n-mcp-${randomUUID().slice(0, 8)}`;
-const added = await fetch(`${API}/v1/memory/add`, {
-	method: 'POST',
-	headers: {
-		Authorization: `Bearer ${KEY}`,
-		'X-Twin-Account': mcpUser,
-		'content-type': 'application/json',
-	},
-	body: JSON.stringify({
-		wait: true,
-		items: [{ id: 'tea', kind: 'note', text: 'Prefers green tea over coffee.' }],
-	}),
+const added = await api('add', mcpUser, {
+	wait: true,
+	items: [{ id: 'tea', kind: 'note', text: 'Prefers green tea over coffee.' }],
 });
 check(added.ok, 'an item added over HTTP for the MCP check', await added.json());
 const headers = (
 	await n8n('/rest/credentials', {
-		name: 'twin memory MCP e2e',
+		name: 'alexein MCP e2e',
 		type: 'httpMultipleHeadersAuth',
 		data: {
 			headers: {
 				values: [
 					{ name: 'Authorization', value: `Bearer ${KEY}` },
-					{ name: 'X-Twin-Account', value: mcpUser },
+					{ name: 'X-Alexein-User', value: mcpUser },
 				],
 			},
 		},
 	})
 ).data;
-const mcpPath = `twin-mcp-${randomUUID().slice(0, 8)}`;
+const mcpPath = `alexein-mcp-${randomUUID().slice(0, 8)}`;
 const mcpFlow = (
 	await n8n('/rest/workflows', {
-		name: 'twin memory MCP e2e',
+		name: 'alexein MCP e2e',
 		nodes: [
 			{
 				id: randomUUID(),
@@ -301,7 +296,7 @@ await n8n(`/rest/workflows/${mcpFlow.id}/activate`, { versionId: mcpFlow.version
 const viaMcp = await hook(mcpPath, {});
 check(
 	JSON.stringify(viaMcp).includes('green tea'),
-	"memory_grep over MCP finds this end user's item",
+	"memory_grep over MCP finds this app user's item",
 	viaMcp,
 );
 
@@ -309,9 +304,9 @@ step('the Telegram template imports, and every node in it is one n8n knows');
 const template = JSON.parse(
 	readFileSync(join(root, 'templates', 'telegram-assistant-memory.json'), 'utf8'),
 );
-// Installed from npm the node is n8n-nodes-twinmemory.*; mounted here, n8n names it CUSTOM.*.
+// Installed from npm the node is @alexein/n8n-nodes-alexein.*; mounted here, n8n names it CUSTOM.*.
 const local = JSON.parse(
-	JSON.stringify(template).replaceAll('n8n-nodes-twinmemory.', `${node.name.split('.')[0]}.`),
+	JSON.stringify(template).replaceAll('@alexein/n8n-nodes-alexein.', `${node.name.split('.')[0]}.`),
 );
 const imported = (await n8n('/rest/workflows', local)).data;
 const known = new Set(types.flatMap((t) => [t.version].flat().map((v) => `${t.name}@${v}`)));

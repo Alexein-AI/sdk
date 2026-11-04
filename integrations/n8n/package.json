@@ -1,12 +1,13 @@
 {
-	"name": "n8n-nodes-twinmemory",
-	"version": "0.1.0",
+	"name": "@alexein/n8n-nodes-alexein",
+	"version": "0.3.0",
 	"description": "n8n node for Alexein: long-term memory for your users and AI agents.",
 	"license": "MIT",
 	"homepage": "https://docs.alexein.ai/integrations/n8n",
 	"keywords": [
 		"n8n-community-node-package",
 		"n8n",
+		"alexein",
 		"memory",
 		"ai-agent",
 		"llm"
@@ -17,8 +18,8 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Alexein-AI/twin-memory-integrations.git",
-		"directory": "packages/n8n"
+		"url": "https://github.com/Alexein-AI/sdk.git",
+		"directory": "integrations/n8n"
 	},
 	"scripts": {
 		"build": "n8n-node build",
@@ -35,14 +36,17 @@
 		"!dist/**/*.map",
 		"!dist/package.json"
 	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"n8n": {
 		"n8nNodesApiVersion": 1,
 		"strict": true,
 		"credentials": [
-			"dist/credentials/TwinMemoryApi.credentials.js"
+			"dist/credentials/AlexeinApi.credentials.js"
 		],
 		"nodes": [
-			"dist/nodes/TwinMemory/TwinMemory.node.js"
+			"dist/nodes/Alexein/Alexein.node.js"
 		]
 	},
 	"devDependencies": {

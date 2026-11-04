@@ -1,7 +1,7 @@
-# n8n-nodes-twinmemory
+# @alexein/n8n-nodes-alexein
 
 An [n8n](https://n8n.io) community node for [Alexein](https://alexein.ai): long-term memory for your users and
-AI agents. Add what people say; search it later in plain words. Each end user has a memory of their own.
+AI agents. Add what people say; search it later in plain words. Each app user has a memory of their own.
 
 Documentation: [docs.alexein.ai/integrations/n8n](https://docs.alexein.ai/integrations/n8n).
 
@@ -11,72 +11,90 @@ Documentation: [docs.alexein.ai/integrations/n8n](https://docs.alexein.ai/integr
 
 ## Installation
 
-In n8n, open **Settings > Community Nodes > Install**, enter `n8n-nodes-twinmemory`, and install. See n8n's
+In n8n, open **Settings > Community Nodes > Install**, enter `@alexein/n8n-nodes-alexein`, and install. See n8n's
 [community node installation guide](https://docs.n8n.io/integrations/community-nodes/installation/).
 
 On n8n Cloud, the node appears once n8n has verified it.
 
 ## Credential
 
-Create a **Twin Memory API** credential:
+Create an **Alexein API** credential:
 
-| Field    | Value                                                                                                                      |
-| -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| API Key  | a key from the Alexein console, under **API keys** (`tm_...`). Use one that writes to add, forget, correct or get versions |
-| Base URL | `https://api.alexein.ai`                                                                                                   |
+| Field    | Value                                                                                                                              |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| API Key  | a key from the Alexein console, under **API keys** (`tm_...`). Use one that writes to add, forget, correct, get versions or delete |
+| Base URL | `https://api.alexein.ai`. The node adds `/v2` itself; a trailing `/` or `/v2` is ignored                                           |
 
-**Test** checks the key against `GET /v1/me`. A credential made with version 0.1.0 can still hold an older
-address: set its **Base URL** to `https://api.alexein.ai`.
+**Test** checks the key against `GET /v2/me`.
 
 ## Operations
 
-Every operation has an **End User** field: your ID for the person whose memory it is, usually an expression
-from the trigger, such as `{{ $json.message.from.id }}`. Each end user's memory is kept apart. See
-[End users](https://docs.alexein.ai/concepts/end-users).
+Every operation but **List App Users** has an **App User** field: your ID for the person whose memory it is,
+usually an expression from the trigger, such as `{{ $json.message.from.id }}`. Each app user's memory is kept
+apart. See [App users](https://docs.alexein.ai/concepts/app-users).
 
-| Operation                | What it does                                                              |
-| ------------------------ | ------------------------------------------------------------------------- |
-| Add                      | Remember a message, note or document                                      |
-| Search                   | What memory holds for a question, with a ready-to-paste `context`         |
-| Get History              | Every dated value recorded for one subject                                |
-| Get Latest               | The newest passages, or every passage between two dates                   |
-| Find Phrase              | Every passage holding an exact phrase                                     |
-| Read / List              | One passage whole, or what is under a path, by a path another result gave |
-| Get Surrounding Passages | The passages either side of one passage                                   |
-| Get Overview             | The shape of this end user's memory and its counts                        |
-| Get Versions             | An added item's versions, and when and why it went                        |
-| Get Status               | How far each added item has got: accepted, landed, read or folded         |
-| Get Lineage              | What an item became, or what a fact came from                             |
-| Forget                   | Erase items, sessions, threads or events, with a receipt                  |
-| Correct                  | Retract one fact, optionally saying what is true instead                  |
+| Operation                | What it does                                                                  | Route          |
+| ------------------------ | ----------------------------------------------------------------------------- | -------------- |
+| Add                      | Save a message, note or document                                              | `add`          |
+| Search                   | What memory holds for a question, with a ready-to-paste `context`             | `search`       |
+| Open                     | One memory whole, by its ref: an excerpt in full, or a fact with its excerpts | `open`         |
+| Find Phrase              | Excerpts holding an exact phrase                                              | `grep`         |
+| Get Latest               | The most recent excerpts, or every excerpt between two dates                  | `latest`       |
+| Get Surrounding Excerpts | The excerpts just before and after one, by its ref                            | `around`       |
+| Get History              | Every value a subject was stated to have, and since when                      | `history`      |
+| Get Summary              | What this memory holds, in brief                                              | `summary`      |
+| List Facts               | The facts memory learned, newest first                                        | `facts`        |
+| Get Open Items           | Issues and pull requests still open, and follow-ups nobody answered           | `open_items`   |
+| Get Sources              | What each connected app delivered                                             | `sources`      |
+| List Items               | The items added, newest first, as they were given                             | `items`        |
+| Get Item                 | One added item by its ID                                                      | `item`         |
+| Get Status               | How far each added item has got: queued, stored, processed or unknown         | `status`       |
+| Get Versions             | An added item's versions, and when and why each went                          | `versions`     |
+| Forget                   | Erase items, sessions, or memories by ref, with a receipt                     | `forget`       |
+| Correct                  | Retract one fact by its ref, optionally saying what is true instead           | `correct`      |
+| Export                   | Everything memory holds for this app user                                     | `export`       |
+| List App Users           | Every app user of the key's project with memory, and their counts             | `users`        |
+| Delete App User          | Erase this app user's whole memory. Not undone                                | `users/delete` |
+
+Every request is `POST https://api.alexein.ai/v2/memory/<route>`. See the
+[API reference](https://docs.alexein.ai/api) for what each takes and answers.
 
 **Add** takes the text, a kind (message, note or document), and optional fields: item ID (the same ID again
 is an edit of that item), session, role, author, title, about, when, expires and metadata. Input items for
-the same end user are sent together, up to 500 per request, and each comes back as its own output item. Turn
-on **Wait Until Searchable** to wait up to 10 seconds until they can be found; `pending` counts any not yet
-searchable.
+the same app user are sent together, up to 500 per request, each request with an `Idempotency-Key`, and each
+item comes back as its own output item: `{ id, status, waiting }`. Turn on **Wait Until Searchable** to wait,
+briefly, until they can be found; **Redact** replaces phone numbers, card numbers, keys and the like before
+memory keeps any copy.
 
-**Search** returns `context` (known lines, then worked-out lines, then dated facts, then passages, up to 4,000
-characters, which you can change) beside the full answer: `known`, `worked_out`, `facts`, `hits`, `held` and
-`filtered`. **Fast** skips the relevance check: free and quicker, a little less precise.
+**Search** returns `context`, ready to paste into a prompt (the notes, then the memories in order: known lines,
+facts and excerpts, up to 4,000 characters, which you can change), beside the full answer: `query`,
+`answerable`, `notes` and `memories`. Each fact and excerpt has a `ref` for **Open**, **Get Surrounding
+Excerpts**, **Correct** and **Forget**. **Fast** skips the relevance check: free and quicker, a little less
+precise. **After**, **Before**, **Filters**, **Provider**, **Source** and **Kind** narrow a search; **Get
+Latest** takes the same, and **Find Phrase** takes Provider, Source and Kind.
+
+**List Facts**, **List Items**, **Export** and **List App Users** return one page, with `next` for the
+**Cursor** of the page after; turn on **Return All** to get every page as one output item.
 
 Every other operation returns the API's answer as one item. Errors carry the API's own message. A `429` means
 too many requests in flight, or reads too fast; a `503`, that the service is busy or briefly unavailable. For
-either, turn on **Retry On Fail** in the node's settings.
+either, turn on **Retry On Fail** in the node's settings: a retried Add sends the same `Idempotency-Key`, so it
+never saves an item twice.
 
 ### Example: remember a form submission, then answer from memory
 
 1. **Webhook** receives `{ "user": "user_42", "text": "I just moved to Lisbon." }`.
-2. **Twin Memory: Add** with End User `{{ $json.body.user }}` and Text `{{ $json.body.text }}`.
-3. Later, **Twin Memory: Search** with the same End User and Query `Where does this person live?`. Its
-   `context` goes straight into a prompt.
+2. **Alexein: Add** with App User `{{ $json.body.user }}` and Text `{{ $json.body.text }}`.
+3. Later, **Alexein: Search** with the same App User and Query `Where does this person live?`. Its `context`
+   goes straight into a prompt.
 
 ## As an AI Agent tool
 
-The node is usable as a tool: in an **AI Agent**, add a tool and choose **Twin Memory Tool**. Give the agent
-two: one with **Search**, one with **Add**.
+The node is usable as a tool: in an **AI Agent**, add a tool and choose **Alexein Tool**. Give the agent two:
+one with **Search**, one with **Add**. **Open** is a good third, so the agent can read a memory a search
+pointed to, by its ref.
 
-- **End User:** set it from the trigger, such as `{{ $('Telegram Trigger').item.json.message.from.id }}`, and
+- **App User:** set it from the trigger, such as `{{ $('Telegram Trigger').item.json.message.from.id }}`, and
   never leave it to the model, so a model can't reach another person's memory.
 - **Query and Text:** let the model fill them with `$fromAI()`, for example
   `{{ $fromAI('query', 'A plain-words question about this person', 'string') }}`.
@@ -97,18 +115,18 @@ two: one with **Search**, one with **Add**.
 [A Telegram assistant with long-term memory](https://docs.alexein.ai/templates/n8n-telegram-assistant-memory.json):
 a Telegram bot that remembers what each person tells it. Simple Memory keeps the last few messages; Alexein keeps
 everything else, per Telegram user. Import it with **Workflows > Import from File**, then add your Telegram,
-OpenAI and Twin Memory API credentials.
+OpenAI and Alexein API credentials.
 
 ## MCP instead
 
 n8n's own **MCP Client Tool** can reach Alexein's hosted MCP server, `https://api.alexein.ai/v1/mcp`, with
 **HTTP Streamable** transport. Either:
 
-- **Multiple Headers Auth**, with `Authorization: Bearer tm_...` and `X-Twin-Account: <end user>`: one end
+- **Multiple Headers Auth**, with `Authorization: Bearer tm_...` and `X-Alexein-User: <app user>`: one app
   user per credential.
-- **MCP OAuth2**: sign in to Alexein and choose the end user.
+- **MCP OAuth2**: sign in to Alexein. This reaches your own personal memory, never an app user.
 
-Use this node when the end user changes per item, and MCP for one person's agent.
+Use this node when the app user changes per item, and MCP for one person's agent.
 
 ## Compatibility
 

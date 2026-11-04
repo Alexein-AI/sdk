@@ -1,5 +1,5 @@
 {
-	"node": "n8n-nodes-twinmemory.twinMemory",
+	"node": "@alexein/n8n-nodes-alexein.alexein",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Data & Storage", "Development"],
