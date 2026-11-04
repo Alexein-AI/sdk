@@ -118,10 +118,18 @@ def test_every_item_and_author_field_is_one_the_api_takes():
     assert set(item["author"]) <= set(SCHEMAS["Author"]["properties"])
 
 
+# Documented, and left out of the client on purpose. `events/lookup` (2026-11-04) is the console's:
+# it takes the ingestion service's own event ids, which a customer never holds, and answers in a
+# shape no other route has (`phase`, `queueComplete`, `occurredAt`). The TypeScript client leaves
+# out the same routes (`test/contract.test.ts`).
+NOT_OFFERED = {("post", "/memory/events/lookup")}
+
+
 def test_every_route_in_the_document_has_a_method():
     reached = {(r.method.lower(), r.url.path.removeprefix(PREFIX)) for r in every_request()}
     documented = {(m, p) for p, spec in DOCUMENT["paths"].items() for m in spec}
-    assert documented == reached, documented ^ reached
+    assert documented - NOT_OFFERED == reached, (documented - NOT_OFFERED) ^ reached
+    assert documented >= NOT_OFFERED, "a route left out is no longer documented: drop it here"
 
 
 def test_the_document_is_the_version_this_client_speaks():

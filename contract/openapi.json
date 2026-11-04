@@ -1225,6 +1225,130 @@
     ]
    }
   },
+  "/memory/events/lookup": {
+   "post": {
+    "summary": "Events Lookup",
+    "description": "For the event ids of a connected app's syncs, whether this memory has each: `queued`,\n`stored` with its title, kind and `occurredAt`, or `unknown`; and `queueComplete`, false\nwhen the queue was not read whole, so an `unknown` may still be on its way. Free.",
+    "operationId": "memory_events_lookup",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Lookup"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Events Lookup Memory Events Lookup Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
   "/memory/items": {
    "post": {
     "summary": "Items",
@@ -3237,6 +3361,25 @@
     },
     "type": "object",
     "title": "Latest"
+   },
+   "Lookup": {
+    "properties": {
+     "ids": {
+      "items": {
+       "type": "string",
+       "maxLength": 512
+      },
+      "type": "array",
+      "maxItems": 500,
+      "minItems": 1,
+      "title": "Ids"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ids"
+    ],
+    "title": "Lookup"
    },
    "OpenItems": {
     "properties": {

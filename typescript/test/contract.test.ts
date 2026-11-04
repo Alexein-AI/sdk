@@ -117,6 +117,12 @@ function operation(request: Sent): Operation {
   return found!;
 }
 
+// Documented, and left out of the client on purpose. `events/lookup` (2026-11-04) is the console's:
+// it takes the ingestion service's own event ids, which a customer never holds, and answers in a
+// shape no other route has (`phase`, `queueComplete`, `occurredAt`). The Python client leaves out
+// the same routes (`tests/test_contract.py`).
+const NOT_OFFERED = new Set(["post /memory/events/lookup"]);
+
 describe("the API's contract", () => {
   it("names the API's version the client says it is", async () => {
     const { VERSION } = await import("../src/index.js");
@@ -183,6 +189,7 @@ describe("the API's contract", () => {
     const documented = Object.entries(PATHS).flatMap(([path, ops]) =>
       Object.keys(ops).map((method) => `${method} ${path}`),
     );
-    expect([...reached].sort()).toEqual([...documented].sort());
+    for (const route of NOT_OFFERED) expect(documented).toContain(route);
+    expect([...reached].sort()).toEqual(documented.filter((r) => !NOT_OFFERED.has(r)).sort());
   });
 });
