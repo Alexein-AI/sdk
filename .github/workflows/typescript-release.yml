@@ -1,6 +1,8 @@
-# Publishes @alexein/sdk to npm when a tag like typescript-v0.3.0 is pushed, with provenance. Needs
-# an NPM_TOKEN secret (an automation token for the @alexein scope) and the `npm` environment. A
-# manual run (workflow_dispatch) checks and packs, and publishes nothing.
+# Publishes @alexein/sdk to npm when a tag like typescript-v0.3.0 is pushed, with provenance,
+# through npm's trusted publisher (npm package settings, repository Alexein-AI/sdk, workflow
+# typescript-release.yml, environment npm). That needs npm 11.5.1 or later: Node 22's npm 10 has no
+# token to log in with (typescript-v0.3.1's first run). A manual run (workflow_dispatch) checks and
+# packs, and publishes nothing.
 name: typescript-release
 
 on:
@@ -26,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "lts/*"
           registry-url: "https://registry.npmjs.org"
           cache: npm
           cache-dependency-path: typescript/package-lock.json
@@ -39,5 +41,3 @@ jobs:
       - run: npm pack --dry-run
       - if: github.event_name == 'push'
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

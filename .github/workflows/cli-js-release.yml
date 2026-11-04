@@ -1,6 +1,6 @@
 # Publishes @alexein/cli (integrations/cli-js/) to npm when a tag like cli-js-v0.3.0 is pushed, with
-# provenance. Needs an NPM_TOKEN secret on the `npm` environment for the first publish (then a
-# trusted publisher: npm package settings, repository Alexein-AI/sdk, workflow cli-js-release.yml).
+# provenance, through npm's trusted publisher (npm package settings, repository Alexein-AI/sdk,
+# workflow cli-js-release.yml, environment npm). That needs npm 11.5.1 or later, hence lts/*.
 # Release @alexein/sdk (typescript-v*) first and depend on it by version: `prepublishOnly` refuses a
 # `file:` dependency. A manual run (workflow_dispatch) checks and packs, and publishes nothing.
 name: cli-js-release
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "lts/*"
           registry-url: "https://registry.npmjs.org"
           cache: npm
           cache-dependency-path: integrations/cli-js/package-lock.json
@@ -55,5 +55,3 @@ jobs:
       - run: npm pack --dry-run
       - if: github.event_name == 'push'
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
