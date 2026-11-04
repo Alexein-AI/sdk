@@ -1,117 +1,167 @@
-"""What a failed response becomes, and which ones are tried again."""
+"""Retries, and the error each failure becomes."""
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import httpx
 import pytest
-from conftest import async_memory, memory, ok
+from conftest import memory, ok
 
-from twinmemory import (
+from alexein import (
+    AlexeinError,
     APIConnectionError,
     APITimeoutError,
     AuthenticationError,
+    FieldError,
     InvalidRequestError,
     NotFoundError,
     PermissionDeniedError,
     RateLimitError,
     ServiceUnavailableError,
-    TwinMemoryError,
 )
 
 
-@pytest.mark.parametrize(
-    ("status", "kind"),
-    [
-        (400, InvalidRequestError),
-        (401, AuthenticationError),
-        (403, PermissionDeniedError),
-        (404, NotFoundError),
-        (413, InvalidRequestError),
-        (500, TwinMemoryError),
-    ],
-)
-def test_each_status_is_its_own_error_with_the_apis_detail(status, kind):
-    client, sent = memory(lambda _: ok({"detail": "said why"}, status, **{"X-Request-Id": "r1"}))
-    with pytest.raises(kind) as raised:
-        client.user("dana").search("x")
-    assert type(raised.value) is kind
-    assert raised.value.status == status and raised.value.detail == "said why"
-    assert raised.value.request_id == "r1" and "said why" in str(raised.value)
-    assert len(sent.requests) == 1, "not retried"
+def then(*responses: httpx.Response | Exception):
+    """Answers in order, the last one for good."""
+    queue: Iterator[httpx.Response | Exception] = iter(responses)
+    last: list[httpx.Response | Exception] = [responses[-1]]
+
+    def next_answer(request: httpx.Request) -> httpx.Response:
+        given = next(queue, last[0])
+        if isinstance(given, Exception):
+            raise given
+        return given
+
+    return next_answer
 
 
-def test_a_validation_error_says_which_field():
-    detail = [{"loc": ["body", "query"], "msg": "Field required", "type": "missing"}]
-    client, _ = memory(lambda _: ok({"detail": detail}, 422))
-    with pytest.raises(InvalidRequestError, match=r"body\.query: Field required"):
-        client.user("dana").search("x")
+@pytest.mark.parametrize("status", [429, 503])
+def test_429_and_503_are_retried_with_backoff(status: int, no_waiting: list[float]):
+    client, recorded = memory(then(ok({"detail": "busy"}, status), ok({"facts": []})))
+    assert client.user("dana").facts().facts == []
+    assert len(recorded.requests) == 2
+    (pause,) = no_waiting
+    assert 0.375 <= pause <= 0.625
 
 
-def test_a_429_waits_as_retry_after_says_then_succeeds(no_waiting):
-    answers = iter([ok({"detail": "slow"}, 429, **{"Retry-After": "1"}), ok({"hits": []})])
-    client, sent = memory(lambda _: next(answers))
-    client.user("dana").search("x")
-    assert len(sent.requests) == 2 and no_waiting == [1.0]
-
-
-def test_a_503_is_tried_three_times_in_all_then_raised(no_waiting):
-    client, sent = memory(lambda _: ok({"detail": "rebuilding"}, 503))
-    with pytest.raises(ServiceUnavailableError):
-        client.user("dana").search("x")
-    assert len(sent.requests) == 3
+def test_backoff_doubles_with_jitter(no_waiting: list[float]):
+    client, recorded = memory(then(ok({}, 503), ok({}, 503), ok({"facts": []})))
+    client.user("dana").facts()
+    assert len(recorded.requests) == 3
     assert 0.375 <= no_waiting[0] <= 0.625 and 0.75 <= no_waiting[1] <= 1.25
 
 
-def test_a_retry_after_too_long_to_wait_is_raised_at_once(no_waiting):
-    client, sent = memory(lambda _: ok({"detail": "later"}, 429, **{"Retry-After": "600"}))
-    with pytest.raises(RateLimitError):
-        client.user("dana").search("x")
-    assert len(sent.requests) == 1 and not no_waiting
+def test_retry_after_is_waited(no_waiting: list[float]):
+    client, _ = memory(then(ok({"detail": "slow down"}, 429, **{"Retry-After": "7"}), ok({})))
+    client.user("dana").summary()
+    assert no_waiting == [7.0]
 
 
-def test_max_retries_zero_never_retries():
-    client, sent = memory(lambda _: ok({"detail": "busy"}, 503), max_retries=0)
+def test_a_retry_after_past_a_minute_raises_at_once(no_waiting: list[float]):
+    client, recorded = memory(then(ok({"detail": "later"}, 503, **{"Retry-After": "120"})))
     with pytest.raises(ServiceUnavailableError):
-        client.user("dana").search("x")
-    assert len(sent.requests) == 1
+        client.user("dana").summary()
+    assert len(recorded.requests) == 1 and no_waiting == []
 
 
-def test_an_unreachable_service_is_retried_then_a_connection_error():
-    def refuse(request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("refused", request=request)
-
-    client, sent = memory(refuse)
-    with pytest.raises(APIConnectionError, match="could not be reached"):
-        client.user("dana").search("x")
-    assert len(sent.requests) == 3
+def test_retries_stop_at_max_retries(no_waiting: list[float]):
+    client, recorded = memory(lambda r: ok({"detail": "busy"}, 429), max_retries=3)
+    with pytest.raises(RateLimitError) as raised:
+        client.user("dana").summary()
+    assert len(recorded.requests) == 4 and len(no_waiting) == 3
+    assert raised.value.outage and raised.value.status == 429
 
 
-def test_a_timeout_is_its_own_error():
-    def slow(request: httpx.Request) -> httpx.Response:
-        raise httpx.ReadTimeout("slow", request=request)
-
-    client, _ = memory(slow)
-    with pytest.raises(APITimeoutError):
-        client.user("dana").search("x")
-
-
-def test_a_retried_add_resends_the_same_idempotency_key():
-    answers = iter([ok({"detail": "busy"}, 503), ok({"items": [], "queued": 0, "pending": 0})])
-    client, sent = memory(lambda _: next(answers))
-    client.user("dana").add("Prefers green tea.")
-    first, second = (r.headers["Idempotency-Key"] for r in sent.requests)
-    assert first == second
-
-
-def test_a_body_that_is_not_json_still_says_what_came_back():
-    client, _ = memory(lambda _: httpx.Response(502, text="Bad Gateway"))
-    with pytest.raises(TwinMemoryError, match="502: Bad Gateway"):
-        client.user("dana").search("x")
-
-
-@pytest.mark.anyio
-async def test_the_async_client_retries_and_raises_the_same_way(no_waiting):
-    client, sent = async_memory(lambda _: ok({"detail": "rebuilding"}, 503))
+def test_no_retries_with_max_retries_zero():
+    client, recorded = memory(lambda r: ok({}, 503), max_retries=0)
     with pytest.raises(ServiceUnavailableError):
-        await client.user("dana").search("x")
-    assert len(sent.requests) == 3 and len(no_waiting) == 2
+        client.user("dana").summary()
+    assert len(recorded.requests) == 1
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 413, 422, 500, 502])
+def test_nothing_else_is_retried(status: int):
+    client, recorded = memory(lambda r: ok({"detail": "no"}, status))
+    with pytest.raises(AlexeinError):
+        client.user("dana").summary()
+    assert len(recorded.requests) == 1
+
+
+def test_connection_failures_are_retried_then_raised(no_waiting: list[float]):
+    client, recorded = memory(then(httpx.ConnectError("refused")))
+    with pytest.raises(APIConnectionError) as raised:
+        client.user("dana").summary()
+    assert len(recorded.requests) == 3
+    assert raised.value.status is None and raised.value.outage
+    assert not isinstance(raised.value, APITimeoutError)
+
+
+def test_a_timeout_is_a_connection_error_too():
+    client, _ = memory(then(httpx.ReadTimeout("slow")))
+    with pytest.raises(APITimeoutError) as raised:
+        client.user("dana").summary()
+    assert isinstance(raised.value, APIConnectionError) and raised.value.outage
+
+
+def test_a_connection_failure_then_an_answer_is_an_answer():
+    client, _ = memory(then(httpx.ConnectError("refused"), ok({"facts": [], "next": None})))
+    assert client.user("dana").facts().next is None
+
+
+@pytest.mark.parametrize(
+    ("status", "kind", "outage"),
+    [
+        (400, InvalidRequestError, False),
+        (401, AuthenticationError, False),
+        (403, PermissionDeniedError, False),
+        (404, NotFoundError, False),
+        (409, InvalidRequestError, False),
+        (413, InvalidRequestError, False),
+        (422, InvalidRequestError, False),
+        (429, RateLimitError, True),
+        (500, ServiceUnavailableError, True),
+        (502, ServiceUnavailableError, True),
+        (503, ServiceUnavailableError, True),
+    ],
+)
+def test_each_status_is_its_error(status: int, kind: type[AlexeinError], outage: bool):
+    said = "no memory for app user 'dana' yet"
+    response = ok({"detail": said}, status, **{"X-Request-Id": "req_1"})
+    client, _ = memory(lambda r: response, max_retries=0)
+    with pytest.raises(kind) as raised:
+        client.user("dana").summary()
+    error = raised.value
+    assert type(error) is kind and isinstance(error, AlexeinError)
+    assert (error.status, error.detail, error.request_id) == (status, said, "req_1")
+    assert error.errors == [] and error.outage is outage
+    assert str(error) == f"{status}: {said}"
+
+
+def test_a_422_names_each_field():
+    body = {
+        "detail": "`items[0].text` must not be empty. See https://docs.alexein.ai/api/add for "
+        "what this route takes.",
+        "errors": [{"field": "items[0].text", "message": "`items[0].text` must not be empty"}],
+    }
+    client, _ = memory(lambda r: ok(body, 422))
+    with pytest.raises(InvalidRequestError) as raised:
+        client.user("dana").add({"text": "x"})
+    assert raised.value.errors == [FieldError("items[0].text", "`items[0].text` must not be empty")]
+    assert raised.value.detail == body["detail"]
+
+
+def test_a_validation_list_in_fastapis_own_shape_is_read_too():
+    body = {"detail": [{"loc": ["body", "query"], "msg": "Field required", "type": "missing"}]}
+    client, _ = memory(lambda r: ok(body, 422))
+    with pytest.raises(InvalidRequestError) as raised:
+        client.user("dana").search("x")
+    assert raised.value.errors == [FieldError("query", "Field required")]
+    assert raised.value.detail == "query: Field required"
+
+
+def test_a_body_that_is_not_json_is_still_an_error():
+    client, _ = memory(lambda r: httpx.Response(502, text="Bad gateway"), max_retries=0)
+    with pytest.raises(ServiceUnavailableError) as raised:
+        client.user("dana").summary()
+    assert raised.value.detail == "Bad gateway"

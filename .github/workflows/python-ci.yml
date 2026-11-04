@@ -1,26 +1,41 @@
-name: ci
+# alexein for Python (python/). Checked against the pinned API contract (contract/), so a change
+# to either runs it.
+name: python
 
 on:
+  pull_request:
+    paths: ["python/**", "contract/**", ".github/workflows/python-*.yml"]
   push:
     branches: [main]
-  pull_request:
+    paths: ["python/**", "contract/**", ".github/workflows/python-*.yml"]
+
+concurrency:
+  group: python-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
+defaults:
+  run:
+    working-directory: python
+
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python: ["3.10", "3.11", "3.12", "3.13"]
+        # CrewAI and the OpenAI Agents SDK need different majors of openai: one run with each.
+        group: ["crewai", "openai-agents"]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
-      - run: uv sync --locked
-      - run: uv run ruff format --check .
-      - run: uv run ruff check .
-      - run: uv run pyright
-      - run: uv run pytest -q
+      - run: uv sync --locked --no-default-groups --group dev --group ${{ matrix.group }}
+      - run: uv run --no-sync ruff format --check .
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync pyright
+      - run: uv run --no-sync pytest -q
