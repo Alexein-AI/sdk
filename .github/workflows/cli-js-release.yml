@@ -35,8 +35,20 @@ jobs:
       - name: the tag is the package's version
         if: github.event_name == 'push'
         run: test "cli-js-v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      # Both: package.json asks for a version, and the lockfile - which `npm ci` follows exactly -
+      # resolves it from the registry. `npm install` after changing package.json keeps a lock entry
+      # that still satisfies the range, so the folder could stay pinned (cli-js-v0.3.0's first run).
       - name: '@alexein/sdk comes from npm, by version'
-        run: node -e "if (/^file:/.test(require('./package.json').dependencies['@alexein/sdk'])) { console.error('depend on @alexein/sdk by version before releasing'); process.exit(1) }"
+        run: |
+          node -e "
+            const dep = require('./package.json').dependencies['@alexein/sdk'];
+            const lock = require('./package-lock.json').packages['node_modules/@alexein/sdk'] ?? {};
+            const fromNpm = String(lock.resolved ?? '').startsWith('https://registry.npmjs.org/');
+            if (/^file:/.test(dep) || !fromNpm) {
+              console.error('@alexein/sdk: package.json says ' + dep + ', the lockfile resolves ' + lock.resolved);
+              console.error('in integrations/cli-js: npm uninstall @alexein/sdk && npm install --install-links=false @alexein/sdk@^<version>');
+              process.exit(1);
+            }"
       - run: npm ci
       - run: npm run check
       - run: npm run build

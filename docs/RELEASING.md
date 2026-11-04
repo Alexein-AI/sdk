@@ -248,9 +248,15 @@ registries. Do it on a day you can watch the whole thing (about an hour).
 
       ```bash
       cd integrations/cli-js
-      npm pkg set "dependencies.@alexein/sdk=^0.3.0" && npm install && npm run check
+      npm uninstall @alexein/sdk && npm install --install-links=false "@alexein/sdk@^0.3.0"
+      grep -A2 '"node_modules/@alexein/sdk"' package-lock.json   # "resolved": "https://registry.npmjs.org/..."
+      npm run check
       cd ../.. && git commit -am "@alexein/cli depends on @alexein/sdk 0.3 from npm" && git push
       ```
+
+      Uninstall first: a plain `npm install` after changing the range keeps the lockfile's entry for the folder
+      (it still satisfies `^0.3.0`), and the release - which installs from the lockfile with `npm ci` - then
+      finds no built client. The release checks the lockfile and stops if it still points at the folder.
 
       (The Python packages need nothing: their path to `../../python` is a development setting of uv, and
       the published wheel already asks for `alexein>=0.3`.)
@@ -322,7 +328,7 @@ registries. Do it on a day you can watch the whole thing (about an hour).
       the client beside it:
 
       ```bash
-      cd integrations/cli-js && npm pkg set "dependencies.@alexein/sdk=file:../../typescript" && npm install
+      cd integrations/cli-js && npm uninstall @alexein/sdk && npm install ../../typescript
       cd ../.. && git commit -am "@alexein/cli develops against ../../typescript again" && git push
       ```
 
