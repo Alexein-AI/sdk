@@ -61,6 +61,11 @@ for dir in python integrations/cli-python integrations/livekit; do
   (cd "$repo/$dir" && rm -rf dist && uv build -q && py_publish dist/*)
 done
 
+# uvx, uv and npx keep what they fetched by version, and a version published again is the same
+# version: forget ours, so the next rehearsal (or env.sh terminal) takes what was just published.
+UV_CACHE_DIR="$here/.cache/uv" uv cache clean alexein alexein-cli alexein-livekit >/dev/null 2>&1 || true
+rm -rf "$here/.cache/uv-tools" "$here/.cache/npm/_npx"
+
 say "published"
 for name in @alexein/sdk @alexein/cli; do
   printf '  npm   %-16s %s\n' "$name" "$(curl -sf "${npm_registry}${name/\//%2F}" | python3 -c 'import sys,json;print(json.load(sys.stdin)["dist-tags"]["latest"])')"
