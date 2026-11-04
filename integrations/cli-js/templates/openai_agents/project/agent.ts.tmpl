@@ -1,16 +1,16 @@
 /**
  * The agent: a model that remembers the people it talks to.
  *
- * Made by `twinmemory-cli create openai-agents`. Memory comes from `memory.ts`, beside it:
+ * Made by `npx @alexein/cli create openai-agents`. Memory comes from `memory.ts`, beside it:
 // >>> nodes
- * `recall` looks up what memory holds before the model answers, and `remember` saves the
- * turn after it.
+ * `memory.recall` looks up what memory holds before the model answers, and
+ * `memory.remember` saves the turn after it.
 // <<< nodes
 // >>> both
- * The model can also search memory itself, with `MEMORY_TOOLS`.
+ * The model can also search memory itself, with `memory.tools()`.
 // <<< both
 // >>> tools_only
- * The model searches memory and saves to it itself, with `MEMORY_WRITE_TOOLS`.
+ * The model searches memory and saves to it itself, with `memory.tools({ write: true })`.
 // <<< tools_only
  *
  * Whose memory a run reads is the `userId` in its context, which your code sets:
@@ -20,20 +20,7 @@
 
 import { Agent, type AgentInputItem, run } from "@openai/agents";
 
-// >>> both
-import {
-  MEMORY_TOOLS,
-  type MemoryContext,
-  recall,
-  remember,
-} from "./memory.js";
-// <<< both
-// >>> nodes_only
-import { type MemoryContext, recall, remember } from "./memory.js";
-// <<< nodes_only
-// >>> tools_only
-import { MEMORY_WRITE_TOOLS, type MemoryContext } from "./memory.js";
-// <<< tools_only
+import { memory, type MemoryContext } from "./memory.js";
 
 export const agent = new Agent<MemoryContext>({
   name: "Assistant",
@@ -43,12 +30,12 @@ export const agent = new Agent<MemoryContext>({
   // `MODEL` in .env; empty, the OpenAI Agents SDK's default.
   ...(process.env.MODEL ? { model: process.env.MODEL } : {}),
 // >>> both
-  // `remember` saves every turn, so the model is only given the tools that read.
-  tools: MEMORY_TOOLS,
+  // `memory.remember` saves every turn, so the model is only given the tools that read.
+  tools: memory.tools(),
 // <<< both
 // >>> tools_only
   // Nothing else saves, so the model is given the tool that does.
-  tools: MEMORY_WRITE_TOOLS,
+  tools: memory.tools({ write: true }),
 // <<< tools_only
 });
 
@@ -60,9 +47,9 @@ export async function reply(
 // >>> nodes
   const result = await run(agent, said, {
     context,
-    callModelInputFilter: recall,
+    callModelInputFilter: memory.recall,
   });
-  await remember(result);
+  await memory.remember(result);
   return result;
 // <<< nodes
 // >>> tools_only

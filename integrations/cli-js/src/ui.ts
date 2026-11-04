@@ -41,7 +41,7 @@ export class Console {
   }
 
   fail(why: string): void {
-    this.line(`twinmemory-cli: ${why}`);
+    this.line(`@alexein/cli: ${why}`);
   }
 
   async #reply(prompt: string, secret: boolean): Promise<string> {

@@ -8,10 +8,10 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { AuthenticationError, Memory, NotFoundError, TwinMemoryError } from "twinmemory";
+import { AlexeinError, AuthenticationError, Memory } from "@alexein/sdk";
 
-export const KEY = "TWIN_MEMORY_API_KEY";
-export const BASE_URL = "TWIN_MEMORY_BASE_URL";
+export const KEY = "ALEXEIN_API_KEY";
+export const BASE_URL = "ALEXEIN_API_URL";
 
 function nameOf(line: string): string {
   return line
@@ -80,29 +80,19 @@ export interface Check {
 export type Checker = (key: string, baseUrl: string | undefined) => Promise<Check>;
 
 /**
- * Try a key against memory with one free request, `GET /v1/me`. Where that answers 404, a free
- * search stands in, for an end user nobody has written for: a working key gets an answer or a 404,
- * and whether it writes stays unknown.
+ * Try a key with `memory.me()`: one free request, `GET /v2/me`, which says what the key is and
+ * whether it writes. No retries, and ten seconds at most: a check should answer, not wait.
  */
 export const check: Checker = async (key, baseUrl) => {
   try {
-    const memory = new Memory({ apiKey: key, baseUrl, timeout: 10_000, maxRetries: 0 });
-    let me;
-    try {
-      me = await memory.me();
-    } catch (error) {
-      if (!(error instanceof NotFoundError)) throw error;
-      try {
-        await memory.user("twinmemory-key-check").search("key check", { fast: true });
-      } catch (missing) {
-        if (!(missing instanceof NotFoundError)) throw missing;
-      }
-      return {
-        ok: true,
-        writes: undefined,
-        detail: "works; this service does not say whether it writes",
-      };
-    }
+    const memory = new Memory({
+      apiKey: key,
+      baseUrl,
+      timeout: 10_000,
+      maxRetries: 0,
+      integration: "cli",
+    });
+    const me = await memory.me();
     const where = me.org && me.project ? `${me.org}/${me.project}` : (me.org ?? "this key");
     return {
       ok: true,
@@ -113,16 +103,32 @@ export const check: Checker = async (key, baseUrl) => {
     if (error instanceof AuthenticationError) {
       return { ok: false, writes: undefined, detail: "the service does not know this key" };
     }
-    const said = error instanceof TwinMemoryError ? error.message : String(error);
+    const said = error instanceof AlexeinError ? error.message : String(error);
     return { ok: false, writes: undefined, detail: `could not check it: ${said}` };
   }
 };
 
-/** The key and address the project will run with: its `.env`, else the environment. */
-export function resolveKey(root: string): { key: string; baseUrl: string | undefined } {
+/** Where a setting was found: the project's `.env`, the environment, or nowhere. */
+export type Source = ".env" | "the environment" | undefined;
+
+/**
+ * The key and address the project will run with: its `.env`, else the environment - with where
+ * each came from.
+ */
+export function resolveKey(root: string): {
+  key: string;
+  baseUrl: string | undefined;
+  keyFrom: Source;
+  baseUrlFrom: Source;
+} {
   const values = read(join(root, ".env"));
-  return {
-    key: values[KEY] || process.env[KEY] || "",
-    baseUrl: values[BASE_URL] || process.env[BASE_URL] || undefined,
-  };
+  const from = (name: string): [string | undefined, Source] =>
+    values[name]
+      ? [values[name], ".env"]
+      : process.env[name]
+        ? [process.env[name], "the environment"]
+        : [undefined, undefined];
+  const [key, keyFrom] = from(KEY);
+  const [baseUrl, baseUrlFrom] = from(BASE_URL);
+  return { key: key ?? "", baseUrl, keyFrom, baseUrlFrom };
 }

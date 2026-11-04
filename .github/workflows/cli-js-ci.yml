@@ -1,16 +1,25 @@
-# twinmemory-cli for JavaScript (packages/js). The twinmemory client comes from vendor/ until it is
-# on npm, so this needs nothing from any other repository.
-name: js
+# @alexein/cli (integrations/cli-js). It depends on @alexein/sdk from this repository,
+# file:../../typescript, so typescript/ is built before the CLI is installed. A release workflow, when
+# there is one, publishes on a tag cli-js-v<version>, after @alexein/sdk is on npm.
+name: cli-js-ci
 
 on:
   pull_request:
-    paths: ["packages/js/**", "vendor/**", ".github/workflows/js-*.yml"]
+    paths:
+      - "integrations/cli-js/**"
+      - "typescript/**"
+      - "contract/**"
+      - ".github/workflows/cli-js-ci.yml"
   push:
     branches: [main]
-    paths: ["packages/js/**", "vendor/**", ".github/workflows/js-*.yml"]
+    paths:
+      - "integrations/cli-js/**"
+      - "typescript/**"
+      - "contract/**"
+      - ".github/workflows/cli-js-ci.yml"
 
 concurrency:
-  group: js-${{ github.ref }}
+  group: cli-js-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -18,7 +27,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: packages/js
+    working-directory: integrations/cli-js
 
 jobs:
   check:
@@ -32,9 +41,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: |
+            typescript/package-lock.json
+            integrations/cli-js/package-lock.json
+      # The client first: the CLI installs it from ../../typescript, as built.
+      - name: build @alexein/sdk
+        working-directory: typescript
+        run: npm ci && npm run build
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx prettier --check .
       - run: npx vitest run
       - run: npm run build
       - run: node dist/bin.js --version
+      - run: npm pack --dry-run

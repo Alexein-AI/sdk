@@ -1,7 +1,7 @@
 /**
- * `twinmemory-cli create langgraph` and `twinmemory-cli doctor`: a new project with memory wired
- * in - its graph run here with a stand-in model and a recorded memory API, and checked as its
- * developer's tools would - and the check of a project's setup.
+ * `@alexein/cli create langgraph` and `@alexein/cli doctor`: a new project with memory wired in -
+ * its graph run here, as written, with a stand-in model and a recorded memory API behind the real
+ * `@alexein/sdk`, and checked as its developer's tools would - and the check of a project's setup.
  */
 
 import { execFileSync } from "node:child_process";
@@ -18,14 +18,13 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { AIMessage, HumanMessage, type BaseMessage } from "@langchain/core/messages";
-import { Memory } from "twinmemory";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { create, DEFAULT_MODEL } from "../src/create.js";
 import { doctor } from "../src/doctor.js";
 import * as env from "../src/env.js";
-import { render } from "../src/render.js";
 import { GENERATED as ALL_GENERATED, Project, quiet, said } from "./helpers.js";
+import { routes, serve, writeMemoryFile } from "./recorded.js";
 
 /** This file's own corner, so files running in parallel never remove each other's. */
 const GENERATED = ALL_GENERATED + "create/";
@@ -81,7 +80,7 @@ describe("create", () => {
       [
         "npm",
         "install",
-        "twinmemory@>=0.1",
+        "@alexein/sdk@>=0.3",
         "@langchain/langgraph@>=1.0",
         "@langchain/core@>=1.0",
         "zod@>=3.25",
@@ -100,8 +99,20 @@ describe("create", () => {
       ],
     ]);
     expect(said(console)).toContain("npm run chat -- --user dana");
-    expect(said(console)).toContain("fill in ANTHROPIC_API_KEY and TWIN_MEMORY_API_KEY in .env");
+    expect(said(console)).toContain("fill in ANTHROPIC_API_KEY and ALEXEIN_API_KEY in .env");
+    expect(said(console)).toContain("npx @alexein/cli doctor");
+    const memory = readFileSync(join(root, "src/memory.ts"), "utf8");
+    expect(memory).toContain("export const memory = new AlexeinMemory(");
+    const graph = readFileSync(join(root, "src/graph.ts"), "utf8");
+    expect(graph).toContain(
+      'import { memory, MemoryAnnotation, MemoryContext } from "./memory.js";',
+    );
     expect(said(console)).not.toContain(".env is not in .gitignore");
+  });
+
+  it("installs @alexein/sdk from where --sdk says", async () => {
+    const { p } = await made({ sdk: "/src/alexein-sdk/typescript" });
+    expect(p.ran[0]!.slice(0, 3)).toEqual(["npm", "install", "/src/alexein-sdk/typescript"]);
   });
 
   it("takes another provider, and a key", async () => {
@@ -190,22 +201,11 @@ vi.mock("langchain", async (original) => ({
 }));
 
 describe("the created graph, run", () => {
+  /** The created graph, imported as written, its memory answered by the recorded API. */
   async function run(preset: Record<string, unknown>, answers: AIMessage[]) {
     const { root } = await made({ ...preset, inside: GENERATED });
     replies.splice(0, replies.length, ...answers);
-    const sent: string[] = [];
-    const memory = new Memory({
-      apiKey: "tm_test",
-      fetch: async (input) => {
-        const route = new URL(String(input)).pathname.split("/").pop()!;
-        sent.push(route);
-        if (route === "search")
-          return Response.json({ query: "q", found: 1, known: ["Dana lives in Lisbon."] });
-        return Response.json({ items: [], queued: 1, pending: 1 }, { status: 202 });
-      },
-    });
-    const memoryModule = await import(pathToFileURL(join(root, "src/memory.ts")).href);
-    memoryModule.useMemory(memory);
+    const sent = serve();
     const { graph } = await import(pathToFileURL(join(root, "src/graph.ts")).href);
     const out = await graph.invoke(
       { messages: [new HumanMessage({ content: "Where do I live?", id: "h-1" })] },
@@ -225,7 +225,9 @@ describe("the created graph, run", () => {
       new AIMessage({ content: "Lisbon.", id: "ai-1" }),
     ]);
     expect(out.messages.at(-1).text).toBe("Lisbon.");
-    expect(sent).toEqual(["search", "search", "add"]);
+    expect(out.memory).toContain("Dana lives in Lisbon.");
+    expect(routes(sent)).toEqual(["search", "search", "add"]);
+    expect(sent.at(-1)!.body.items.map((i: { id: string }) => i.id)).toEqual(["h-1", "ai-1"]);
   });
 
   it("chat: piped input, or Ctrl-D, ends the conversation after every line is answered", async () => {
@@ -236,13 +238,7 @@ describe("the created graph, run", () => {
       new AIMessage({ content: "Lisbon.", id: "ai-1" }),
       new AIMessage({ content: "Dana.", id: "ai-2" }),
     );
-    const memoryModule = await import(pathToFileURL(join(root, "src/memory.ts")).href);
-    memoryModule.useMemory(
-      new Memory({
-        apiKey: "tm_test",
-        fetch: async () => Response.json({ items: [], queued: 1, pending: 1 }, { status: 202 }),
-      }),
-    );
+    serve();
     const { Readable, Writable } = await import("node:stream");
     vi.doMock("node:process", async (original) => {
       const actual = await original<typeof import("node:process")>();
@@ -269,6 +265,7 @@ describe("the created graph, run", () => {
 
   it("a run with no user says how to give one", async () => {
     const { root } = await made({ inside: GENERATED });
+    const sent = serve();
     const { graph } = await import(pathToFileURL(join(root, "src/graph.ts")).href);
     await expect(
       graph.invoke(
@@ -276,13 +273,14 @@ describe("the created graph, run", () => {
         { configurable: { thread_id: "t-1" } },
       ),
     ).rejects.toThrow('context: { user_id: "..." }');
+    expect(sent).toEqual([]);
   });
 
   it("nodes-only: recalls and remembers", async () => {
     const { sent } = await run({ parts: ["nodes"] }, [
       new AIMessage({ content: "Lisbon.", id: "ai-1" }),
     ]);
-    expect(sent).toEqual(["search", "add"]);
+    expect(routes(sent)).toEqual(["search", "add"]);
   });
 
   it("tools-only: the model saves itself", async () => {
@@ -294,49 +292,70 @@ describe("the created graph, run", () => {
       save,
       new AIMessage({ content: "Noted.", id: "ai-1" }),
     ]);
-    expect(sent).toEqual(["add"]);
+    expect(routes(sent)).toEqual(["add"]);
+    expect(sent[0]!.body.items).toEqual([
+      { text: "Lives in Lisbon.", kind: "note", session: "t-1" },
+    ]);
   });
 });
 
 describe("doctor", () => {
-  function healthy(): Project {
+  /** A project set up as `init` leaves it, with a graph that uses `memory` as `wiring` says. */
+  function healthy(wiring = '.addNode("remember", memory.remember)'): Project {
     const p = Project.scratch();
     projects.push(p);
-    p.npm({ "@langchain/langgraph": "^1", "@langchain/core": "^1", zod: "^4", twinmemory: "^0.1" });
+    p.npm({
+      "@langchain/langgraph": "^1",
+      "@langchain/core": "^1",
+      zod: "^4",
+      "@alexein/sdk": "^0.3.0",
+    });
     p.installed({
       "@langchain/langgraph": "1.5.2",
       "@langchain/core": "1.2.20",
       zod: "4.6.7",
-      twinmemory: "0.1.0",
+      "@alexein/sdk": "0.3.0",
     });
+    const written = writeMemoryFile(p.root + "/src", "langgraph/memory.ts.tmpl", {
+      parts: ["nodes", "tools"],
+    });
+    renameSync(written, join(p.root, "src/memory.ts"));
+    rmSync(join(written, ".."), { recursive: true });
     p.file(
-      "src/memory.ts",
-      render("langgraph/memory.ts.tmpl", ["nodes"], { version: "0.1.0", fast: "false" }),
+      "src/graph.ts",
+      `import { memory } from "./memory.js";\n// memory.remember\ngraph${wiring};\n`,
     );
     p.file(".env", `${env.KEY}=tm_x\n`).file(".gitignore", "node_modules\n.env\n");
     return p;
   }
-  const answer =
+  const answering =
     (check: env.Check): env.Checker =>
     async () =>
       check;
-  const good = answer({ ok: true, writes: true, detail: "scratch/demo, reads and writes" });
+  const good = answering({ ok: true, writes: true, detail: "scratch/demo, reads and writes" });
+  const readOnly = answering({ ok: true, writes: false, detail: "scratch/demo, reads only" });
 
   it("passes a project that is set up", async () => {
+    vi.stubEnv(env.BASE_URL, "");
     const console = quiet();
     expect(await doctor(healthy().root, console, good)).toBe(0);
     const text = said(console);
-    expect(text).toContain("✓ memory file src/memory.ts (written by 0.1.0)");
+    expect(text).toContain("@alexein/cli 0.3.0 - checking");
+    expect(text).toContain("✓ memory file src/memory.ts (written by 0.3.0)");
+    expect(text).toContain(
+      "✓ dependencies: @alexein/sdk, @langchain/langgraph, @langchain/core, zod",
+    );
+    expect(text).toContain("✓ @alexein/sdk 0.3.0");
     expect(text).toContain("✓ @langchain/langgraph 1.5.2");
+    expect(text).toContain("✓ ALEXEIN_API_KEY from .env");
+    expect(text).toContain("✓ ALEXEIN_API_URL not set: https://api.alexein.ai");
     expect(text).toContain("✓ key: scratch/demo, reads and writes");
     expect(text).toContain("All good.");
   });
 
-  it("names the address the key is checked at, when the project sets one", async () => {
-    const p = healthy().file(
-      ".env",
-      `${env.KEY}=tm_x\n${env.BASE_URL}=https://memory.example.com\n`,
-    );
+  it("checks the key at the address the project sets, in .env or the environment", async () => {
+    const p = healthy().file(".env", `${env.BASE_URL}=https://memory.example.com\n`);
+    vi.stubEnv(env.KEY, "tm_env");
     const checked: [string, string | undefined][] = [];
     const console = quiet();
     const recording: env.Checker = async (key, baseUrl) => {
@@ -344,13 +363,27 @@ describe("doctor", () => {
       return good(key, baseUrl);
     };
     expect(await doctor(p.root, console, recording)).toBe(0);
-    expect(checked).toEqual([["tm_x", "https://memory.example.com"]]);
+    expect(checked).toEqual([["tm_env", "https://memory.example.com"]]);
+    const text = said(console);
+    expect(text).toContain("✓ ALEXEIN_API_KEY from the environment");
+    expect(text).toContain("✓ ALEXEIN_API_URL from .env: https://memory.example.com");
+    expect(text).toContain("✓ key at https://memory.example.com: scratch/demo, reads and writes");
+  });
+
+  it("stops at an address that is not one", async () => {
+    const p = healthy();
+    vi.stubEnv(env.BASE_URL, "localhost:8210");
+    const console = quiet();
+    let asked = false;
+    expect(await doctor(p.root, console, async () => ((asked = true), good("", "")))).toBe(1);
     expect(said(console)).toContain(
-      "✓ key at https://memory.example.com: scratch/demo, reads and writes",
+      '✗ ALEXEIN_API_URL from the environment is not an address: "localhost:8210"',
     );
+    expect(asked).toBe(false);
   });
 
   it("says what is missing, and how to fix it", async () => {
+    vi.stubEnv(env.KEY, "");
     const p = Project.scratch();
     projects.push(p);
     p.npm({});
@@ -359,47 +392,43 @@ describe("doctor", () => {
     const text = said(console);
     expect(text).toContain("✗ no memory file");
     expect(text).toContain(
-      "✗ not dependencies: twinmemory, @langchain/langgraph, @langchain/core, zod",
+      "run `npx @alexein/cli init langgraph` or `npx @alexein/cli init openai-agents`",
     );
-    expect(text).toContain("✗ @langchain/langgraph is not installed");
-    expect(text).toContain(`✗ no ${env.KEY}`);
+    expect(text).toContain(
+      "✗ not dependencies: @alexein/sdk, @langchain/langgraph, @langchain/core, zod",
+    );
+    expect(text).toContain("npm install '@alexein/sdk@>=0.3'");
+    expect(text).toContain("✗ @alexein/sdk is not installed");
+    expect(text).toContain(`✗ no ${env.KEY}, in .env or the environment`);
   });
 
-  it("catches an old version, a bad key, and a read-only key for a file that saves", async () => {
+  it("catches an old version, and a bad key", async () => {
     const p = healthy();
-    p.installed({ "@langchain/langgraph": "0.4.0" });
+    p.installed({ "@langchain/langgraph": "0.4.0", "@alexein/sdk": "0.2.1" });
     const bad = quiet();
-    expect(
-      await doctor(
-        p.root,
-        bad,
-        answer({ ok: false, writes: undefined, detail: "the service does not know this key" }),
-      ),
-    ).toBe(1);
+    const unknown = answering({
+      ok: false,
+      writes: undefined,
+      detail: "the service does not know this key",
+    });
+    expect(await doctor(p.root, bad, unknown)).toBe(1);
     expect(said(bad)).toContain("✗ @langchain/langgraph 0.4.0 is older than 1.0");
+    expect(said(bad)).toContain("✗ @alexein/sdk 0.2.1 is older than 0.3");
     expect(said(bad)).toContain("✗ key: the service does not know this key");
-    const readOnly = quiet();
-    expect(
-      await doctor(
-        healthy().root,
-        readOnly,
-        answer({ ok: true, writes: false, detail: "reads only" }),
-      ),
-    ).toBe(1);
-    expect(said(readOnly)).toContain("only reads, and the memory file saves");
   });
 
-  it("passes a read-only key for a file that only reads", async () => {
-    const p = healthy();
-    p.file(
-      "src/memory.ts",
-      render("langgraph/memory.ts.tmpl", ["tools"], { version: "0.1.0", fast: "false" }).split(
-        "export const memoryAdd",
-      )[0]!,
-    );
-    expect(
-      await doctor(p.root, quiet(), answer({ ok: true, writes: false, detail: "reads only" })),
-    ).toBe(0);
+  it("fails a read-only key where the project saves, and passes it where it only reads", async () => {
+    for (const wiring of [
+      '.addNode("remember", memory.remember)',
+      "(memory.tools({ write: true }))",
+    ]) {
+      const console = quiet();
+      expect(await doctor(healthy(wiring).root, console, readOnly), wiring).toBe(1);
+      expect(said(console)).toContain("only reads, and the project saves");
+    }
+    const console = quiet();
+    expect(await doctor(healthy("(memory.tools())").root, console, readOnly)).toBe(0);
+    expect(said(console)).toContain("✓ key: scratch/demo, reads only");
   });
 
   it("stops outside a project", async () => {

@@ -1,11 +1,11 @@
 # {name}
 
 A LangGraph.js agent that remembers the people it talks to, with [Alexein](https://alexein.ai).
-Made by `twinmemory-cli create langgraph`.
+Made by `npx @alexein/cli create langgraph`.
 
 ## Run it
 
-1. Fill in `.env`: `TWIN_MEMORY_API_KEY` (the console, under API keys), and the key for the model
+1. Fill in `.env`: `ALEXEIN_API_KEY` (the console, under API keys), and the key for the model
    `MODEL` names.
 2. Talk to it in a terminal, as one of your users:
 
@@ -19,13 +19,14 @@ Made by `twinmemory-cli create langgraph`.
    npm run dev
    ```
 
-3. `npx twinmemory-cli doctor` checks the setup.
+3. `npx @alexein/cli doctor` checks the setup.
 
 ## What is where
 
 - `src/graph.ts` - the graph: memory is wired in here.
-- `src/memory.ts` - memory's nodes and tools, written by `twinmemory-cli init langgraph`. Yours to
-  edit.
+- `src/memory.ts` - memory's settings and the `AlexeinMemory` the graph uses, written by
+  `npx @alexein/cli init langgraph`. Yours to edit; the nodes and tools themselves come from
+  [`@alexein/sdk/langgraph`](https://docs.alexein.ai/sdks/typescript).
 - `src/chat.ts` - the terminal chat.
 
 Whose memory a run reads is the `user_id` in its context, set by your code and never by the model.

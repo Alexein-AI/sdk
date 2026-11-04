@@ -1,4 +1,4 @@
-/** `twinmemory-cli init`: what it checks before writing, where it writes, what it installs, and the key. */
+/** `@alexein/cli init`: what it checks before writing, where it writes, what it installs, and the key. */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -29,11 +29,12 @@ describe("where it writes", () => {
     const [code] = await p.init();
     expect(code).toBe(0);
     const written = text(p, "src/agent/memory.ts");
-    expect(written).toContain("export async function recall(");
+    expect(written).toContain("export const memory = new AlexeinMemory(");
+    expect(written).toContain('from "@alexein/sdk/langgraph"');
     expect(written).not.toContain("{version}");
     expect(written).not.toContain(">>>");
     expect(p.ran).toEqual([
-      ["npm", "install", "twinmemory@>=0.1", "@langchain/core@>=1.0", "zod@>=3.25"],
+      ["npm", "install", "@alexein/sdk@>=0.3", "@langchain/core@>=1.0", "zod@>=3.25"],
     ]);
   });
 
@@ -64,8 +65,8 @@ describe("where it writes", () => {
 
   it("puts it where --dir and --file say", async () => {
     const p = project().npm();
-    await p.init({ directory: "lib/shared", filename: "twin.ts" });
-    expect(existsSync(join(p.root, "lib/shared/twin.ts"))).toBe(true);
+    await p.init({ directory: "lib/shared", filename: "alexein.ts" });
+    expect(existsSync(join(p.root, "lib/shared/alexein.ts"))).toBe(true);
   });
 });
 
@@ -179,7 +180,7 @@ describe("installing", () => {
     const p = project().npm();
     const [, console] = await p.init({ install: false });
     expect(p.ran).toEqual([]);
-    expect(said(console)).toContain("npm install 'twinmemory@>=0.1'");
+    expect(said(console)).toContain("npm install '@alexein/sdk@>=0.3'");
   });
 
   it("installs nothing when everything is declared", async () => {
@@ -187,16 +188,17 @@ describe("installing", () => {
       "@langchain/langgraph": "1",
       "@langchain/core": "1",
       zod: "4",
-      twinmemory: "0.1",
+      "@alexein/sdk": "^0.3.0",
     });
-    await p.init();
+    const [, console] = await p.init();
     expect(p.ran).toEqual([]);
+    expect(said(console)).toContain("kept     @alexein/sdk, @langchain/langgraph");
   });
 
   it("installs the client from where --sdk says", async () => {
     const p = project().npm({ "@langchain/langgraph": "1", "@langchain/core": "1", zod: "4" });
-    await p.init({ sdk: "/src/twin-memory-js" });
-    expect(p.ran).toEqual([["npm", "install", "/src/twin-memory-js"]]);
+    await p.init({ sdk: "/src/alexein-sdk/typescript" });
+    expect(p.ran).toEqual([["npm", "install", "/src/alexein-sdk/typescript"]]);
   });
 
   it("still writes, and says so, when the install fails", async () => {
@@ -279,6 +281,61 @@ describe("the key", () => {
   });
 });
 
+describe("running it again", () => {
+  it("refuses without --force, and changes nothing", async () => {
+    const p = project().npm().file(".gitignore", ".env\n");
+    expect((await p.init({ key: "tm_k" }))[0]).toBe(0);
+    const before = Object.fromEntries(
+      ["memory.ts", ".env", "package.json"].map((f) => [f, text(p, f)]),
+    );
+    const ran = p.ran.length;
+    const [code, console] = await p.init({ key: "tm_other" });
+    expect(code).toBe(1);
+    expect(said(console)).toContain("./memory.ts exists; --force replaces it. Nothing changed.");
+    for (const [f, was] of Object.entries(before)) expect(text(p, f), f).toBe(was);
+    expect(p.ran.length).toBe(ran);
+  });
+
+  it("writes the same file again with --force, and installs only what is missing", async () => {
+    const p = project().npm();
+    await p.init();
+    const first = text(p, "memory.ts");
+    p.npm({ "@langchain/langgraph": "1", "@alexein/sdk": "^0.3.0" }); // as npm left it
+    p.ran.length = 0;
+    expect((await p.init({ force: true }))[0]).toBe(0);
+    expect(text(p, "memory.ts")).toBe(first);
+    expect(p.ran).toEqual([["npm", "install", "@langchain/core@>=1.0", "zod@>=3.25"]]);
+  });
+});
+
+describe("what it says to do next", () => {
+  it("shows the import and the graph that uses memory", async () => {
+    const [, console] = await project().npm().init();
+    const next = said(console);
+    expect(next).toContain(
+      'import { memory, MemoryAnnotation, MemoryContext } from "./memory.js";',
+    );
+    expect(next).toContain("new StateGraph(MemoryAnnotation, MemoryContext)");
+    expect(next).toContain('.addNode("recall", memory.recall)');
+    expect(next).toContain(
+      "createAgent({ model, tools: memory.tools(), contextSchema: MemoryContext });",
+    );
+    expect(next).toContain('context: { user_id: "dana" }');
+    expect(next).toContain("The key is ALEXEIN_API_KEY in .env.");
+    expect(next).toContain("`npx @alexein/cli doctor` checks it all.");
+  });
+
+  it("gives the tools that save when there are no nodes, and names the file as given", async () => {
+    const [, console] = await project()
+      .npm()
+      .init({ parts: ["tools"], filename: "alexein.mts" });
+    const next = said(console);
+    expect(next).toContain('import { memory, MemoryContext } from "./alexein.mjs";');
+    expect(next).toContain("tools: memory.tools({ write: true })");
+    expect(next).not.toContain("memory.recall");
+  });
+});
+
 describe("refusals", () => {
   it("does not replace an existing file without --force", async () => {
     const p = project().npm().file("memory.ts", "// mine");
@@ -293,7 +350,7 @@ describe("refusals", () => {
     const p = project();
     const [code, console] = await p.init();
     expect(code).toBe(1);
-    expect(said(console)).toContain("twinmemory-cli create langgraph");
+    expect(said(console)).toContain("npx @alexein/cli create langgraph <name>");
     expect(readdirSync(p.root)).toEqual([]);
   });
 
@@ -313,13 +370,14 @@ describe("presets and dry run", () => {
     const p = project().npm();
     await p.init({ parts: ["tools"] });
     const tools = text(p, "memory.ts");
-    expect(tools).toContain("memorySearch");
-    expect(tools).not.toContain("recall(");
+    expect(tools).toContain("memory.tools({ write: true })");
+    expect(tools).not.toContain("memory.recall");
     expect(tools).not.toContain("MemoryState");
+    expect(tools).toContain("export const FAST = false;");
     await p.init({ parts: ["nodes"], force: true, fast: true });
     const nodes = text(p, "memory.ts");
-    expect(nodes).toContain("export async function recall(");
-    expect(nodes).not.toContain("memorySearch");
+    expect(nodes).toContain("memory.recall");
+    expect(nodes).not.toContain("memory.tools");
     expect(nodes).toContain("export const FAST = true;");
   });
 
@@ -355,7 +413,7 @@ describe("the command line", () => {
     } finally {
       process.chdir(cwd);
     }
-    expect(text(p, "memory.ts")).toContain("memorySearch");
+    expect(text(p, "memory.ts")).toContain("memory.tools({ write: true })");
   });
 
   it("refuses both --nodes-only and --tools-only", async () => {
@@ -365,7 +423,7 @@ describe("the command line", () => {
   it("says its version, and shows help", async () => {
     const console = quiet();
     expect(await main(["--version"], console)).toBe(0);
-    expect(said(console)).toMatch(/^twinmemory-cli \d+\.\d+\.\d+/);
+    expect(said(console)).toBe("@alexein/cli 0.3.0");
     expect(await main(["--help"], quiet())).toBe(0);
     expect(await main(["nonsense"], quiet())).toBe(2);
   });

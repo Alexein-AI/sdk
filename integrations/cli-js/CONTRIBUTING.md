@@ -1,34 +1,34 @@
-# Working on twinmemory-cli for JavaScript
+# Working on @alexein/cli
 
 ## Development
 
+The CLI depends on `@alexein/sdk` from this repository, `file:../../typescript`, so build that first:
+
 ```bash
-npm install          # twinmemory comes from ../../vendor until it is on npm
-npm run check        # types, formatting, and the tests: the CLI, and every file it writes run
-                     # inside real LangGraph.js graphs and the OpenAI Agents SDK's runner (with
-                     # a scripted model), type-checked and formatted as written
+(cd ../../typescript && npm ci && npm run build)
+npm ci               # .npmrc's install-links copies ../../typescript in, as npm would install it
+npm run check        # types, formatting, and the tests: the CLI, and every file it writes run as
+                     # written - through @alexein/sdk - inside real LangGraph.js graphs and the
+                     # OpenAI Agents SDK's runner (with a scripted model), type-checked and
+                     # formatted as written
 npm run build        # dist/bin.js
-node dist/bin.js init langgraph --sdk /path/to/twin-memory-js
+node dist/bin.js init langgraph --sdk /path/to/alexein-sdk-0.3.0.tgz
 ```
 
-`--sdk` installs the `twinmemory` client from a path instead of npm, while it is not published there.
-It is not in `--help`.
+`.npmrc` sets `install-links=true`: `@alexein/sdk` is installed as a copy, not a symlink, so it
+resolves `@langchain/*`, `@openai/agents` and `zod` from this package's `node_modules` - one copy of
+each, as in a developer's project. After changing `../../typescript`, rebuild it and run `npm ci`
+(or `npm install`) here again to take the new build.
 
-## The twinmemory client
+`--sdk` installs `@alexein/sdk` from a path or a tarball (`cd ../../typescript && npm pack`)
+instead of npm, while it is not published there. It is not in `--help`.
 
-Until `twinmemory` is on npm, it comes from `../../vendor`, which `../../scripts/vendor-clients.sh`
-builds. After that script rebuilds it, update the lockfile here with:
+## Publishing
 
-```bash
-npm install ../../vendor/twinmemory-0.1.0.tgz
-```
-
-A plain `npm install` keeps the lockfile's old integrity and quietly installs the old client from
-npm's cache, and `npm ci` on a machine without that cache then fails. Commit the new tarball and
-this lockfile together.
-
-Once `twinmemory` is on npm, depend on it by version, take `--sdk` out, and publish this package only
-after it. `npm publish` refuses while `twinmemory` is still a `file:` dependency.
+`@alexein/sdk` goes to npm first; then depend on it here by version (`"@alexein/sdk": "^0.3.0"`),
+take `.npmrc` and `--sdk` out, and publish this package after it. `npm publish` refuses while
+`@alexein/sdk` is still a `file:` dependency. A release workflow, when there is one, publishes on a
+tag `cli-js-v<version>`.
 
 ## What ships
 

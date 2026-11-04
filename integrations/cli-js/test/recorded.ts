@@ -1,77 +1,125 @@
 /**
- * A memory API that answers as the real one does, a client whose requests are recorded, and a
- * memory file as `init` writes it, imported fresh with such a client.
+ * A memory API that answers as the real one does, reached through a stubbed global `fetch`, and a
+ * memory file as `init` writes it, imported fresh.
+ *
+ * The written file's `memory` makes its client on first use, from `ALEXEIN_API_KEY` and the global
+ * `fetch`; a test stubs both before importing it, and the file runs exactly as written, through the
+ * real `@alexein/sdk`, with every request it sends recorded.
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { Memory } from "twinmemory";
+import { vi } from "vitest";
 
 import { render } from "../src/render.js";
+import { preset } from "../src/scaffold.js";
+
+export const KEY = "tm_test";
+export const BASE = "https://memory.test";
 
 export interface Sent {
-  path: string;
+  /** The route after `/v2/memory/`, or `me`. */
+  route: string;
   headers: Record<string, string>;
   body: Record<string, any>;
 }
 
-export type Respond = (path: string, body: any) => Response;
+export type Respond = (route: string, body: any) => Response;
+
+export const REF = "mem_9fK2xQ7aLp3";
 
 export const SEARCHED = {
   query: "q",
-  found: 1,
-  known: ["Dana lives in Lisbon."],
-  facts: [],
-  hits: [{ path: "passages/p1.md", id: "p1", text: "Dana: I moved to Lisbon." }],
+  answerable: true,
+  notes: [],
+  memories: [
+    { type: "known", text: "Dana lives in Lisbon." },
+    {
+      type: "excerpt",
+      ref: REF,
+      text: "Dana: I moved to Lisbon.",
+      date: "2026-10-01T09:30:00+00:00",
+      added_at: "2026-10-01T09:30:02+00:00",
+      session: "t-1",
+      roles: ["user"],
+    },
+  ],
 };
 
-export function answer(path: string): Response {
-  const route = path.split("/").pop();
+export function answer(route: string): Response {
   if (route === "search") return Response.json(SEARCHED);
-  if (route === "read")
-    return Response.json({ path: "passages/p1.md", text: "Dana: I moved to Lisbon." });
-  if (route === "add") return Response.json({ items: [], queued: 1, pending: 1 }, { status: 202 });
+  if (route === "open") return Response.json({ memory: SEARCHED.memories[1] });
+  if (route === "add") return Response.json({ items: [], waiting: 1 }, { status: 202 });
   return Response.json({});
 }
 
-export const down = () => Response.json({ detail: "briefly unavailable" }, { status: 503 });
+/** An outage that asks to be tried again at once, so the client's retries cost no time. */
+export const down = () =>
+  Response.json(
+    { detail: "briefly unavailable" },
+    { status: 503, headers: { "Retry-After": "0" } },
+  );
+export const wrongKey = () => Response.json({ detail: "bad key" }, { status: 401 });
+export const nobody = () => Response.json({ detail: "no memory for this user" }, { status: 404 });
 
-export function client(respond: Respond, integration: string, failOpen = true) {
+/** Stub the key, the address and `fetch`; what is sent is recorded, and answered by `respond`. */
+export function serve(respond: Respond = answer): Sent[] {
   const sent: Sent[] = [];
-  const memory = new Memory({
-    apiKey: "tm_test",
-    failOpen,
-    integration,
-    maxRetries: 0,
-    logger: () => {},
-    fetch: async (input, init) => {
-      const path = new URL(String(input)).pathname;
-      const body = init?.body ? JSON.parse(String(init.body)) : {};
-      sent.push({ path, headers: init?.headers as Record<string, string>, body });
-      return respond(path, body);
-    },
+  vi.stubEnv("ALEXEIN_API_KEY", KEY);
+  vi.stubEnv("ALEXEIN_API_URL", BASE);
+  vi.stubGlobal("fetch", async (input: string | URL, init: RequestInit = {}) => {
+    const route = new URL(String(input)).pathname.replace(/^\/v2\/(memory\/)?/, "");
+    const body = init.body ? JSON.parse(String(init.body)) : {};
+    sent.push({ route, headers: init.headers as Record<string, string>, body });
+    return respond(route, body);
   });
-  return { memory, sent };
+  return sent;
 }
+
+export const routes = (sent: Sent[]) => sent.map((s) => s.route);
+export const bodies = (sent: Sent[], route: string) =>
+  sent.filter((s) => s.route === route).map((s) => s.body);
+export const users = (sent: Sent[]) => new Set(sent.map((s) => s.headers["X-Alexein-User"]));
 
 let counter = 0;
 
-/** The file at `templates/<template>` as `init` writes it, in `dir`, imported fresh. */
+export interface Written {
+  /** What the preset keeps: `nodes`, `tools` or both. */
+  parts?: string[];
+  fast?: boolean;
+  /** Changes to the file as written, as its developer would make them: `[from, to]`. */
+  edits?: [string, string][];
+}
+
+/** The file at `templates/<template>` as `init` writes it, in a directory of its own in `dir`. */
+export function writeMemoryFile(
+  dir: string,
+  template: string,
+  { parts = ["nodes", "tools"], fast = false, edits = [] }: Written = {},
+): string {
+  const own = join(dir, `memory-${process.pid}-${counter++}`);
+  mkdirSync(own, { recursive: true });
+  let text = render(template, preset({ parts }), { version: "0.3.0", fast: String(fast) });
+  for (const [from, to] of edits) {
+    if (!text.includes(from)) throw new Error(`the written file has no ${JSON.stringify(from)}`);
+    text = text.replace(from, to);
+  }
+  const path = join(own, "memory.ts");
+  writeFileSync(path, text);
+  return path;
+}
+
+/** The written file, imported fresh against `respond`: its exports, and what it sends. */
 export async function loadMemoryFile(
   dir: string,
   template: string,
-  parts: string[],
-  respond: Respond,
-  { integration, failOpen = true }: { integration: string; failOpen?: boolean },
+  respond: Respond = answer,
+  written: Written = {},
 ) {
-  const own = join(dir, `memory-${process.pid}-${counter++}`);
-  mkdirSync(own, { recursive: true });
-  const path = join(own, "memory.ts");
-  writeFileSync(path, render(template, parts, { version: "test", fast: "false" }));
+  const sent = serve(respond);
+  const path = writeMemoryFile(dir, template, written);
   const module: Record<string, any> = await import(pathToFileURL(path).href);
-  const { memory, sent } = client(respond, integration, failOpen);
-  module.useMemory(memory);
-  return { module, sent };
+  return { module, sent, path };
 }

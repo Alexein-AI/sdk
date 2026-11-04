@@ -1,8 +1,8 @@
 /**
- * `twinmemory-cli create <framework> <name>`: a new project with memory already wired in - for
+ * `@alexein/cli create <framework> <name>`: a new project with memory already wired in - for
  * LangGraph.js a graph, a terminal chat, `langgraph.json` for `langgraph dev`; for the OpenAI
- * Agents SDK an agent and a terminal chat; and `memory.ts` as `init` writes it - so there is
- * something to run before there is anything to wire.
+ * Agents SDK an agent and a terminal chat; and `memory.ts` as `init` writes it, on
+ * `@alexein/sdk` - so there is something to run before there is anything to wire.
  *
  * The project is an npm one, in TypeScript, run with tsx.
  */
@@ -75,7 +75,7 @@ export async function create(
     : ["", "OPENAI_API_KEY"];
   const packages = [
     ...Object.entries(scaffold.MINIMUMS[o.framework]!).map(([n, m]) =>
-      n === "twinmemory" && o.sdk ? o.sdk : `${n}@>=${m}`,
+      n === scaffold.SDK && o.sdk ? o.sdk : `${n}@>=${m}`,
     ),
     ...(langgraph ? ["langchain@>=1.0"] : []),
     "dotenv",
@@ -137,17 +137,6 @@ function quoted(command: string[]): string {
   return command.map((word) => (/[>]/.test(word) ? `'${word}'` : word)).join(" ");
 }
 
-/** The graph's parts, from the file's: which of nodes and tools, or both. */
-export function preset(o: scaffold.Options): string[] {
-  const nodes = o.parts.includes("nodes");
-  const tools = o.parts.includes("tools");
-  return [
-    ...(nodes ? ["nodes"] : []),
-    ...(tools ? ["tools"] : []),
-    nodes && tools ? "both" : nodes ? "nodes_only" : "tools_only",
-  ];
-}
-
 function skeleton(
   root: string,
   name: string,
@@ -158,7 +147,7 @@ function skeleton(
   const langgraph = o.framework === "langgraph";
   const description = `${DESCRIBED[o.framework]} that remembers the people it talks to, with Alexein.`;
   const values = { name, model, provider_key: providerKey, description };
-  const parts = preset(o);
+  const parts = scaffold.preset(o);
   const own = `${o.framework.replace("-", "_")}/project`;
   const shared = langgraph ? ["langgraph"] : [];
   const envParts = providerKey && langgraph ? ["provider_key"] : [];
@@ -197,6 +186,6 @@ function next(name: string, unset: string[], langgraph: boolean): string {
     ...(langgraph
       ? ["    npm run dev                       # or open it in LangGraph Studio"]
       : []),
-    "    npx twinmemory-cli doctor         # check the setup",
+    "    npx @alexein/cli doctor           # check the setup",
   ].join("\n");
 }

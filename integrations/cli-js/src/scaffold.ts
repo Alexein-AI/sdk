@@ -1,11 +1,12 @@
 /**
- * `twinmemory-cli init <framework>`: write memory into a project as code its developer owns.
+ * `@alexein/cli init <framework>`: write a short `memory.ts` into a project - the settings and one
+ * configured `AlexeinMemory`, on `@alexein/sdk` - as code its developer owns.
  *
  * The steps, in order, each of which can stop the command before anything is written: find the
  * project, make sure it uses the framework (or that adding it is wanted), make sure what is
  * installed is new enough, and pick where the file goes: beside the graph, or the agent. Then:
- * write the file, add the packages it imports, and set up the key - which can be skipped, and
- * added later.
+ * write the file, add `@alexein/sdk` and the packages its integration needs, and set up the key -
+ * which can be skipped, and added later.
  */
 
 import { spawnSync } from "node:child_process";
@@ -19,21 +20,23 @@ import type { Console } from "./ui.js";
 import { VERSION } from "./version.js";
 import { nextSteps } from "./wiring.js";
 
+/** The client, whose integrations the written file imports. */
+export const SDK = "@alexein/sdk";
+
 /**
- * What each framework's file needs, at least. Every one needs `failOpen` and `integration`, in
- * the first `twinmemory` for JavaScript. LangGraph's: `StateSchema` and a run's `context` are
- * LangGraph.js 1 and LangChain core 1. The OpenAI Agents SDK's: a run's `callModelInputFilter`
- * and a result's `runContext` are in 0.6, which the file was run on as well as the newest; its
- * tools' schemas are zod 4, which the SDK asks for.
+ * What each framework's file needs, at least: `@alexein/sdk` 0.3, the first with
+ * `@alexein/sdk/langgraph` and `@alexein/sdk/openai-agents`, and the peer dependencies those
+ * import - LangGraph.js 1 and LangChain core 1; the OpenAI Agents SDK 0.21 and zod 4, which it
+ * asks for.
  */
 export const MINIMUMS: Record<string, Record<string, string>> = {
   langgraph: {
-    twinmemory: "0.1",
+    [SDK]: "0.3",
     "@langchain/langgraph": "1.0",
     "@langchain/core": "1.0",
     zod: "3.25",
   },
-  "openai-agents": { twinmemory: "0.1", "@openai/agents": "0.6", zod: "4.0" },
+  "openai-agents": { [SDK]: "0.3", "@openai/agents": "0.21", zod: "4.0" },
 };
 /** How each is named to the developer. */
 export const NAMES: Record<string, string> = {
@@ -53,8 +56,8 @@ export const runCommand: Runner = (command, cwd) =>
   }).status ?? 1;
 
 /**
- * Everything `init` can be told. `parts` are what the file holds; `sdk` installs the client from
- * somewhere other than npm (a path, while it is not published).
+ * Everything `init` can be told. `parts` are what the wiring uses - the nodes, the tools, or
+ * both; `sdk` installs `@alexein/sdk` from somewhere other than npm (a path or a tarball).
  */
 export interface Options {
   framework: string;
@@ -137,7 +140,7 @@ async function prepare(cwd: string, o: Options, console: Console): Promise<[stri
   if (!root) {
     throw new Stop(
       "no JavaScript project here (no package.json or langgraph.json at or above this directory). " +
-        `Run it from your project, or start one with \`twinmemory-cli create ${framework} <name>\`.`,
+        `Run it from your project, or start one with \`npx @alexein/cli create ${framework} <name>\`.`,
     );
   }
   console.step("found", `${project.installer(root, []).name} project at ${root}`);
@@ -162,14 +165,13 @@ async function requireFramework(root: string, framework: string, console: Consol
   if (!(await console.confirm(`Add ${name} to it and go on?`))) {
     throw new Stop(
       `this project does not use ${name}; run again with --yes to add it, or start a new one ` +
-        `with \`twinmemory-cli create ${framework} <name>\`. Nothing changed.`,
+        `with \`npx @alexein/cli create ${framework} <name>\`. Nothing changed.`,
     );
   }
 }
 
 function requireVersions(root: string, framework: string): void {
   const stale = Object.entries(MINIMUMS[framework]!)
-    .filter(([name]) => name !== "twinmemory")
     .map(([name, minimum]) => [name, project.installed(root, name), minimum] as const)
     .filter(([, version, minimum]) => version && project.older(version, minimum));
   if (!stale.length) return;
@@ -224,12 +226,26 @@ async function agentDir(root: string, console: Console): Promise<string> {
   return found[named.indexOf(chosen)]!;
 }
 
+/**
+ * The template parts a preset keeps: `nodes` and `tools` as asked, and which of the two it is -
+ * `both`, `nodes_only` or `tools_only` - for what differs between them.
+ */
+export function preset(o: { parts: readonly string[] }): string[] {
+  const nodes = o.parts.includes("nodes");
+  const tools = o.parts.includes("tools");
+  return [
+    ...(nodes ? ["nodes"] : []),
+    ...(tools ? ["tools"] : []),
+    nodes && tools ? "both" : nodes ? "nodes_only" : "tools_only",
+  ];
+}
+
 export function write(target: string, o: Options): string {
   mkdirSync(target, { recursive: true });
   const written = join(target, o.filename);
   writeFileSync(
     written,
-    render(`${o.framework.replace("-", "_")}/memory.ts.tmpl`, o.parts, {
+    render(`${o.framework.replace("-", "_")}/memory.ts.tmpl`, preset(o), {
       version: VERSION,
       fast: String(o.fast),
     }),
@@ -241,7 +257,7 @@ export function write(target: string, o: Options): string {
 export function requirements(root: string, o: Options): string[] {
   return Object.entries(MINIMUMS[o.framework]!)
     .filter(([name]) => !project.declares(root, name))
-    .map(([name, minimum]) => (name === "twinmemory" && o.sdk ? o.sdk : `${name}@>=${minimum}`));
+    .map(([name, minimum]) => (name === SDK && o.sdk ? o.sdk : `${name}@>=${minimum}`));
 }
 
 function quoted(command: string[]): string {
@@ -290,7 +306,7 @@ export function install(root: string, o: Options, console: Console): boolean {
 
 /**
  * Put the key (and address) in `.env` and check it. Skippable: without one, an empty
- * `TWIN_MEMORY_API_KEY=` is left to fill in, and `twinmemory-cli doctor` checks it later.
+ * `ALEXEIN_API_KEY=` is left to fill in, and `npx @alexein/cli doctor` checks it later.
  */
 export async function setupKey(root: string, o: Options, console: Console): Promise<void> {
   const dotenv = join(root, ".env");
@@ -322,7 +338,10 @@ export async function setupKey(root: string, o: Options, console: Console): Prom
   }
   console.step("checked", `key: ${checked.detail}`);
   if (checked.writes === false && o.parts.includes("nodes")) {
-    console.step("warning", "this key only reads: remember and memory_add need one that writes");
+    console.step(
+      "warning",
+      "this key only reads: memory.remember and memory_add need one that writes",
+    );
   }
 }
 
