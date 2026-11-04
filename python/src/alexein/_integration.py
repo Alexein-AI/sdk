@@ -41,13 +41,13 @@ ADD_DESCRIPTION = (
 )
 
 
-def made(integration: str, strict: bool) -> Memory:
+def made(integration: str, strict: bool, timeout: float = TIMEOUT) -> Memory:
     """The client an integration makes on first use, so importing it needs no key."""
-    return Memory(fail_open=not strict, integration=integration, timeout=TIMEOUT)
+    return Memory(fail_open=not strict, integration=integration, timeout=timeout)
 
 
-def made_async(integration: str, strict: bool) -> AsyncMemory:
-    return AsyncMemory(fail_open=not strict, integration=integration, timeout=TIMEOUT)
+def made_async(integration: str, strict: bool, timeout: float = TIMEOUT) -> AsyncMemory:
+    return AsyncMemory(fail_open=not strict, integration=integration, timeout=timeout)
 
 
 def field_of(context: Any, name: str) -> Any:

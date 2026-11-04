@@ -89,12 +89,14 @@ class AlexeinMemory(CrewMemory):
     `client` is a `Memory`; without one, one is made on first use, failing open, with a 10 s
     timeout. `fast` answers sooner and free, a little less precisely. `max_chars` bounds what
     goes into a prompt. `strict` stops a run at kickoff when memory is down (CrewAI itself logs
-    and carries on past what memory raises during a task). A wrong key stops it either way."""
+    and carries on past what memory raises during a task). A wrong key stops it either way.
+    `timeout` is the seconds each attempt of the client made on first use may take."""
 
     client: Memory | None = Field(default=None, exclude=True)
     fast: bool = False
     max_chars: int = 4000
     strict: bool = False
+    timeout: float = shared.TIMEOUT
     _key_checked: bool = PrivateAttr(default=False)
 
     def __init__(self, client: Memory | None = None, **fields: Any) -> None:
@@ -103,7 +105,7 @@ class AlexeinMemory(CrewMemory):
 
     def _client(self) -> Memory:
         if self.client is None:
-            self.client = shared.made("crewai", self.strict)
+            self.client = shared.made("crewai", self.strict, self.timeout)
         return self.client
 
     def whose(self, inputs: dict[str, Any]) -> dict[str, Any]:

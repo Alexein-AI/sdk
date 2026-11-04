@@ -140,7 +140,8 @@ class AlexeinMemory:
     `client` is an `AsyncMemory`; without one, one is made on first use, failing open, with a
     10 s timeout. `fast` answers sooner and free, a little less precisely. `max_chars` bounds
     what goes into the instructions. `strict` raises when memory is down, where by default a
-    turn goes on without it. A wrong key raises either way."""
+    turn goes on without it. A wrong key raises either way. `timeout` is the seconds each attempt
+    of the client made on first use may take."""
 
     def __init__(
         self,
@@ -149,10 +150,12 @@ class AlexeinMemory:
         fast: bool = False,
         max_chars: int = 4000,
         strict: bool = False,
+        timeout: float = shared.TIMEOUT,
     ) -> None:
         self.fast = fast
         self.max_chars = max_chars
         self.strict = strict
+        self.timeout = timeout
         self._client = client
         # What `recall` found for each run - its context object - and user, for the model calls
         # after a turn's first (a tool loop, a handoff), whose input no longer ends with the
@@ -169,7 +172,7 @@ class AlexeinMemory:
                 "has a user_id"
             )
         if self._client is None:
-            self._client = shared.made_async("openai-agents", self.strict)
+            self._client = shared.made_async("openai-agents", self.strict, self.timeout)
         return self._client.user(str(found))
 
     async def _search(self, user: AsyncUser, query: str) -> SearchResult | None:

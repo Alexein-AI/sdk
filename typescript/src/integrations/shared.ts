@@ -35,6 +35,8 @@ export interface IntegrationOptions {
   maxChars?: number;
   /** Throw on an outage instead of carrying on without memory. */
   strict?: boolean;
+  /** Milliseconds each attempt may take, for the client made on first use. Default 10 s. */
+  timeout?: number;
 }
 
 /** The client given, or one made on first use - so importing needs no key. */
@@ -45,6 +47,7 @@ export class LazyClient {
     given: Memory | undefined,
     private readonly integration: string,
     private readonly strict: boolean,
+    private readonly timeout: number = TIMEOUT,
   ) {
     this.#client = given;
   }
@@ -53,7 +56,7 @@ export class LazyClient {
     this.#client ??= new Memory({
       failOpen: !this.strict,
       integration: this.integration,
-      timeout: TIMEOUT,
+      timeout: this.timeout,
     });
     return this.#client;
   }

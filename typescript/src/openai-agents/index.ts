@@ -77,7 +77,7 @@ export class AlexeinMemory {
     this.fast = settings.fast ?? false;
     this.maxChars = settings.maxChars ?? 4000;
     this.strict = settings.strict ?? false;
-    this.#client = new LazyClient(given, "openai-agents", this.strict);
+    this.#client = new LazyClient(given, "openai-agents", this.strict, settings.timeout);
   }
 
   get client(): Memory {

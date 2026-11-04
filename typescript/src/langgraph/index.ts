@@ -116,7 +116,7 @@ export class AlexeinMemory {
     this.fast = settings.fast ?? false;
     this.maxChars = settings.maxChars ?? 4000;
     this.strict = settings.strict ?? false;
-    this.#client = new LazyClient(given, "langgraph", this.strict);
+    this.#client = new LazyClient(given, "langgraph", this.strict, settings.timeout);
   }
 
   get client(): Memory {

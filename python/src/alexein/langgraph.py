@@ -144,7 +144,8 @@ class AlexeinMemory:
     `client` is a `Memory`, or an `AsyncMemory` for the async nodes; without one, each is made
     on first use, failing open, with a 10 s timeout. `fast` answers sooner and free, a little
     less precisely. `max_chars` bounds what goes into a prompt. `strict` raises when memory is
-    down, where by default a turn goes on without it. A wrong key raises either way."""
+    down, where by default a turn goes on without it. A wrong key raises either way. `timeout`
+    is the seconds each attempt of the client made on first use may take."""
 
     def __init__(
         self,
@@ -153,10 +154,12 @@ class AlexeinMemory:
         fast: bool = False,
         max_chars: int = 4000,
         strict: bool = False,
+        timeout: float = shared.TIMEOUT,
     ) -> None:
         self.fast = fast
         self.max_chars = max_chars
         self.strict = strict
+        self.timeout = timeout
         self._sync = client if isinstance(client, Memory) else None
         self._async = client if isinstance(client, AsyncMemory) else None
         self._tools: dict[bool, list[BaseTool]] = {}
@@ -170,14 +173,14 @@ class AlexeinMemory:
                     "this AlexeinMemory holds an AsyncMemory: add arecall and aremember as "
                     "nodes and run the graph with ainvoke, or give it a Memory"
                 )
-            self._sync = shared.made("langgraph", self.strict)
+            self._sync = shared.made("langgraph", self.strict, self.timeout)
         return self._sync.user(user_id)
 
     def auser(self, context: Any, config: RunnableConfig | None = None) -> AsyncUser:
         """`user`, for an `AsyncMemory`."""
         user_id = _user_id(context, config)
         if self._async is None:
-            self._async = shared.made_async("langgraph", self.strict)
+            self._async = shared.made_async("langgraph", self.strict, self.timeout)
         return self._async.user(user_id)
 
     # ------------------------------------------------------------------------ nodes --

@@ -195,3 +195,19 @@ describe("memory being down", () => {
     await expect(open!.invoke({ ref: REF }, RUN)).rejects.toBeInstanceOf(ServiceUnavailableError);
   });
 });
+
+describe("the client an integration makes itself", () => {
+  it("is made on first use, with the timeout given, so constructing needs no key", async () => {
+    vi.stubEnv("ALEXEIN_API_KEY", "");
+    const { AlexeinMemory } = await import("../../src/langgraph/index.js");
+    const { AlexeinMemory: AgentsMemory } = await import("../../src/openai-agents/index.js");
+    const memory = new AlexeinMemory({ timeout: 1234, strict: true });
+    const agents = new AgentsMemory({ timeout: 2345 });
+    vi.stubEnv("ALEXEIN_API_KEY", "tm_test");
+    expect(memory.client.timeout).toBe(1234);
+    expect(memory.client.failOpen).toBe(false);
+    expect(agents.client.timeout).toBe(2345);
+    expect(new AlexeinMemory().client.timeout).toBe(10_000);
+    vi.unstubAllEnvs();
+  });
+});

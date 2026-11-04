@@ -66,3 +66,23 @@ def test_what_memory_open_answers_a_model():
     assert opened_text(Opened(Fact("mem_f1", "Dana says hi."), [excerpt])) == (
         "Dana says hi.\n\nLearned from:\n\n2026-10-01: Dana: hi."
     )
+
+
+def test_an_integration_makes_its_client_on_first_use_with_the_timeout_given(monkeypatch):
+    import alexein.langgraph as lg
+    from alexein import _integration
+
+    made: list[tuple[str, bool, float]] = []
+    real = _integration.made
+
+    def spy(integration: str, strict: bool, timeout: float = _integration.TIMEOUT):
+        made.append((integration, strict, timeout))
+        return real(integration, strict, timeout)
+
+    monkeypatch.setattr(_integration, "made", spy)
+    monkeypatch.delenv("ALEXEIN_API_KEY", raising=False)
+    memory = lg.AlexeinMemory(timeout=2.5, strict=True)  # no key needed to construct
+    assert made == []
+    monkeypatch.setenv("ALEXEIN_API_KEY", "tm_test")
+    assert memory.user({"user_id": "dana"}).id == "dana"
+    assert made == [("langgraph", True, 2.5)]
