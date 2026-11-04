@@ -18,6 +18,7 @@ on:
       - "python/**"
       - "contract/**"
       - ".github/workflows/livekit-ci.yml"
+  workflow_dispatch:
 
 concurrency:
   group: livekit-${{ github.ref }}

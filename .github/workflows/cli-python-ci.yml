@@ -18,6 +18,7 @@ on:
       - "python/**"
       - "contract/**"
       - ".github/workflows/cli-python-*.yml"
+  workflow_dispatch:
 
 concurrency:
   group: cli-python-${{ github.ref }}

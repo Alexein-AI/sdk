@@ -6,6 +6,7 @@ on:
     paths: ["typescript/**", "contract/**", ".github/workflows/typescript-ci.yml"]
   pull_request:
     paths: ["typescript/**", "contract/**", ".github/workflows/typescript-ci.yml"]
+  workflow_dispatch:
 
 permissions:
   contents: read
