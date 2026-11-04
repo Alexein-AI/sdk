@@ -18,7 +18,7 @@ graph.invoke(inputs, config={"configurable": {"thread_id": "t-1"}}, context={"us
 Or tools the model calls when it decides to: `create_agent(model, tools=memory.tools())`.
 
 Whose memory is read is decided by your code, never by the model: the user id comes from the
-run's `context` (`{"user_id": ...}`, or any object with a `user_id`), else from
+run's `context` (`{"user_id": ...}`, or any object with a `user_id`); a tool also takes
 `config["configurable"]["user_id"]`. The thread id is the session what is saved belongs to.
 
 The nodes run under `invoke` and `ainvoke` alike; `arecall` and `aremember` are their async
@@ -38,6 +38,7 @@ from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool, StructuredTool
 from langgraph.graph import MessagesState  # pyright: ignore[reportMissingTypeStubs]
+from langgraph.runtime import Runtime
 from typing_extensions import NotRequired
 
 from alexein import _integration as shared
@@ -91,12 +92,12 @@ def _user_id(context: Any, config: RunnableConfig | None) -> str:
     return str(found)
 
 
-def _context(config: RunnableConfig) -> Any:
-    """The run's `context=`. Read from the config, where `langgraph.runtime.get_runtime` reads
-    it too, so the nodes keep LangGraph's typed `(state, config)` shape and an async node finds
-    it on Python 3.10, where `get_runtime` cannot."""
-    runtime = (config.get("configurable") or {}).get("__pregel_runtime")
-    return getattr(runtime, "context", None)
+def _run_thread(runtime: Runtime[Any]) -> str | None:
+    """The thread a node runs in, as LangGraph's runtime says it: the nodes take LangGraph's
+    typed `(state, *, runtime)` shape, which carries the run's context and its thread, and no
+    config."""
+    found = getattr(getattr(runtime, "execution_info", None), "thread_id", None)
+    return str(found) if found else None
 
 
 def _thread(config: RunnableConfig | None) -> str | None:
@@ -181,40 +182,40 @@ class AlexeinMemory:
 
     # ------------------------------------------------------------------------ nodes --
 
-    def recall(self, state: MemoryState, config: RunnableConfig) -> dict[str, Any]:
+    def recall(self, state: MemoryState, *, runtime: Runtime[Any]) -> dict[str, Any]:
         """Node: what memory holds for the user's latest message, into `state["memory"]`."""
         asked = _asked(state["messages"])
         if not asked:
             return {"memory": ""}
-        found = self._node(config, self._search(asked))
+        found = self._node(runtime, self._search(asked))
         return {"memory": self._context(found)}
 
-    async def arecall(self, state: MemoryState, config: RunnableConfig) -> dict[str, Any]:
+    async def arecall(self, state: MemoryState, *, runtime: Runtime[Any]) -> dict[str, Any]:
         """`recall`, as an async node."""
         if self._sync is not None:
-            return await asyncio.to_thread(self.recall, state, config)
+            return await asyncio.to_thread(lambda: self.recall(state, runtime=runtime))
         asked = _asked(state["messages"])
         if not asked:
             return {"memory": ""}
-        found = await self._anode(config, self._search(asked))
+        found = await self._anode(runtime, self._search(asked))
         return {"memory": self._context(found)}
 
-    def remember(self, state: MemoryState, config: RunnableConfig) -> dict[str, Any]:
+    def remember(self, state: MemoryState, *, runtime: Runtime[Any]) -> dict[str, Any]:
         """Node: save this turn - the user's latest message and the final reply to it - under
         each message's id, so a turn run again edits rather than duplicates. Tool calls and
         tool results are not saved. Needs a key that writes."""
-        thread = _thread(config)
+        thread = _run_thread(runtime)
         if items := _turn(state["messages"], thread):
-            self._node(config, lambda user: user.add(items, session=thread))
+            self._node(runtime, lambda user: user.add(items, session=thread))
         return {}
 
-    async def aremember(self, state: MemoryState, config: RunnableConfig) -> dict[str, Any]:
+    async def aremember(self, state: MemoryState, *, runtime: Runtime[Any]) -> dict[str, Any]:
         """`remember`, as an async node."""
         if self._sync is not None:
-            return await asyncio.to_thread(self.remember, state, config)
-        thread = _thread(config)
+            return await asyncio.to_thread(lambda: self.remember(state, runtime=runtime))
+        thread = _run_thread(runtime)
         if items := _turn(state["messages"], thread):
-            await self._anode(config, lambda user: user.add(items, session=thread))
+            await self._anode(runtime, lambda user: user.add(items, session=thread))
         return {}
 
     def prompt(self, state: MemoryState | dict[str, Any]) -> str:
@@ -227,8 +228,8 @@ class AlexeinMemory:
     def _context(self, found: SearchResult | None) -> str:
         return found.context(self.max_chars) if found is not None else ""
 
-    def _node(self, config: RunnableConfig, ask: Ask) -> Any:
-        user = self.user(_context(config), config)
+    def _node(self, runtime: Runtime[Any], ask: Ask) -> Any:
+        user = self.user(runtime.context)
         try:
             return ask(user)
         except NotFoundError:  # nothing saved for this user yet
@@ -237,8 +238,8 @@ class AlexeinMemory:
             shared.ride_out(error, self.strict)
             return None
 
-    async def _anode(self, config: RunnableConfig, ask: Ask) -> Any:
-        user = self.auser(_context(config), config)
+    async def _anode(self, runtime: Runtime[Any], ask: Ask) -> Any:
+        user = self.auser(runtime.context)
         try:
             return await ask(user)
         except NotFoundError:

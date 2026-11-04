@@ -195,8 +195,8 @@ graph.invoke(inputs, config={"configurable": {"thread_id": "t-1"}}, context={"us
 Or give a model tools to call when it decides to: `create_agent(model, tools=memory.tools(write=True),
 context_schema=MemoryContext)` offers `memory_search`, `memory_open` and `memory_add`.
 
-Whose memory is read is decided by your code, never by the model: the user id comes from the run's `context`,
-else from `config["configurable"]["user_id"]`, and a run without one raises a `ValueError` saying how to pass
+Whose memory is read is decided by your code, never by the model: the user id comes from the run's `context`
+(a tool also reads `config["configurable"]["user_id"]`), and a run without one raises a `ValueError` saying how to pass
 it. Each message is saved under its LangGraph id, so a turn run again edits rather than duplicates; the thread
 id is the session. Tool calls and tool results are not saved. The nodes and tools run under `invoke` and
 `ainvoke`; with an `AsyncMemory`, add `memory.arecall` and `memory.aremember`. Module-level `recall`,

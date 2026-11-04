@@ -207,8 +207,9 @@ graph.invoke(inputs, config={"configurable": {"thread_id": "t-1"}}, context={"us
 ```
 
 `recall`/`remember` work as sync and async nodes (`arecall`/`aremember`, or one callable that
-LangGraph runs either way). User id from `runtime.context["user_id"]` (dict or attribute), else
-`config["configurable"]["user_id"]`, else a `ValueError` saying how to pass it. Each saved message
+LangGraph runs either way), in LangGraph's typed `(state, *, runtime)` shape. User id from
+`runtime.context["user_id"]` (dict or attribute) - a tool also reads `config["configurable"]["user_id"]`
+- else a `ValueError` saying how to pass it; the thread from `runtime.execution_info.thread_id`. Each saved message
 keeps its LangGraph message id as the item id (else a stable hash of thread|role|text), so re-running
 a turn edits rather than duplicates; the thread id is the `session`. Tool calls and tool results are
 not saved. Module-level `recall`, `remember`, `memory_prompt`, `memory_tools(write=False)` use a

@@ -24,9 +24,9 @@ from alexein import AuthenticationError, ServiceUnavailableError
 from alexein._integration import NOTHING_FOUND, NOTHING_YET, UNAVAILABLE
 
 
-def run(context: Any, **configurable: Any) -> Any:
-    """The config LangGraph hands a node: the run's context in its runtime, and `configurable`."""
-    return {"configurable": {"__pregel_runtime": SimpleNamespace(context=context), **configurable}}
+def run(context: Any, thread_id: str | None = None) -> Any:
+    """The runtime LangGraph hands a node: the run's context, and its thread."""
+    return SimpleNamespace(context=context, execution_info=SimpleNamespace(thread_id=thread_id))
 
 
 def down(request: httpx.Request) -> httpx.Response:
@@ -103,15 +103,15 @@ def test_a_turn_is_recalled_before_the_model_and_saved_after():
 def test_a_turn_run_again_saves_under_the_same_ids():
     mem, recorded = wired()
     state = {"messages": [HumanMessage("Hi"), AIMessage("Hello.")]}
-    mem.remember(state, run({"user_id": "dana"}, thread_id="t-1"))  # type: ignore[arg-type]
-    mem.remember(state, run({"user_id": "dana"}, thread_id="t-1"))  # type: ignore[arg-type]
+    mem.remember(state, runtime=run({"user_id": "dana"}, thread_id="t-1"))  # type: ignore[arg-type]
+    mem.remember(state, runtime=run({"user_id": "dana"}, thread_id="t-1"))  # type: ignore[arg-type]
     first, second = recorded.bodies("add")
     assert first == second and len(first["items"][0]["id"]) == 24
 
 
 def test_fast_and_max_chars():
     mem, recorded = wired(fast=True, max_chars=30)
-    found = mem.recall({"messages": [HumanMessage("hi")]}, run({"user_id": "d"}))  # type: ignore[arg-type]
+    found = mem.recall({"messages": [HumanMessage("hi")]}, runtime=run({"user_id": "d"}))  # type: ignore[arg-type]
     assert recorded.body() == {"query": "hi", "fast": True}
     assert found == {"memory": ""}  # notes and the first memory are longer than 30
 
@@ -119,19 +119,17 @@ def test_fast_and_max_chars():
 def test_a_user_with_no_memory_yet_recalls_nothing():
     mem, _ = wired(lambda r: ok(EMPTY_SEARCH))
     state = {"messages": [HumanMessage("hi")]}
-    assert mem.recall(state, run({"user_id": "new"})) == {"memory": ""}  # type: ignore[arg-type]
+    assert mem.recall(state, runtime=run({"user_id": "new"})) == {"memory": ""}  # type: ignore[arg-type]
     assert mem.prompt({"messages": [], "memory": ""}) == ""
 
 
-def test_the_user_id_can_come_from_config_and_must_come_from_somewhere():
+def test_the_user_id_comes_from_the_context_and_must_come():
     mem, recorded = wired()
     state = {"messages": [HumanMessage("hi")]}
-    mem.recall(state, run(None, user_id="sam"))  # type: ignore[arg-type]
-    assert recorded.last.headers["x-alexein-user"] == "sam"
-    mem.recall(state, run(SimpleNamespace(user_id="ann")))  # type: ignore[arg-type]
+    mem.recall(state, runtime=run(SimpleNamespace(user_id="ann")))  # type: ignore[arg-type]
     assert recorded.last.headers["x-alexein-user"] == "ann"
     with pytest.raises(ValueError, match="whose memory"):
-        mem.recall(state, run(None))  # type: ignore[arg-type]
+        mem.recall(state, runtime=run(None))  # type: ignore[arg-type]
 
 
 @pytest.mark.anyio
@@ -139,9 +137,9 @@ async def test_a_run_with_no_user_says_so_before_anything_else():
     """Even with no key set: whose memory is the first thing a run must say."""
     state = {"messages": [HumanMessage("hi")]}
     with pytest.raises(ValueError, match="whose memory"):
-        lg.recall(state, run(None))  # type: ignore[arg-type]
+        lg.recall(state, runtime=run(None))  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="whose memory"):
-        await lg.arecall(state, run(None))  # type: ignore[arg-type]
+        await lg.arecall(state, runtime=run(None))  # type: ignore[arg-type]
 
 
 def test_tool_calls_and_tool_results_are_not_saved():
@@ -155,14 +153,14 @@ def test_tool_calls_and_tool_results_are_not_saved():
             AIMessage("Booked.", id="ai-2"),
         ]
     }
-    mem.remember(state, run({"user_id": "dana"}, thread_id="t"))  # type: ignore[arg-type]
+    mem.remember(state, runtime=run({"user_id": "dana"}, thread_id="t"))  # type: ignore[arg-type]
     assert [i["id"] for i in recorded.body()["items"]] == ["h-1", "ai-2"]
 
 
 def test_a_turn_without_a_reply_yet_saves_only_the_question():
     mem, recorded = wired()
     state = {"messages": [AIMessage("Old.", id="ai-0"), HumanMessage("New?", id="h-1")]}
-    mem.remember(state, run({"user_id": "dana"}))  # type: ignore[arg-type]
+    mem.remember(state, runtime=run({"user_id": "dana"}))  # type: ignore[arg-type]
     assert [i["id"] for i in recorded.body()["items"]] == ["h-1"]
 
 
@@ -235,8 +233,8 @@ def test_a_client_that_does_not_fail_open_is_ridden_out_too():
     client, _ = memory(down)
     mem = lg.AlexeinMemory(client)
     state = {"messages": [HumanMessage("hi"), AIMessage("hello")]}
-    assert mem.recall(state, run({"user_id": "d"})) == {"memory": ""}  # type: ignore[arg-type]
-    assert mem.remember(state, run({"user_id": "d"})) == {}  # type: ignore[arg-type]
+    assert mem.recall(state, runtime=run({"user_id": "d"})) == {"memory": ""}  # type: ignore[arg-type]
+    assert mem.remember(state, runtime=run({"user_id": "d"})) == {}  # type: ignore[arg-type]
     out = tools_graph(mem.tools(write=True)).invoke({"messages": []}, context={"user_id": "d"})
     assert set(results(out).values()) == {UNAVAILABLE}
 
@@ -252,7 +250,7 @@ def test_tools_tell_the_model_memory_is_down():
 def test_strict_raises_instead():
     mem, _ = wired(down, strict=True)
     with pytest.raises(ServiceUnavailableError):
-        mem.recall({"messages": [HumanMessage("hi")]}, run({"user_id": "d"}))  # type: ignore[arg-type]
+        mem.recall({"messages": [HumanMessage("hi")]}, runtime=run({"user_id": "d"}))  # type: ignore[arg-type]
     with pytest.raises(ServiceUnavailableError):
         tools_graph(mem.tools()).invoke({"messages": []}, context={"user_id": "dana"})
 
@@ -260,7 +258,7 @@ def test_strict_raises_instead():
 def test_a_wrong_key_raises_even_so():
     mem, _ = wired(lambda r: ok({"detail": "bad key"}, status=401))
     with pytest.raises(AuthenticationError):
-        mem.recall({"messages": [HumanMessage("hi")]}, run({"user_id": "d"}))  # type: ignore[arg-type]
+        mem.recall({"messages": [HumanMessage("hi")]}, runtime=run({"user_id": "d"}))  # type: ignore[arg-type]
     with pytest.raises(AuthenticationError):
         tools_graph(mem.tools()).invoke({"messages": []}, context={"user_id": "dana"})
 
@@ -269,14 +267,14 @@ def test_a_long_message_is_searched_by_its_end():
     """The service takes a question of at most 2,000 characters; a pasted email is longer."""
     mem, recorded = wired()
     asked = "x" * 2500 + " Where do I live?"
-    mem.recall({"messages": [HumanMessage(asked)]}, run({"user_id": "d"}))  # type: ignore[arg-type]
+    mem.recall({"messages": [HumanMessage(asked)]}, runtime=run({"user_id": "d"}))  # type: ignore[arg-type]
     query = recorded.body(0)["query"]
     assert len(query) == 2000 and query.endswith("Where do I live?")
 
 
 def test_requests_say_they_came_from_langgraph():
     mem, recorded = wired()
-    mem.recall({"messages": [HumanMessage("hi")]}, run({"user_id": "d"}))  # type: ignore[arg-type]
+    mem.recall({"messages": [HumanMessage("hi")]}, runtime=run({"user_id": "d"}))  # type: ignore[arg-type]
     assert recorded.last.headers["user-agent"].endswith(" langgraph")
 
 
@@ -330,15 +328,15 @@ async def test_the_async_nodes_fail_open_too():
     client, _ = async_memory(down, fail_open=True)
     mem = lg.AlexeinMemory(client)
     state = {"messages": [HumanMessage("hi"), AIMessage("hello")]}
-    assert await mem.arecall(state, run({"user_id": "d"})) == {"memory": ""}  # type: ignore[arg-type]
-    assert await mem.aremember(state, run({"user_id": "d"})) == {}  # type: ignore[arg-type]
+    assert await mem.arecall(state, runtime=run({"user_id": "d"})) == {"memory": ""}  # type: ignore[arg-type]
+    assert await mem.aremember(state, runtime=run({"user_id": "d"})) == {}  # type: ignore[arg-type]
 
 
 def test_an_async_client_in_a_sync_node_says_what_to_do():
     client, _ = async_memory(answer)
     mem = lg.AlexeinMemory(client)
     with pytest.raises(TypeError, match="arecall"):
-        mem.recall({"messages": [HumanMessage("hi")]}, run({"user_id": "d"}))  # type: ignore[arg-type]
+        mem.recall({"messages": [HumanMessage("hi")]}, runtime=run({"user_id": "d"}))  # type: ignore[arg-type]
 
 
 def test_tools_need_no_memory_state():
