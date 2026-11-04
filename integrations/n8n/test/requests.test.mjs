@@ -251,19 +251,21 @@ const SEARCHED = {
 	],
 };
 
-test('context is the notes, then each memory on a line, excerpts dated, as the SDKs give it', () => {
+test('context is the notes, a blank line, then each memory on a line, excerpts dated, as the SDKs give it', () => {
 	assert.equal(
 		context(SEARCHED, 4000),
-		'Values are listed newest first.\n' +
+		'Values are listed  newest first.\n\n' +
 			'- Alice Chen · home city: Lisbon (said 2026-10-01)\n' +
 			'- (said 2026-10-01) Alice lives in Lisbon\n' +
-			'- 2026-10-01: I just moved to Lisbon from Berlin.\n' +
+			'- 2026-10-01: I just moved to Lisbon\nfrom Berlin.\n' +
 			'- Undated.',
 	);
 	assert.equal(
 		context(SEARCHED, 90),
-		'Values are listed newest first.\n- Alice Chen · home city: Lisbon (said 2026-10-01)',
+		'Values are listed  newest first.\n\n- Alice Chen · home city: Lisbon (said 2026-10-01)',
 	);
+	// Not even the first memory fits: nothing, not the notes alone.
+	assert.equal(context(SEARCHED, 40), '');
 	assert.equal(context({ notes: ['Nothing found.'], memories: [] }, 4000), '');
 });
 

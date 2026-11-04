@@ -217,26 +217,19 @@ export function merged(operation: string, pages: IDataObject[]): IDataObject {
 	return { ...pages[0], [key]: all, next: null };
 }
 
-const oneLine = (value: unknown) =>
-	String(value ?? '')
-		.split(/\s+/)
-		.filter(Boolean)
-		.join(' ');
-
-// A block to paste into a prompt: the notes, then each memory on a line of its own - `- ` and its
-// text, an excerpt's prefixed with its date when known - whole lines only, at most `maxChars`
-// long, and empty when memory found nothing. The text the SDKs' `SearchResult.context()` gives.
+// A block to paste into a prompt, the same text as the SDKs' `SearchResult.context()`: the notes,
+// a line each, a blank line, then each memory as `- ` and its text as stored, an excerpt's prefixed
+// with its date when known. Whole memories only, at most `maxChars` long; empty when memory found
+// nothing, or when not even the first memory fits.
 export function context(answer: IDataObject, maxChars: number): string {
 	const memories = Array.isArray(answer.memories) ? (answer.memories as IDataObject[]) : [];
-	if (!memories.length) return '';
-	const notes = Array.isArray(answer.notes) ? answer.notes.map(oneLine).filter(Boolean) : [];
-	const lines = memories.map((memory) => {
-		const date = memory.type === 'excerpt' && memory.date ? String(memory.date).slice(0, 10) : '';
-		return `- ${date ? `${date}: ` : ''}${oneLine(memory.text)}`;
-	});
+	const notes = Array.isArray(answer.notes) ? answer.notes.map(String) : [];
+	const head = notes.length ? `${notes.join('\n')}\n\n` : '';
 	let out = '';
-	for (const line of [...notes, ...lines]) {
-		const grown = out ? `${out}\n${line}` : line;
+	for (const memory of memories) {
+		const date = memory.type === 'excerpt' && memory.date ? String(memory.date).slice(0, 10) : '';
+		const line = `- ${date ? `${date}: ` : ''}${String(memory.text ?? '')}`;
+		const grown = `${out || head}${out ? '\n' : ''}${line}`;
 		if (grown.length > maxChars) break;
 		out = grown;
 	}
