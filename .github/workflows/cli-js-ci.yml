@@ -17,6 +17,7 @@ on:
       - "typescript/**"
       - "contract/**"
       - ".github/workflows/cli-js-ci.yml"
+  workflow_dispatch:
 
 concurrency:
   group: cli-js-${{ github.ref }}

@@ -6,6 +6,7 @@ on:
   push:
     branches: [main]
     paths: ["integrations/n8n/**", "contract/**", ".github/workflows/n8n-*.yml"]
+  workflow_dispatch:
 
 concurrency:
   group: n8n-${{ github.ref }}
