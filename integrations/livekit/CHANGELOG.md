@@ -2,6 +2,8 @@
 
 ## 0.3.0 - unreleased
 
+- A reply waits for memory up to 1.5 seconds by default (`recall_timeout`), up from 0.5: against
+  api.alexein.ai a recall took about a second end to end, so at 0.5 every reply went without it.
 - Renamed from `twinmemory-livekit`: the package is `alexein-livekit`, imported as
   `alexein_livekit`, its classes `AlexeinMemory` and `AlexeinMemoryAgent`; `account_id` is
   `app_user_id`. The version is the API's, as every Alexein package's is.

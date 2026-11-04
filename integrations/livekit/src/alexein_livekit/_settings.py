@@ -37,7 +37,9 @@ class Settings:
     precise, counted against your daily budget, and slower, though a reply still waits no longer
     than `recall_timeout`; raise `recall_timeout` with it, or a slower recall is left out of the
     reply."""
-    recall_timeout: float = 0.5
+    # 1.5 s: on api.alexein.ai a fast search for a caller with history took about 0.7 s at the
+    # service and about 1 s end to end (2026-11-04), so 0.5 s left every reply without memory.
+    recall_timeout: float = 1.5
     """The longest a reply waits for memory, in seconds, however many model calls it makes."""
     recall_max_chars: int = 2000
     """The most a reply is shown, in characters: about 500 tokens."""

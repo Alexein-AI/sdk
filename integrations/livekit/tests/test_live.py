@@ -71,7 +71,8 @@ async def test_the_next_call_remembers_this_one_and_never_itself() -> None:
             await session.run(user_input="What is my locker code at the gym?")
             shown = _memory_for_last_turn(fake)
             assert code in shown, shown
-            assert memory.last_recall is not None and memory.last_recall.ms < 500
+            budget = memory.settings.recall_timeout * 1000
+            assert memory.last_recall is not None and memory.last_recall.ms < budget
 
             await session.run(user_input="My favourite colour for the new locker is teal.")
             assert await memory.flush(10) == 0

@@ -3,7 +3,7 @@
 Long-term memory for [LiveKit Agents](https://docs.livekit.io/agents/) voice agents, from
 [Alexein](https://alexein.ai). Before each reply your agent is given what the caller said in
 earlier calls; every turn of this call is saved for the next one. Memory never holds a reply up for
-more than half a second, and never stops one.
+more than a second and a half, and never stops one.
 
 ```bash
 pip install alexein-livekit
@@ -118,7 +118,7 @@ reply only - as what was said, line by line, not whole conversations:
   One lookup is shared by the early reply, the confirmed one and the model call after a tool runs.
 - It searches earlier calls only - everything but this call's session - since the model already
   has this one.
-- A reply waits for it at most `recall_timeout` seconds (0.5 by default), however many model calls
+- A reply waits for it at most `recall_timeout` seconds (1.5 by default), however many model calls
   the reply makes; when memory is slow or down, the reply goes ahead without it. Nothing memory
   does, or answers, can stop a reply.
 - Small talk ("thanks", "okay") is not searched, and not recalled. A short answer ("the second one")
@@ -227,7 +227,7 @@ made.
 | Setting | Default | What it does |
 |---|---|---|
 | `recall_fast` | `True` | searches skip the relevance check: free and quicker. `False` runs it on each recall: more precise, counted against your daily budget, and slower, though a reply still waits no longer than `recall_timeout`; raise `recall_timeout` with it, or a slower recall is left out of the reply |
-| `recall_timeout` | `0.5` | the most a reply waits for memory, in seconds, however many model calls it makes |
+| `recall_timeout` | `1.5` | the most a reply waits for memory, in seconds, however many model calls it makes |
 | `recall_max_chars` | `2000` | the most a reply is shown, about 500 tokens |
 | `recall_agent_turns` | `True` | show the agent's own earlier words too; `False` only the caller's |
 | `recall_recent` | `6` | how many of the caller's last excerpts follow what the search matched (a call each in auto mode, a fact each in tools mode); `0` for none |
