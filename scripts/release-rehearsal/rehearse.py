@@ -1108,7 +1108,11 @@ def crewai(run: Run) -> None:
 
 
 def _get(url: str, bearer: str | None = None) -> tuple[int, str]:
-    headers = {"Authorization": f"Bearer {bearer}"} if bearer else {}
+    # A User-Agent of its own: Cloudflare in front of api.alexein.ai refuses urllib's default (403,
+    # "error code: 1010"), as it would any client that does not say what it is.
+    headers = {"User-Agent": "alexein-release-rehearsal"}
+    if bearer:
+        headers["Authorization"] = f"Bearer {bearer}"
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=20) as answer:
             return answer.status, answer.read().decode()
