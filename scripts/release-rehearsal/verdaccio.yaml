@@ -1,4 +1,4 @@
-# The rehearsal's npm registry. Our two packages live here and nowhere else - never fetched from
+# The rehearsal's npm registry. Our packages (the @alexein scope) live here and nowhere else - never fetched from
 # npmjs.org, so a package of the same name published there by anyone cannot be picked up by mistake.
 # Every other package is fetched from npmjs.org and cached.
 storage: /verdaccio/storage
@@ -10,10 +10,7 @@ uplinks:
   npmjs:
     url: https://registry.npmjs.org/
 packages:
-  "twinmemory":
-    access: $all
-    publish: $authenticated
-  "twinmemory-cli":
+  "@alexein/*":
     access: $all
     publish: $authenticated
   "**":

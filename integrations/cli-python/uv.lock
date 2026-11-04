@@ -2,28 +2,28 @@ version = 1
 revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version < '3.11' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.13.*' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version < '3.11' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents')",
+    "python_full_version < '3.11' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version < '3.11' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
 ]
 conflicts = [[
-    { package = "twinmemory-cli", group = "crewai" },
-    { package = "twinmemory-cli", group = "openai-agents" },
+    { package = "alexein-cli", group = "crewai" },
+    { package = "alexein-cli", group = "openai-agents" },
 ]]
 
 [manifest]
@@ -252,6 +252,75 @@ wheels = [
 ]
 
 [[package]]
+name = "alexein"
+version = "0.3.0"
+source = { editable = "../../python" }
+dependencies = [
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "crewai", marker = "extra == 'crewai'", specifier = ">=1.15,<1.16" },
+    { name = "httpx", specifier = ">=0.27,<1" },
+    { name = "langchain", marker = "extra == 'langgraph'", specifier = ">=1" },
+    { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1.2" },
+    { name = "openai-agents", marker = "extra == 'openai-agents'", specifier = ">=0.24" },
+]
+provides-extras = ["langgraph", "openai-agents", "crewai"]
+
+[package.metadata.requires-dev]
+crewai = [{ name = "crewai", specifier = ">=1.15,<1.16" }]
+dev = [
+    { name = "anyio", specifier = ">=4" },
+    { name = "langchain", specifier = ">=1" },
+    { name = "langgraph", specifier = ">=1.2" },
+    { name = "pyright", specifier = ">=1.1.380" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.6" },
+]
+openai-agents = [{ name = "openai-agents", specifier = ">=0.24" }]
+
+[[package]]
+name = "alexein-cli"
+version = "0.3.0"
+source = { editable = "." }
+dependencies = [
+    { name = "alexein" },
+]
+
+[package.dev-dependencies]
+crewai = [
+    { name = "crewai" },
+]
+dev = [
+    { name = "anyio" },
+    { name = "langchain" },
+    { name = "langgraph" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+openai-agents = [
+    { name = "openai-agents" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "alexein", editable = "../../python" }]
+
+[package.metadata.requires-dev]
+crewai = [{ name = "crewai", specifier = ">=1.15,<1.16" }]
+dev = [
+    { name = "anyio", specifier = ">=4" },
+    { name = "langchain", specifier = ">=1" },
+    { name = "langgraph", specifier = ">=1" },
+    { name = "pyright", specifier = ">=1.1.380" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.6" },
+]
+openai-agents = [{ name = "openai-agents", specifier = ">=0.24" }]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.5"
 source = { registry = "https://pypi.org/simple" }
@@ -274,9 +343,9 @@ name = "anyio"
 version = "4.15.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "idna" },
-    { name = "typing-extensions", marker = "python_full_version < '3.15' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.15' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/d2/f4d173e22df740bc37b1db102b386ba719b66e95b0f0d751f556b387e6d2/anyio-4.15.1.tar.gz", hash = "sha256:9f28306018cbd6d329e64a36d58256edff76dd996fe423bc957326e578b82a94", size = 276966, upload-time = "2026-09-05T10:42:39.44Z" }
 wheels = [
@@ -427,8 +496,8 @@ name = "cffi"
 version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", version = "3.11", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and implementation_name != 'PyPy' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and implementation_name != 'PyPy' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (implementation_name == 'PyPy' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "pycparser", version = "3.12", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and implementation_name != 'PyPy' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version >= '3.11' and implementation_name != 'PyPy' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (implementation_name == 'PyPy' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "pycparser", version = "3.11", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and implementation_name != 'PyPy' and extra == 'group-11-alexein-cli-crewai') or (python_full_version < '3.11' and implementation_name != 'PyPy' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (implementation_name == 'PyPy' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "pycparser", version = "3.12", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and implementation_name != 'PyPy' and extra == 'group-11-alexein-cli-crewai') or (python_full_version >= '3.11' and implementation_name != 'PyPy' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (implementation_name == 'PyPy' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9e/ef/008a1939e372c06329a3fce4279c02f328488f3526744906eeec3da7ad5f/cffi-2.1.1.tar.gz", hash = "sha256:dd31f52ea1086513bb9df30f8fcee9b8918323ae067a3d5b78bc826a000712be", size = 530807, upload-time = "2026-08-03T21:21:18.939Z" }
 wheels = [
@@ -709,11 +778,11 @@ dependencies = [
     { name = "jsonschema" },
     { name = "kubernetes" },
     { name = "mmh3" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version == '3.11.*' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "onnxruntime", version = "1.31.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version == '3.11.*' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "onnxruntime", version = "1.31.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
     { name = "opentelemetry-sdk" },
@@ -721,8 +790,8 @@ dependencies = [
     { name = "overrides" },
     { name = "pybase64" },
     { name = "pydantic" },
-    { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "pypika" },
     { name = "pyyaml" },
     { name = "rich" },
@@ -731,7 +800,7 @@ dependencies = [
     { name = "tqdm" },
     { name = "typer" },
     { name = "typing-extensions" },
-    { name = "uvicorn", extra = ["standard"], marker = "extra == 'group-14-twinmemory-cli-crewai'" },
+    { name = "uvicorn", extra = ["standard"], marker = "extra == 'group-11-alexein-cli-crewai'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/92/d1/5e33b26985f0c7046a0be1cee2158ada1748ee700d2545057fde1468d74d/chromadb-1.5.9.tar.gz", hash = "sha256:5c20e62a455c28bacac927f26116a73fd8e1799e0d908be8e8a4f02197a54731", size = 2595635, upload-time = "2026-05-05T05:54:51.713Z" }
 wheels = [
@@ -801,8 +870,8 @@ dependencies = [
     { name = "pdfplumber" },
     { name = "portalocker" },
     { name = "pydantic" },
-    { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "pyjwt" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -829,8 +898,8 @@ dependencies = [
     { name = "httpx" },
     { name = "packaging" },
     { name = "pydantic" },
-    { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "pyjwt" },
     { name = "python-dotenv" },
     { name = "rich" },
@@ -872,8 +941,8 @@ name = "cryptography"
 version = "50.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "(platform_python_implementation != 'PyPy' and extra == 'group-14-twinmemory-cli-crewai') or (platform_python_implementation != 'PyPy' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9d/af/182eb91b0df3fe75c4d9f26fe70684569566745f6ba7e5c9c73a862c5252/cryptography-50.0.2.tar.gz", hash = "sha256:7b46165bb56eb4704e2eaaf86f3c940d19154535d9b0ca7d6d590b04060e00d5", size = 880623, upload-time = "2026-09-30T15:30:04.884Z" }
 wheels = [
@@ -990,7 +1059,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -1014,12 +1083,12 @@ name = "filelock"
 version = "4.2.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d8/28/3893324bcadf8f89b1616637468d766af3f625008c0735bf704fdfa86617/filelock-4.2.4.tar.gz", hash = "sha256:c6d8663535e1650ee430507b4ffbac7b464dd64b7647ea0112a9f406499d163d", size = 652444, upload-time = "2026-10-19T01:57:51.001Z" }
@@ -1257,9 +1326,9 @@ version = "2.4.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32'",
     "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version == '3.11.*' and sys_platform == 'emscripten')",
 ]
@@ -1393,8 +1462,8 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "h11", marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "truststore", marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "h11", marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "truststore", marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/30/ff/b53af1b49bb2cb5fa97c92215614b173ca5c1a99ded80e2d52f15a94fa6d/httpcore2-2.14.0.tar.gz", hash = "sha256:4f57a1a8249fe6af589d935cfd456f1d13bbdcb0f0fc72af9142368fc94811d7", size = 69096, upload-time = "2026-10-18T16:29:21.898Z" }
 wheels = [
@@ -1406,22 +1475,22 @@ name = "httpcore2"
 version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents')",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents')",
 ]
 dependencies = [
-    { name = "h11", marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version == '3.11.*' and sys_platform == 'emscripten') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "truststore", marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version == '3.11.*' and sys_platform == 'emscripten') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "h11", marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version == '3.11.*' and sys_platform == 'emscripten') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra == 'group-11-alexein-cli-crewai') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "truststore", marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version == '3.11.*' and sys_platform == 'emscripten') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra == 'group-11-alexein-cli-crewai') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c0/61/afa9d6b7452f9eca73f73d45324eb0bb52f098fd5e6049bf6b8263be9b4e/httpcore2-2.16.0.tar.gz", hash = "sha256:c72cd0413563b17e1cd8354677dff887466f8ec2551679759e93126534428643", size = 69886, upload-time = "2026-10-21T07:09:45.31Z" }
 wheels = [
@@ -1572,11 +1641,11 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "anyio", marker = "(python_full_version < '3.11' and sys_platform != 'emscripten') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "httpcore2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'emscripten') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "idna", marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "truststore", marker = "(python_full_version < '3.11' and sys_platform != 'emscripten') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "anyio", marker = "(python_full_version < '3.11' and sys_platform != 'emscripten') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "httpcore2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and sys_platform != 'emscripten') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "idna", marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "truststore", marker = "(python_full_version < '3.11' and sys_platform != 'emscripten') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e8/67/58353f1848b4ba568e1ec22ea1e0d8e039f0bca5fde7e2d1f07739fd83e7/httpx2-2.14.0.tar.gz", hash = "sha256:47ad61a3c40282cd8d0dc96311531f00f5bfc71a066c6fe3b36d8f63fb9e4f6e", size = 102036, upload-time = "2026-10-18T16:29:22.627Z" }
 wheels = [
@@ -1588,29 +1657,29 @@ name = "httpx2"
 version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents')",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents')",
 ]
 dependencies = [
-    { name = "anyio", marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "httpcore2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "httpx2-jsfetch", marker = "(python_full_version >= '3.12' and sys_platform == 'emscripten') or (python_full_version < '3.12' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform != 'emscripten' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "idna", marker = "python_full_version >= '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "truststore", marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "typing-extensions", marker = "(python_full_version >= '3.11' and python_full_version < '3.13') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version >= '3.13' and extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "anyio", marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "httpcore2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "httpx2-jsfetch", marker = "(python_full_version >= '3.12' and sys_platform == 'emscripten') or (python_full_version < '3.12' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform != 'emscripten' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "idna", marker = "python_full_version >= '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "truststore", marker = "(python_full_version >= '3.11' and sys_platform != 'emscripten') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform == 'emscripten' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "typing-extensions", marker = "(python_full_version >= '3.11' and python_full_version < '3.13') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version >= '3.13' and extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/43/73/5ca2cedf5e4e50423d1c258877865a6b62793633b561c58499f8aeb33b7e/httpx2-2.16.0.tar.gz", hash = "sha256:0d54c98128e8f2ff7fbbde0fca8c359e5f032edeaaaac443cdb7f31f685bcd7f", size = 103116, upload-time = "2026-10-21T07:09:46.348Z" }
 wheels = [
@@ -1632,12 +1701,12 @@ version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
-    { name = "filelock", version = "4.1.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "filelock", version = "4.2.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "filelock", version = "4.1.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "filelock", version = "4.2.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "fsspec" },
     { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'ARM64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
-    { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "packaging" },
     { name = "pyyaml" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
@@ -1739,12 +1808,12 @@ name = "jiter"
 version = "0.14.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -1853,9 +1922,9 @@ version = "0.17.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32'",
     "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version == '3.11.*' and sys_platform == 'emscripten')",
     "python_full_version < '3.11'",
@@ -2044,11 +2113,11 @@ name = "jsonschema"
 version = "4.26.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "jsonschema-specifications", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "referencing", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "rpds-py", version = "0.30.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "rpds-py", version = "2026.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "attrs" },
+    { name = "jsonschema-specifications" },
+    { name = "referencing" },
+    { name = "rpds-py", version = "0.30.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "rpds-py", version = "2026.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b3/fc/e067678238fa451312d4c62bf6e6cf5ec56375422aee02f9cb5f909b3047/jsonschema-4.26.0.tar.gz", hash = "sha256:0c26707e2efad8aa1bfc5b7ce170f3fccc2e4918ff85989ba9ffa9facb2be326", size = 366583, upload-time = "2026-01-07T13:41:07.246Z" }
 wheels = [
@@ -2060,7 +2129,7 @@ name = "jsonschema-specifications"
 version = "2025.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "referencing", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
+    { name = "referencing" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/19/74/a633ee74eb36c44aa6d1095e7cc5569bebf04342ee146178e2d36600708b/jsonschema_specifications-2025.9.1.tar.gz", hash = "sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d", size = 32855, upload-time = "2025-09-08T01:34:59.186Z" }
 wheels = [
@@ -2122,13 +2191,13 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "deprecation" },
     { name = "lance-namespace" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version == '3.11.*' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version == '3.11.*' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "overrides", marker = "python_full_version < '3.12'" },
     { name = "packaging" },
-    { name = "pyarrow", version = "25.0.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "pyarrow", version = "26.0.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "pyarrow", version = "25.0.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "pyarrow", version = "26.0.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "pydantic" },
     { name = "tqdm" },
 ]
@@ -2211,8 +2280,8 @@ version = "4.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "langchain-core" },
-    { name = "ormsgpack", version = "1.12.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "ormsgpack", version = "1.13.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "ormsgpack", version = "1.12.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "ormsgpack", version = "1.13.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0f/69/31fdbdc65a85bbd6178afa193c772bb926620f47b4869638bc2bc80afaaa/langgraph_checkpoint-4.3.0.tar.gz", hash = "sha256:c75965d84cc2c1d549163e910a15bcb577758001b141619d05297c463280b018", size = 182652, upload-time = "2026-10-12T22:26:31.478Z" }
 wheels = [
@@ -2255,9 +2324,9 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "distro" },
-    { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "orjson", marker = "platform_python_implementation != 'PyPy' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "orjson", marker = "platform_python_implementation != 'PyPy' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "packaging" },
     { name = "pydantic" },
     { name = "requests" },
@@ -2457,22 +2526,22 @@ name = "mcp"
 version = "1.28.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "httpx", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "httpx-sse", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "jsonschema", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "pydantic", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "pyjwt", extra = ["crypto"], marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "python-multipart", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "pywin32", marker = "(sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai') or (sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "sse-starlette", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "starlette", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "typing-extensions", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "typing-inspection", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "uvicorn", marker = "(sys_platform != 'emscripten' and extra == 'group-14-twinmemory-cli-crewai') or (sys_platform != 'emscripten' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "anyio" },
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "jsonschema" },
+    { name = "pydantic" },
+    { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "pyjwt", extra = ["crypto"], marker = "extra == 'group-11-alexein-cli-crewai' or extra == 'group-11-alexein-cli-openai-agents'" },
+    { name = "python-multipart" },
+    { name = "pywin32", marker = "sys_platform == 'win32'" },
+    { name = "sse-starlette" },
+    { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "starlette", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "typing-extensions" },
+    { name = "typing-inspection" },
+    { name = "uvicorn", marker = "sys_platform != 'emscripten'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6e/77/9450b8f251a13affb6281997d0523c4615f8a8b35d0b21ff30db3a5aac9d/mcp-1.28.1.tar.gz", hash = "sha256:d51e36a5f5644faea4f85ea649bfffa6bc6c26770d42798ad6a3de3d2ba69683", size = 638501, upload-time = "2026-06-26T12:57:29.093Z" }
 wheels = [
@@ -3019,9 +3088,9 @@ name = "numpy"
 version = "2.5.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
 ]
@@ -3148,18 +3217,18 @@ name = "onnxruntime"
 version = "1.31.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 dependencies = [
     { name = "flatbuffers", marker = "python_full_version >= '3.11'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version == '3.11.*' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version == '3.11.*' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "packaging", marker = "python_full_version >= '3.11'" },
     { name = "protobuf", marker = "python_full_version >= '3.11'" },
 ]
@@ -3195,12 +3264,12 @@ name = "openai"
 version = "2.54.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -3225,17 +3294,17 @@ version = "3.37.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32'",
     "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version == '3.11.*' and sys_platform == 'emscripten')",
     "python_full_version < '3.11'",
 ]
 dependencies = [
     { name = "anyio" },
-    { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "jiter", version = "0.17.0", source = { registry = "https://pypi.org/simple" } },
     { name = "pydantic" },
     { name = "sniffio" },
@@ -3251,18 +3320,18 @@ name = "openai-agents"
 version = "0.24.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "griffelib", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "griffelib", version = "2.4.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "griffelib", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "griffelib", version = "2.4.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "mcp" },
     { name = "openai", version = "3.37.0", source = { registry = "https://pypi.org/simple" } },
     { name = "pydantic" },
     { name = "pyjwt" },
     { name = "python-multipart" },
     { name = "requests" },
-    { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "starlette", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "starlette", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "typing-extensions" },
     { name = "urllib3" },
     { name = "websockets" },
@@ -3363,7 +3432,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "googleapis-common-protos" },
     { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-http-transport", extra = ["requests"], marker = "extra == 'group-14-twinmemory-cli-crewai'" },
+    { name = "opentelemetry-exporter-http-transport", extra = ["requests"], marker = "extra == 'group-11-alexein-cli-crewai'" },
     { name = "opentelemetry-exporter-otlp-common" },
     { name = "opentelemetry-exporter-otlp-proto-common" },
     { name = "opentelemetry-proto" },
@@ -3545,21 +3614,21 @@ name = "ormsgpack"
 version = "1.13.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents')",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/72/ae/aea2bee05bd61645daf97515174d71d8fd978a2c395b4dd5f0a5ada7facc/ormsgpack-1.13.0.tar.gz", hash = "sha256:4127e84b07816e1f36d557e95b5642041692df22bf77f2c2f563a2039ab8144e", size = 45467, upload-time = "2026-10-15T19:51:30.979Z" }
 wheels = [
@@ -3650,8 +3719,8 @@ version = "0.11.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pdfminer-six" },
-    { name = "pillow", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "pillow", version = "13.0.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "pillow", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "pillow", version = "13.0.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "pypdfium2" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/05/56/6f450312ba05a27d7713b73857c1a25100dbda04fbc1331b13fb227a607d/pdfplumber-0.11.10.tar.gz", hash = "sha256:b95b2d28c66efb0a794a83b88c6c6aea5987532a445d20a1cbcfa657022e6e57", size = 102892, upload-time = "2026-06-15T03:31:31.035Z" }
@@ -3856,12 +3925,12 @@ name = "pillow"
 version = "13.0.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ce/a4/9cc30690a394a8305e8be4c9036aa16d0dfddadd09079860b582f562496d/pillow-13.0.0.tar.gz", hash = "sha256:cdcd1ba258178f7356d74170c9a81ba4eab6a5d55748bc402a5a2a6fe6be3510", size = 47058631, upload-time = "2026-10-16T22:18:09.718Z" }
@@ -3967,12 +4036,12 @@ name = "platformdirs"
 version = "4.13.5"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/58/e6/d0abbb256b44e6a05748c6942511ff67db8dbb068de0c35b24bf1b395b09/platformdirs-4.13.5.tar.gz", hash = "sha256:05831adf87d392760f4b5c3a0a95579ab5a10b18b9b9bd43680dcb47544788a0", size = 62362, upload-time = "2026-10-19T01:02:11.778Z" }
@@ -4219,12 +4288,12 @@ name = "pyarrow"
 version = "26.0.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ec/34/17c34cb38e5d940e38f0f0d9fdfa0e8a506676409ea9b85aff7e3079f831/pyarrow-26.0.0.tar.gz", hash = "sha256:0cccd36e00ea3afeb52ded61f2721ce71f604853d70c45365c58324eb773d6ae", size = 1239433, upload-time = "2026-10-09T08:26:25.315Z" }
@@ -4492,19 +4561,19 @@ name = "pycparser"
 version = "3.12"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cb/27/eeb9f307bf07060f3d9f9aa0fb8c15b01bdfded0a941e4b2719c7f94cacd/pycparser-3.12.tar.gz", hash = "sha256:f03387877eab82ce01bbdfd0ba7252ee55a90b1c708d5129e2ce915475cf1db6", size = 158785, upload-time = "2026-10-22T13:40:03.56Z" }
 wheels = [
@@ -4652,9 +4721,9 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "pydantic", marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "python-dotenv", marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "typing-inspection", marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "pydantic", marker = "python_full_version < '3.11'" },
+    { name = "python-dotenv", marker = "python_full_version < '3.11'" },
+    { name = "typing-inspection", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/68/ca/31c57507b13119d7d3cfa1576dad2911a4861e3be07b579395f4e9d393f9/pydantic_settings-2.15.0.tar.gz", hash = "sha256:694b793e84f766ba76a90ebdefc01d0a9a045dab0382bee70393da93712ad117", size = 261253, upload-time = "2026-08-07T09:24:57.419Z" }
 wheels = [
@@ -4666,19 +4735,19 @@ name = "pydantic-settings"
 version = "2.16.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
 ]
 dependencies = [
     { name = "pydantic", marker = "python_full_version >= '3.11'" },
@@ -4705,7 +4774,7 @@ name = "pyjwt"
 version = "2.15.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/43/ea/5194e52748b0da83d71e082d75496eaec6e58f419f5e184786ded517e6a9/pyjwt-2.15.1.tar.gz", hash = "sha256:4f259e80cdfb6b3fc18a7de51fd1ef9ec79652f25019bae68975ca2468a34df8", size = 121252, upload-time = "2026-09-28T18:40:42.598Z" }
 wheels = [
@@ -4714,7 +4783,7 @@ wheels = [
 
 [package.optional-dependencies]
 crypto = [
-    { name = "cryptography", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
+    { name = "cryptography" },
 ]
 
 [[package]]
@@ -4795,13 +4864,13 @@ name = "pytest"
 version = "9.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
     { name = "pygments" },
-    { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e4/47/b9efed96c114afcfa3c9d3fe98a76a1d14c74a9e266d397cf6eb64be5e01/pytest-9.1.1.tar.gz", hash = "sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313", size = 1636369, upload-time = "2026-06-19T10:58:32.857Z" }
 wheels = [
@@ -4933,10 +5002,10 @@ name = "referencing"
 version = "0.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "rpds-py", version = "0.30.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "rpds-py", version = "2026.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.13' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.13' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "attrs" },
+    { name = "rpds-py", version = "0.30.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "rpds-py", version = "2026.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/22/f5/df4e9027acead3ecc63e50fe1e36aca1523e1719559c499951bb4b53188f/referencing-0.37.0.tar.gz", hash = "sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8", size = 78036, upload-time = "2025-10-13T15:30:48.871Z" }
 wheels = [
@@ -5247,19 +5316,19 @@ name = "rpds-py"
 version = "2026.9.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/68/3bd46b8a5e01d3c2ebdf9c5e9497912e3fe0cde02bac21a7130ca866e403/rpds_py-2026.9.1.tar.gz", hash = "sha256:4793ef7f78268b124b73fa933440f01d258bbae01de9fa53e9080c9ab0425a12", size = 63948, upload-time = "2026-10-04T16:32:36.469Z" }
 wheels = [
@@ -5449,9 +5518,9 @@ name = "sse-starlette"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio", marker = "extra == 'group-14-twinmemory-cli-crewai' or extra == 'group-14-twinmemory-cli-openai-agents'" },
-    { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "starlette", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "anyio" },
+    { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version < '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "starlette", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (python_full_version >= '3.11' and extra == 'group-11-alexein-cli-openai-agents') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e4/be/0123026f719d1a7936f214a88b553bb5701e04ff2511147c1dab0c5035eb/sse_starlette-3.5.0.tar.gz", hash = "sha256:75de713aa8a9441513cc283220826da079d982770965b951e9437720e8bafdb2", size = 36794, upload-time = "2026-09-28T17:48:14.7Z" }
 wheels = [
@@ -5466,8 +5535,8 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "anyio", marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "anyio", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7b/2b/3850dc6bf7ef71b088962eba31dafc6cffd2f96e577ebb0bb316df96da3e/starlette-1.7.0.tar.gz", hash = "sha256:c79f74ea63cff761804fbbfb182f1e0b440c2d07b164d24700c5a1bab5d6ff5d", size = 2736246, upload-time = "2026-09-23T07:30:26.35Z" }
 wheels = [
@@ -5479,19 +5548,19 @@ name = "starlette"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-14-twinmemory-cli-crewai' and extra != 'group-14-twinmemory-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'group-11-alexein-cli-crewai' and extra != 'group-11-alexein-cli-openai-agents'",
 ]
 dependencies = [
     { name = "anyio", marker = "python_full_version >= '3.11'" },
@@ -5528,10 +5597,10 @@ name = "textual"
 version = "8.2.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "markdown-it-py", extra = ["linkify"], marker = "extra == 'group-14-twinmemory-cli-crewai'" },
+    { name = "markdown-it-py", extra = ["linkify"], marker = "extra == 'group-11-alexein-cli-crewai'" },
     { name = "mdit-py-plugins" },
-    { name = "platformdirs", version = "4.12.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
-    { name = "platformdirs", version = "4.13.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "platformdirs", version = "4.12.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
+    { name = "platformdirs", version = "4.13.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-alexein-cli-crewai') or (extra == 'group-11-alexein-cli-crewai' and extra == 'group-11-alexein-cli-openai-agents')" },
     { name = "pygments" },
     { name = "rich" },
     { name = "typing-extensions" },
@@ -5613,59 +5682,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/ee/9f/c5201d42a484c061e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/51/e9/3a7820be2bb0fe53b6bc9c3be26d3d1158004e4c3ab953aa6840b955b1e9/truststore-0.10.5-py3-none-any.whl", hash = "sha256:9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c", size = 19017, upload-time = "2026-10-12T22:27:30.377Z" },
 ]
-
-[[package]]
-name = "twinmemory"
-version = "0.2.0"
-source = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
-dependencies = [
-    { name = "httpx" },
-]
-wheels = [
-    { filename = "twinmemory-0.2.0-py3-none-any.whl", hash = "sha256:8fe0b1b64bbe47c04d7bf4c42e3e1e0d729017eaa400fb3a67fa10c10b0c7ea5" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "httpx", specifier = ">=0.27,<1" }]
-
-[[package]]
-name = "twinmemory-cli"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "twinmemory" },
-]
-
-[package.dev-dependencies]
-crewai = [
-    { name = "crewai" },
-]
-dev = [
-    { name = "anyio" },
-    { name = "langchain" },
-    { name = "langgraph" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-openai-agents = [
-    { name = "openai-agents" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "twinmemory", path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }]
-
-[package.metadata.requires-dev]
-crewai = [{ name = "crewai", specifier = ">=1.15,<1.16" }]
-dev = [
-    { name = "anyio", specifier = ">=4" },
-    { name = "langchain", specifier = ">=1" },
-    { name = "langgraph", specifier = ">=1" },
-    { name = "pyright", specifier = ">=1.1.380" },
-    { name = "pytest", specifier = ">=8" },
-    { name = "ruff", specifier = ">=0.6" },
-]
-openai-agents = [{ name = "openai-agents", specifier = ">=0.24" }]
 
 [[package]]
 name = "typer"
@@ -5881,9 +5897,9 @@ name = "uvicorn"
 version = "0.54.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", marker = "(python_full_version < '3.12' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform != 'emscripten' and extra == 'group-14-twinmemory-cli-openai-agents') or extra == 'group-14-twinmemory-cli-crewai'" },
-    { name = "h11", marker = "(python_full_version < '3.12' and extra == 'group-14-twinmemory-cli-openai-agents') or (sys_platform != 'emscripten' and extra == 'group-14-twinmemory-cli-openai-agents') or extra == 'group-14-twinmemory-cli-crewai'" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-crewai') or (python_full_version < '3.11' and extra == 'group-14-twinmemory-cli-openai-agents') or (extra == 'group-14-twinmemory-cli-crewai' and extra == 'group-14-twinmemory-cli-openai-agents')" },
+    { name = "click", marker = "(python_full_version < '3.12' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform != 'emscripten' and extra == 'group-11-alexein-cli-openai-agents') or extra == 'group-11-alexein-cli-crewai'" },
+    { name = "h11", marker = "(python_full_version < '3.12' and extra == 'group-11-alexein-cli-openai-agents') or (sys_platform != 'emscripten' and extra == 'group-11-alexein-cli-openai-agents') or extra == 'group-11-alexein-cli-crewai'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/da/34/30e9280707135d2cfc589dfff3cb796bd07a3aeb1a3e415ba09dd89d7bb4/uvicorn-0.54.0.tar.gz", hash = "sha256:a2e33cbfaa0306f8e6b0c13e0cb89d7d7a2da3e62b90c66e18c33d9807b28620", size = 112283, upload-time = "2026-09-25T06:52:37.601Z" }
 wheels = [

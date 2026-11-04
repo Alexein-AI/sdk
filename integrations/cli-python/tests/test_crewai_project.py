@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from twinmemory_cli import project
+from alexein_cli import project
 
 CREW_PY = "from crewai.project import CrewBase\n\n\n@CrewBase\nclass MyCrew:\n    pass\n"
 

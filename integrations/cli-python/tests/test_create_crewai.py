@@ -1,6 +1,6 @@
 # pyright: reportMissingImports=false
 # CrewAI and the OpenAI Agents SDK are never installed together (see pyproject.toml).
-"""`twinmemory-cli create crewai <name>`: a classic crew with memory wired in - its files, what it
+"""`alexein-cli create crewai <name>`: a classic crew with memory wired in - its files, what it
 installs, and the crew itself, run with a stand-in model against a recorded memory API."""
 
 from __future__ import annotations
@@ -15,13 +15,13 @@ from typing import Any
 
 import httpx
 import pytest
-from conftest import memory
+from conftest import route, wire
 from test_cli import lint_clean
 
-from twinmemory_cli import env, main
-from twinmemory_cli.create_crewai import DEFAULT_MODEL, create
-from twinmemory_cli.scaffold import Options
-from twinmemory_cli.ui import Console
+from alexein_cli import env, main
+from alexein_cli.create_crewai import DEFAULT_MODEL, create
+from alexein_cli.scaffold import Options
+from alexein_cli.ui import Console
 
 os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
@@ -80,10 +80,10 @@ def test_create_makes_a_classic_crew_with_memory_wired_in(tmp_path: Path) -> Non
     ):
         assert (home / path).exists(), path
     assert '[tool.crewai]\ntype = "crew"' in (root / "pyproject.toml").read_text()
-    assert "memory = TwinMemory()" in (home / "crew.py").read_text()
+    assert "memory = alexein_memory" in (home / "crew.py").read_text()
     assert env.read(root / ".env") == {"MODEL": DEFAULT_MODEL, "ANTHROPIC_API_KEY": "", env.KEY: ""}
     assert recorder.ran == [
-        ["uv", "add", "twinmemory>=0.2", "crewai[anthropic]>=1.15", "python-dotenv"]
+        ["uv", "add", "alexein[crewai]>=0.3", "crewai[anthropic]>=1.15", "python-dotenv"]
     ]
     assert "uv run run_crew --user dana" in said(console)
 
@@ -117,9 +117,9 @@ def test_dry_run_makes_nothing(tmp_path: Path) -> None:
     assert "would    write src/trip_crew/crew.py" in said(console)
 
 
-@pytest.mark.parametrize("parts", [("nodes", "tools"), ("tools",)])
-def test_every_created_file_is_clean(tmp_path: Path, parts: tuple[str, ...]) -> None:
-    made(tmp_path, parts=parts)
+@pytest.mark.parametrize("fast", [False, True])
+def test_every_created_file_is_clean(tmp_path: Path, fast: bool) -> None:
+    made(tmp_path, fast=fast)
     for path in (tmp_path / "trip-crew" / "src" / "trip_crew").glob("*.py"):
         if path.stat().st_size:
             lint_clean(path)
@@ -142,28 +142,23 @@ from test_crewai_template import answering, stand  # noqa: E402
 
 
 def run_created(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, parts: tuple[str, ...], *answers: Any
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *answers: Any
 ) -> tuple[Any, list[tuple[str, str, Any]]]:
-    made(tmp_path, parts=parts)
+    """Make the crew, import it with no key set, stand in for its model and memory."""
+    made(tmp_path)
     monkeypatch.syspath_prepend(str(tmp_path / "trip-crew" / "src"))
     for name in [m for m in sys.modules if m.startswith("trip_crew")]:
         monkeypatch.delitem(sys.modules, name)
-    memory_module = importlib.import_module("trip_crew.memory")
-    crew_module = importlib.import_module("trip_crew.crew")
+    crew_module = importlib.import_module("trip_crew.crew")  # needs no key
     sent: list[tuple[str, str, Any]] = []
 
     def recorded(request: httpx.Request) -> httpx.Response:
-        sent.append(
-            (
-                request.url.path.rsplit("/", 1)[-1],
-                request.headers.get("X-Twin-Account", ""),
-                json.loads(request.content) if request.content else None,
-            )
-        )
+        body = json.loads(request.content) if request.content else None
+        sent.append((route(request), request.headers.get("x-alexein-user", ""), body))
         return answering(request)
 
-    client, _ = memory(recorded, fail_open=True, max_retries=0)
-    monkeypatch.setattr(memory_module, "_memory", lambda: client)
+    monkeypatch.setenv(env.KEY, "tm_test")
+    wire(monkeypatch, recorded)
     monkeypatch.setattr(crew_module, "MODEL", stand(*answers))
     return crew_module, sent
 
@@ -171,7 +166,7 @@ def run_created(
 def test_the_created_crew_recalls_and_saves_for_its_user(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    crew_module, sent = run_created(tmp_path, monkeypatch, ("nodes", "tools"))
+    crew_module, sent = run_created(tmp_path, monkeypatch)
     out = (
         crew_module.TripCrew()
         .crew()
@@ -181,22 +176,13 @@ def test_the_created_crew_recalls_and_saves_for_its_user(
     assert [r for r, a, _ in sent if a == "dana" and r != "me"] == ["search", "add"]
 
 
-def test_the_tools_only_crew_saves_its_result_after_the_run(
+def test_the_created_crew_runs_from_its_command_line(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _, sent = run_created(tmp_path, monkeypatch, ("tools",))
+    _, sent = run_created(tmp_path, monkeypatch)
     main_module = importlib.import_module("trip_crew.main")
-    main_module.ask("dana", "Where do I live?")
-    assert [r for r, a, _ in sent if a == "dana"] == ["add"]
-
-
-def test_the_tools_only_crews_tools_are_for_the_runs_user(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """CrewBase makes the agents when the crew class is made, so the user is given then."""
-    crew_module, _ = run_created(tmp_path, monkeypatch, ("tools",))
-    (agent,) = crew_module.TripCrew("dana").crew().agents
-    assert {getattr(t, "user_id", None) for t in agent.tools} == {"dana"}
+    assert main_module.ask("dana", "Where do I live?") == "Lisbon it is."
+    assert [r for r, a, _ in sent if a == "dana"] == ["search", "add"]
 
 
 def test_create_checks_the_crewai_it_installed(tmp_path: Path) -> None:

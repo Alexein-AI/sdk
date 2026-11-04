@@ -1,0 +1,61 @@
+"""The agent: a model that remembers the people it talks to.
+
+Made by `alexein-cli create langgraph`. Memory comes from `memory.py`, beside it:
+`memory.recall` looks up what memory holds before the model answers, `memory.remember`
+saves the turn after it, and the model can search memory itself with `memory.tools()`.
+
+Whose memory a run reads is the `user_id` in its context, which your code sets:
+
+    graph.invoke(inputs, context={"user_id": "dana"})
+"""
+
+from __future__ import annotations
+
+import os
+from functools import cache
+from typing import Any
+
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import SystemMessage
+from langgraph.graph import END, START, StateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
+
+from {package}.memory import MemoryContext, MemoryState, memory
+
+# `memory.remember` saves every turn, so the model is only given the tools that read.
+TOOLS = memory.tools()
+
+SYSTEM = (
+    "You are a helpful assistant. You remember the people you talk to across "
+    "conversations; use what you remember where it helps, and never invent it."
+)
+
+
+@cache
+def _model() -> Any:
+    """The chat model `MODEL` in .env names, made on first use."""
+    return init_chat_model(os.environ.get("MODEL", "{model}")).bind_tools(TOOLS)
+
+
+def agent(state: MemoryState) -> dict[str, Any]:
+    system = SYSTEM
+    remembered = memory.prompt(state)
+    if remembered:
+        system += "\n\n" + remembered
+    reply = _model().invoke([SystemMessage(system), *state["messages"]])
+    return {"messages": [reply]}
+
+
+builder = StateGraph(MemoryState, context_schema=MemoryContext)
+builder.add_node("recall", memory.recall)
+builder.add_node("agent", agent)
+builder.add_node("tools", ToolNode(TOOLS))
+builder.add_node("remember", memory.remember)
+builder.add_edge(START, "recall")
+builder.add_edge("recall", "agent")
+builder.add_conditional_edges(
+    "agent", tools_condition, {"tools": "tools", "__end__": "remember"}
+)
+builder.add_edge("tools", "agent")
+builder.add_edge("remember", END)
+graph = builder.compile()

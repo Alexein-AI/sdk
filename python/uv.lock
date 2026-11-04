@@ -3,46 +3,46 @@ revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version < '3.11' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version < '3.11' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
 ]
 conflicts = [[
@@ -326,7 +326,7 @@ requires-dist = [
     { name = "crewai", marker = "extra == 'crewai'", specifier = ">=1.15,<1.16" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "langchain", marker = "extra == 'langgraph'", specifier = ">=1" },
-    { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1" },
+    { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1.2" },
     { name = "openai-agents", marker = "extra == 'openai-agents'", specifier = ">=0.24" },
 ]
 provides-extras = ["langgraph", "openai-agents", "crewai"]
@@ -336,7 +336,7 @@ crewai = [{ name = "crewai", specifier = ">=1.15,<1.16" }]
 dev = [
     { name = "anyio", specifier = ">=4" },
     { name = "langchain", specifier = ">=1" },
-    { name = "langgraph", specifier = ">=1" },
+    { name = "langgraph", specifier = ">=1.2" },
     { name = "pyright", specifier = ">=1.1.380" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.6" },
@@ -964,8 +964,8 @@ name = "cryptography"
 version = "50.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "(platform_python_implementation != 'PyPy' and extra == 'extra-7-alexein-crewai') or (platform_python_implementation != 'PyPy' and extra == 'extra-7-alexein-openai-agents') or (platform_python_implementation != 'PyPy' and extra == 'group-7-alexein-crewai') or (platform_python_implementation != 'PyPy' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9d/af/182eb91b0df3fe75c4d9f26fe70684569566745f6ba7e5c9c73a862c5252/cryptography-50.0.2.tar.gz", hash = "sha256:7b46165bb56eb4704e2eaaf86f3c940d19154535d9b0ca7d6d590b04060e00d5", size = 880623, upload-time = "2026-09-30T15:30:04.884Z" }
 wheels = [
@@ -1082,7 +1082,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -1106,12 +1106,12 @@ name = "filelock"
 version = "4.2.7"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e0/14/73688a22e91cfcfc6837a011ffa572e2ba3c348765f7bd482d8436fa9b6f/filelock-4.2.7.tar.gz", hash = "sha256:31f6f7e3a8b6f0bd89114d30c5d5218ea1cfb63e5c4aa695b7559314a209bc7f", size = 661450, upload-time = "2026-11-02T16:09:15.119Z" }
@@ -1349,8 +1349,8 @@ version = "2.4.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten') or (python_full_version == '3.11.*' and sys_platform == 'emscripten')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/36/e2/0f5d8ed08766bc6dcd3eebf5a6623d83cbca33a6e4c90aef57156ce745ad/griffelib-2.4.1.tar.gz", hash = "sha256:40c028dd2e623f464423f0e11e3c553158f1cf4f1368239a370534d73e1407ff", size = 245153, upload-time = "2026-10-22T11:20:03.705Z" }
@@ -1497,31 +1497,31 @@ version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
 ]
@@ -1695,39 +1695,39 @@ version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
 ]
 dependencies = [
@@ -1865,12 +1865,12 @@ name = "jiter"
 version = "0.14.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -1979,8 +1979,8 @@ version = "0.18.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten') or (python_full_version == '3.11.*' and sys_platform == 'emscripten')",
     "python_full_version < '3.11'",
 ]
@@ -2168,9 +2168,9 @@ name = "jsonschema"
 version = "4.26.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs", marker = "extra == 'extra-7-alexein-crewai' or extra == 'extra-7-alexein-openai-agents' or extra == 'group-7-alexein-crewai' or extra == 'group-7-alexein-openai-agents'" },
-    { name = "jsonschema-specifications", marker = "extra == 'extra-7-alexein-crewai' or extra == 'extra-7-alexein-openai-agents' or extra == 'group-7-alexein-crewai' or extra == 'group-7-alexein-openai-agents'" },
-    { name = "referencing", marker = "extra == 'extra-7-alexein-crewai' or extra == 'extra-7-alexein-openai-agents' or extra == 'group-7-alexein-crewai' or extra == 'group-7-alexein-openai-agents'" },
+    { name = "attrs" },
+    { name = "jsonschema-specifications" },
+    { name = "referencing" },
     { name = "rpds-py", version = "0.30.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
     { name = "rpds-py", version = "2026.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version >= '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version >= '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version >= '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
 ]
@@ -2184,7 +2184,7 @@ name = "jsonschema-specifications"
 version = "2025.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "referencing", marker = "extra == 'extra-7-alexein-crewai' or extra == 'extra-7-alexein-openai-agents' or extra == 'group-7-alexein-crewai' or extra == 'group-7-alexein-openai-agents'" },
+    { name = "referencing" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/19/74/a633ee74eb36c44aa6d1095e7cc5569bebf04342ee146178e2d36600708b/jsonschema_specifications-2025.9.1.tar.gz", hash = "sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d", size = 32855, upload-time = "2025-09-08T01:34:59.186Z" }
 wheels = [
@@ -2587,12 +2587,12 @@ name = "mcp"
 version = "1.30.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -2627,8 +2627,8 @@ version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten') or (python_full_version == '3.11.*' and sys_platform == 'emscripten')",
     "python_full_version < '3.11'",
 ]
@@ -3056,12 +3056,12 @@ name = "multidict"
 version = "7.2.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7b/6b/29ef8e752f5854dcc267ded0652c475bec99b86f255957a0d4fcad657b18/multidict-7.2.1.tar.gz", hash = "sha256:e8af3e6f1bdbc31fd762b094133b478b89988eaebc63cbe82b1d9e3bbd15cede", size = 369994, upload-time = "2026-10-24T20:41:35.457Z" }
@@ -3380,9 +3380,9 @@ name = "numpy"
 version = "2.5.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
 ]
@@ -3509,12 +3509,12 @@ name = "onnxruntime"
 version = "1.31.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 dependencies = [
@@ -3556,12 +3556,12 @@ name = "openai"
 version = "2.54.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -3586,8 +3586,8 @@ version = "3.45.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten') or (python_full_version == '3.11.*' and sys_platform == 'emscripten')",
     "python_full_version < '3.11'",
 ]
@@ -3649,7 +3649,7 @@ name = "opentelemetry-api"
 version = "1.45.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "extra == 'extra-7-alexein-crewai' or extra == 'extra-7-alexein-openai-agents' or extra == 'group-7-alexein-crewai' or extra == 'group-7-alexein-openai-agents'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/19/14/cf3a6b6448849656e1e5f4e2101f3988dc6789724050096aba1bc5ccf592/opentelemetry_api-1.45.2.tar.gz", hash = "sha256:d7b0008e21e5fd61cbe7a7f34ca3b6905a78ab677d9bc395e299359c75cda6b4", size = 73277, upload-time = "2026-10-29T17:29:37.888Z" }
 wheels = [
@@ -3906,39 +3906,39 @@ version = "1.13.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/72/ae/aea2bee05bd61645daf97515174d71d8fd978a2c395b4dd5f0a5ada7facc/ormsgpack-1.13.0.tar.gz", hash = "sha256:4127e84b07816e1f36d557e95b5642041692df22bf77f2c2f563a2039ab8144e", size = 45467, upload-time = "2026-10-15T19:51:30.979Z" }
@@ -4237,12 +4237,12 @@ name = "pillow"
 version = "13.0.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ce/a4/9cc30690a394a8305e8be4c9036aa16d0dfddadd09079860b582f562496d/pillow-13.0.0.tar.gz", hash = "sha256:cdcd1ba258178f7356d74170c9a81ba4eab6a5d55748bc402a5a2a6fe6be3510", size = 47058631, upload-time = "2026-10-16T22:18:09.718Z" }
@@ -4348,12 +4348,12 @@ name = "platformdirs"
 version = "4.14.3"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9a/6e/886dc7c9d21e2d95aceb696f1e31271742033aeef3661f6e9c8921493592/platformdirs-4.14.3.tar.gz", hash = "sha256:021add1ab113483edbcd4694f5fbb2d688b893ea30d35e1155bb371cf4be0be8", size = 71124, upload-time = "2026-11-01T16:27:32.928Z" }
@@ -4600,12 +4600,12 @@ name = "pyarrow"
 version = "26.0.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/bc/5e/9cb2a56d5e293aab4e2fbecc5b0620d93227d66b8d5a63c554c31e1f80fe/pyarrow-26.0.1.tar.gz", hash = "sha256:93affcbd8a343e98dc19e9ec8fe17271ebf8fe98102d8b7454175074409f8b72", size = 1237985, upload-time = "2026-11-03T10:54:17.563Z" }
@@ -4874,37 +4874,37 @@ version = "3.12"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cb/27/eeb9f307bf07060f3d9f9aa0fb8c15b01bdfded0a941e4b2719c7f94cacd/pycparser-3.12.tar.gz", hash = "sha256:f03387877eab82ce01bbdfd0ba7252ee55a90b1c708d5129e2ce915475cf1db6", size = 158785, upload-time = "2026-10-22T13:40:03.56Z" }
@@ -4917,12 +4917,12 @@ name = "pydantic"
 version = "2.12.5"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -4943,22 +4943,22 @@ version = "2.14.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
     "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
 ]
 dependencies = [
@@ -4977,12 +4977,12 @@ name = "pydantic-core"
 version = "2.41.5"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -5106,22 +5106,22 @@ version = "2.50.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
     "(python_full_version >= '3.11' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version < '3.11' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
 ]
 dependencies = [
@@ -5293,12 +5293,12 @@ name = "pydantic-settings"
 version = "2.16.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 dependencies = [
@@ -5326,7 +5326,7 @@ name = "pyjwt"
 version = "2.15.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/43/ea/5194e52748b0da83d71e082d75496eaec6e58f419f5e184786ded517e6a9/pyjwt-2.15.1.tar.gz", hash = "sha256:4f259e80cdfb6b3fc18a7de51fd1ef9ec79652f25019bae68975ca2468a34df8", size = 121252, upload-time = "2026-09-28T18:40:42.598Z" }
 wheels = [
@@ -5335,7 +5335,7 @@ wheels = [
 
 [package.optional-dependencies]
 crypto = [
-    { name = "cryptography", marker = "extra == 'extra-7-alexein-crewai' or extra == 'extra-7-alexein-openai-agents' or extra == 'group-7-alexein-crewai' or extra == 'group-7-alexein-openai-agents'" },
+    { name = "cryptography" },
 ]
 
 [[package]]
@@ -5451,12 +5451,12 @@ name = "python-dateutil"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
 ]
 dependencies = [
@@ -5494,37 +5494,37 @@ version = "0.0.33"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9f/b7/15b905f6142a9a8a68f66900788da1a32e4d4254452783b37ad1eccb0506/python_multipart-0.0.33.tar.gz", hash = "sha256:b8112424a6abd162ec08d390565dd113ad699f2fe6fef3c987b8bbcbfe9e390d", size = 50499, upload-time = "2026-10-31T14:23:47.461Z" }
@@ -5626,10 +5626,10 @@ name = "referencing"
 version = "0.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs", marker = "extra == 'extra-7-alexein-crewai' or extra == 'extra-7-alexein-openai-agents' or extra == 'group-7-alexein-crewai' or extra == 'group-7-alexein-openai-agents'" },
+    { name = "attrs" },
     { name = "rpds-py", version = "0.30.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
     { name = "rpds-py", version = "2026.9.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version >= '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version >= '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version >= '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.13' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.13' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.13' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.13' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/22/f5/df4e9027acead3ecc63e50fe1e36aca1523e1719559c499951bb4b53188f/referencing-0.37.0.tar.gz", hash = "sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8", size = 78036, upload-time = "2025-10-13T15:30:48.871Z" }
 wheels = [
@@ -5941,37 +5941,37 @@ version = "2026.9.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/68/3bd46b8a5e01d3c2ebdf9c5e9497912e3fe0cde02bac21a7130ca866e403/rpds_py-2026.9.1.tar.gz", hash = "sha256:4793ef7f78268b124b73fa933440f01d258bbae01de9fa53e9080c9ab0425a12", size = 63948, upload-time = "2026-10-04T16:32:36.469Z" }
@@ -6165,8 +6165,8 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "anyio", marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
-    { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
+    { name = "anyio", marker = "python_full_version < '3.11'" },
+    { name = "starlette", version = "1.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/af/2e/16b9cce59c2eebd2f944b41b01df119f8ee65535ce839c462f1b2c9ae2e0/sse_starlette-3.5.1.tar.gz", hash = "sha256:dbb1461cd53c1e284537c3ddcf92f54f24178519a3f1e335e49e5283993db0f7", size = 38356, upload-time = "2026-10-24T08:45:12.444Z" }
 wheels = [
@@ -6179,37 +6179,37 @@ version = "3.6.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
 ]
 dependencies = [
@@ -6229,8 +6229,8 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "anyio", marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
+    { name = "anyio", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7b/2b/3850dc6bf7ef71b088962eba31dafc6cffd2f96e577ebb0bb316df96da3e/starlette-1.7.0.tar.gz", hash = "sha256:c79f74ea63cff761804fbbfb182f1e0b440c2d07b164d24700c5a1bab5d6ff5d", size = 2736246, upload-time = "2026-09-23T07:30:26.35Z" }
 wheels = [
@@ -6243,37 +6243,37 @@ version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
-    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.13.*' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.12.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32' and extra != 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
+    "(python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents') or (python_full_version == '3.11.*' and sys_platform == 'emscripten' and extra != 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents')",
+    "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
     "python_full_version == '3.11.*' and sys_platform != 'win32' and extra == 'extra-7-alexein-crewai' and extra != 'extra-7-alexein-openai-agents' and extra != 'group-7-alexein-crewai' and extra != 'group-7-alexein-openai-agents'",
 ]
 dependencies = [
@@ -6363,12 +6363,12 @@ name = "tomli"
 version = "2.0.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version == '3.13.*'",
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version == '3.11.*' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -6629,7 +6629,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click", marker = "(python_full_version < '3.12' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.12' and extra == 'group-7-alexein-openai-agents') or (sys_platform != 'emscripten' and extra == 'extra-7-alexein-openai-agents') or (sys_platform != 'emscripten' and extra == 'group-7-alexein-openai-agents') or extra == 'extra-7-alexein-crewai' or extra == 'group-7-alexein-crewai'" },
     { name = "h11", marker = "(python_full_version < '3.12' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.12' and extra == 'group-7-alexein-openai-agents') or (sys_platform != 'emscripten' and extra == 'extra-7-alexein-openai-agents') or (sys_platform != 'emscripten' and extra == 'group-7-alexein-openai-agents') or extra == 'extra-7-alexein-crewai' or extra == 'group-7-alexein-crewai'" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'extra-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'extra-7-alexein-openai-agents') or (python_full_version < '3.11' and extra == 'group-7-alexein-crewai') or (python_full_version < '3.11' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'extra-7-alexein-openai-agents') or (extra == 'extra-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents') or (extra == 'extra-7-alexein-openai-agents' and extra == 'group-7-alexein-crewai') or (extra == 'group-7-alexein-crewai' and extra == 'group-7-alexein-openai-agents')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/da/34/30e9280707135d2cfc589dfff3cb796bd07a3aeb1a3e415ba09dd89d7bb4/uvicorn-0.54.0.tar.gz", hash = "sha256:a2e33cbfaa0306f8e6b0c13e0cb89d7d7a2da3e62b90c66e18c33d9807b28620", size = 112283, upload-time = "2026-09-25T06:52:37.601Z" }
 wheels = [

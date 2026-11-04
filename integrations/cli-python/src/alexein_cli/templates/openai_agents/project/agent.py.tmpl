@@ -1,0 +1,43 @@
+"""The agent: a model that remembers the people it talks to.
+
+Made by `alexein-cli create openai-agents`. Memory comes from `memory.py`, beside it:
+`memory.recall` looks up what memory holds before the model answers, `memory.remember`
+saves the turn after it, and the model can search memory itself with `memory.tools()`.
+
+Whose memory a run reads is the `user_id` in its context, which your code sets:
+
+    await reply("Where do I live?", MemoryContext(user_id="dana"))
+"""
+
+from __future__ import annotations
+
+import os
+
+from agents import Agent, RunConfig, Runner, TResponseInputItem
+from agents.result import RunResult
+
+from {package}.memory import MemoryContext, memory
+
+agent = Agent[MemoryContext](
+    name="Assistant",
+    instructions=(
+        "You are a helpful assistant. You remember the people you talk to across "
+        "conversations; use what you remember where it helps, and never invent it."
+    ),
+    # `MODEL` in .env; empty, the OpenAI Agents SDK's default.
+    model=os.environ.get("MODEL") or None,
+    # `memory.remember` saves every turn, so the model gets only the tools that read.
+    tools=memory.tools(),
+)
+
+# Memory goes into the instructions of every model call, looked up once a turn.
+RUN_CONFIG = RunConfig(call_model_input_filter=memory.recall)
+
+
+async def reply(
+    said: str | list[TResponseInputItem], context: MemoryContext
+) -> RunResult:
+    """One turn. `said` is the user's message, or the conversation ending with it."""
+    result = await Runner.run(agent, said, context=context, run_config=RUN_CONFIG)
+    await memory.remember(result)
+    return result

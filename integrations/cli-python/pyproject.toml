@@ -1,7 +1,7 @@
 [project]
-name = "twinmemory-cli"
-version = "0.1.0"
-description = "Add memory from Alexein to a LangGraph project, a CrewAI crew or an OpenAI Agents SDK agent, as code you own: uvx twinmemory-cli init langgraph | crewai | openai-agents."
+name = "alexein-cli"
+version = "0.3.0"
+description = "Add memory from Alexein to a LangGraph project, a CrewAI crew or an OpenAI Agents SDK agent, as a short file you own: uvx alexein-cli init langgraph | crewai | openai-agents."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -19,16 +19,18 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
-# The client, for the key's check; everything else is the standard library.
-dependencies = ["twinmemory>=0.2"]
+# The client, for the key's check; everything else is the standard library. The CLI never
+# imports a framework: the files it writes do, through the client's extras.
+dependencies = ["alexein>=0.3"]
 
 [project.scripts]
-twinmemory-cli = "twinmemory_cli:main"
+alexein-cli = "alexein_cli:main"
 
 [project.urls]
 Homepage = "https://alexein.ai"
 Documentation = "https://docs.alexein.ai/integrations/langgraph"
-Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
+Repository = "https://github.com/Alexein-AI/sdk"
+Changelog = "https://github.com/Alexein-AI/sdk/blob/main/integrations/cli-python/CHANGELOG.md"
 
 [dependency-groups]
 # The frameworks only to run the written files in tests; the CLI never imports them. CrewAI 1.15
@@ -46,22 +48,22 @@ conflicts = [[{ group = "crewai" }, { group = "openai-agents" }]]
 # 1.23 have no wheel for Python 3.10 on Linux, so CI's 3.10 job could not install.
 constraint-dependencies = ["onnxruntime<1.24; python_version < '3.11'"]
 
-# Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it). Then
-# this goes, and the dependency above is met from PyPI.
+# The client from this repository while developing, so the CLI is tested against the alexein
+# it ships beside. A published build depends on alexein from PyPI, as `dependencies` says.
 [tool.uv.sources]
-twinmemory = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
+alexein = { path = "../../python", editable = true }
 
 [build-system]
 requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/twinmemory_cli"]
+packages = ["src/alexein_cli"]
 
 # The source distribution holds what the wheel is built from and the pages a user reads: no
 # tests, lock file or CONTRIBUTING.md. pyproject.toml and PKG-INFO are always added.
 [tool.hatch.build.targets.sdist]
-include = ["/src/twinmemory_cli", "/README.md", "/CHANGELOG.md", "/LICENSE"]
+include = ["/src/alexein_cli", "/README.md", "/CHANGELOG.md", "/LICENSE"]
 
 [tool.ruff]
 line-length = 100
@@ -71,7 +73,7 @@ target-version = "py310"
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["twinmemory_cli"]
+known-first-party = ["alexein_cli"]
 
 [tool.pyright]
 include = ["src", "tests"]
@@ -80,3 +82,5 @@ strict = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The frameworks' own deprecations are theirs, not this package's.
+filterwarnings = ["ignore::DeprecationWarning"]

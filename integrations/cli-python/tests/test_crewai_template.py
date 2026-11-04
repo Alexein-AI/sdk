@@ -1,43 +1,46 @@
 # pyright: reportMissingImports=false
 # CrewAI and the OpenAI Agents SDK are never installed together (see pyproject.toml).
-"""The `memory.py` that `twinmemory-cli init crewai` writes, run inside real CrewAI crews - CrewAI's
-own classes, with a stand-in model - against a recorded memory API."""
+"""The `memory.py` that `alexein-cli init crewai` writes, run inside real CrewAI crews - CrewAI's
+own classes, with a stand-in model - against a recorded memory API: its settings reach the client
+and `alexein.crewai`, and the memory and `whose` it wires recall, save and keep users apart as
+the docs say."""
 
 from __future__ import annotations
 
 import asyncio
-import importlib.util
 import json
 import os
-import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
 import httpx
 import pytest
-from conftest import Answer, memory, ok
-from test_cli import lint_clean
+from conftest import STRICT, Answer, load_memory_file, ok, route
 
 os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 pytest.importorskip("crewai")
 
+from alexein import AlexeinError, AuthenticationError
 from crewai import Agent, Crew, Task
 from crewai.llms.base_llm import BaseLLM
 from pydantic import Field
-from twinmemory import AuthenticationError
-
-from twinmemory_cli.render import render
 
 SEARCHED = {
     "query": "q",
-    "found": 1,
-    "known": ["Dana lives in Lisbon."],
-    "facts": [
-        {"text": "2026-10-01: Dana moved to Lisbon.", "id": "f1", "path": "r/1", "source": "p/1"}
+    "answerable": True,
+    "notes": [],
+    "memories": [
+        {"type": "known", "text": "Dana lives in Lisbon."},
+        {"type": "fact", "ref": "mem_f1", "text": "Dana moved to Lisbon.", "source": "mem_e1"},
+        {
+            "type": "excerpt",
+            "ref": "mem_e1",
+            "text": "Dana: I moved to Lisbon.",
+            "date": "2026-10-01T09:30:00Z",
+        },
     ],
-    "hits": [{"path": "passages/p1.md", "id": "p1", "text": "Dana: I moved to Lisbon."}],
 }
 
 
@@ -69,61 +72,42 @@ def stand(*answers: Any) -> Stand:
 
 
 class Recorder:
-    """What the memory API was sent, by route and account; and a request's text, for matching."""
+    """What the memory API was sent, by route and app user; and a request's text, for matching."""
 
     def __init__(self, answer: Answer) -> None:
         self.sent: list[tuple[str, str, Any]] = []
         self.answer = answer
+        self.timeouts: list[float | None] = []
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content) if request.content else None
-        self.sent.append(
-            (request.url.path.rsplit("/", 1)[-1], request.headers.get("X-Twin-Account", ""), body)
-        )
+        self.sent.append((route(request), request.headers.get("x-alexein-user", ""), body))
         return self.answer(request)
 
-    def routes(self, account: str | None = None) -> list[str]:
-        return [r for r, a, _ in self.sent if account is None or a == account]
+    def routes(self, user: str | None = None) -> list[str]:
+        return [r for r, a, _ in self.sent if user is None or a == user]
 
 
 def answering(request: httpx.Request) -> httpx.Response:
-    route = request.url.path.rsplit("/", 1)[-1]
-    if route == "me":
+    name = route(request)
+    if name == "me":
         return ok({"kind": "key", "org": "o", "project": "p", "writes": True})
-    if route == "search":
+    if name == "search":
         return ok(SEARCHED)
-    if route == "add":
+    if name == "add":
         items = json.loads(request.content)["items"]
-        return ok(
-            {
-                "items": [{"id": i.get("id", ""), "event_id": "e"} for i in items],
-                "queued": 1,
-                "pending": 1,
-            },
-            status=202,
-        )
+        added = [{"id": i.get("id", ""), "status": "queued"} for i in items]
+        return ok({"items": added, "waiting": len(items)}, status=202)
     return ok()
 
 
 def load(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    answer: Answer = answering,
-    *,
-    parts: tuple[str, ...] = ("auto", "tools"),
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, answer: Answer = answering, **given: Any
 ) -> tuple[ModuleType, Recorder]:
     """The file as `init crewai` writes it, imported fresh, its client answered by `answer`."""
-    path = tmp_path / "memory.py"
-    path.write_text(render("crewai/memory.py.tmpl", parts, {"version": "test", "fast": "False"}))
-    name = f"generated_crewai_memory_{abs(hash(tmp_path))}"
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    monkeypatch.setitem(sys.modules, name, module)
-    spec.loader.exec_module(module)
     recorder = Recorder(answer)
-    client, _ = memory(recorder, fail_open=not module.STRICT, integration="crewai", max_retries=0)
-    monkeypatch.setattr(module, "_memory", lambda: client)
+    module, recorded = load_memory_file(tmp_path, monkeypatch, "crewai", recorder, **given)
+    recorder.timeouts = recorded.timeouts
     return module, recorder
 
 
@@ -133,9 +117,42 @@ def crew_of(module: ModuleType, llm: Stand, *, memory: Any = None) -> Crew:
     return Crew(
         agents=[planner],
         tasks=[task],
-        memory=module.TwinMemory() if memory is None else memory,
+        memory=module.alexein_memory if memory is None else memory,
         before_kickoff_callbacks=[module.whose],
     )
+
+
+# -------------------------------------------------------------------------------- the file --
+
+
+def test_the_settings_reach_the_client_and_the_memory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, recorder = load(tmp_path, monkeypatch, fast=True)
+    memory = module.alexein_memory
+    assert (memory.fast, memory.max_chars, memory.strict) == (True, 4000, False)
+    assert memory.timeout == module.TIMEOUT
+    crew_of(module, stand()).kickoff(inputs={"user_id": "dana", "city": "Porto"})
+    assert recorder.timeouts == [module.TIMEOUT]  # the client, made on first use
+    searches = [b for r, _, b in recorder.sent if r == "search"]
+    assert searches and all(b["fast"] is True for b in searches)
+
+
+def test_importing_needs_no_key_and_kickoff_says_how_to_set_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, recorder = load(tmp_path, monkeypatch, key=None)
+    llm = stand()
+    with pytest.raises(AlexeinError, match="ALEXEIN_API_KEY"):
+        crew_of(module, llm).kickoff(inputs={"user_id": "dana", "city": "Porto"})
+    assert llm.prompts == [] and recorder.sent == []
+
+
+def test_whose_is_a_module_level_function(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """CrewAI's checkpoints keep only module-level callbacks, never a bound method."""
+    module, _ = load(tmp_path, monkeypatch)
+    assert module.whose.__module__ == module.__name__
+    assert module.whose.__qualname__ == "whose"
 
 
 # ---------------------------------------------------------------------------------- recall --
@@ -149,7 +166,7 @@ def test_a_task_recalls_the_users_memory_into_its_prompt(
     crew_of(module, llm).kickoff(inputs={"user_id": "dana", "city": "Porto"})
     searches = [(a, b) for r, a, b in recorder.sent if r == "search"]
     assert searches and searches[0][0] == "dana"
-    assert searches[0][1]["query"] == "Plan a weekend in Porto."
+    assert searches[0][1]["query"].startswith("Plan a weekend in Porto.")
     assert "Dana lives in Lisbon." in llm.prompts[0]
 
 
@@ -158,11 +175,8 @@ def test_recall_returns_at_most_the_limit_best_first(
 ) -> None:
     module, _ = load(tmp_path, monkeypatch)
     module.whose({"user_id": "dana"})
-    matches = module.TwinMemory().recall("where", limit=2)
-    assert [m.record.content for m in matches] == [
-        "Dana lives in Lisbon.",
-        "2026-10-01: Dana moved to Lisbon.",
-    ]
+    matches = module.alexein_memory.recall("where", limit=2)
+    assert [m.record.content for m in matches] == ["Dana lives in Lisbon.", "Dana moved to Lisbon."]
     assert matches[0].score >= matches[1].score
 
 
@@ -170,24 +184,24 @@ def test_a_user_with_no_memory_yet_recalls_nothing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def none_yet(request: httpx.Request) -> httpx.Response:
-        if request.url.path.endswith("/me"):
+        if route(request) == "me":
             return answering(request)
         return ok({"detail": "no memory"}, status=404)
 
     module, _ = load(tmp_path, monkeypatch, none_yet)
     module.whose({"user_id": "new"})
-    assert module.TwinMemory().recall("anything") == []
+    assert module.alexein_memory.recall("anything") == []
 
 
 def test_one_huge_line_is_cut_to_max_chars(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     def huge(request: httpx.Request) -> httpx.Response:
-        if request.url.path.endswith("/search"):
-            return ok({"query": "q", "found": 1, "known": ["x" * 10_000]})
+        if route(request) == "search":
+            return ok({"query": "q", "memories": [{"type": "known", "text": "x" * 10_000}]})
         return answering(request)
 
     module, _ = load(tmp_path, monkeypatch, huge)
     module.whose({"user_id": "dana"})
-    (match,) = module.TwinMemory().recall("anything")
+    (match,) = module.alexein_memory.recall("anything")
     assert len(match.record.content) == module.MAX_CHARS
 
 
@@ -221,7 +235,7 @@ def test_an_empty_result_saves_nothing(tmp_path: Path, monkeypatch: pytest.Monke
     """CrewAI itself refuses a task whose answer is empty, so this is the file's own rule: a
     task that found nothing is not sent to memory."""
     module, recorder = load(tmp_path, monkeypatch)
-    memory_ = module.TwinMemory()
+    memory_ = module.alexein_memory
     blank = "Task: Plan a weekend.\nAgent: Travel planner\nExpected result: A plan.\nResult:   "
     assert memory_.extract_memories(blank) == []
     assert memory_.extract_memories(blank.rstrip() + " Porto.") != []
@@ -237,7 +251,7 @@ def test_remember_returns_a_record_the_save_tool_can_read(
 ) -> None:
     module, recorder = load(tmp_path, monkeypatch)
     module.whose({"user_id": "dana"})
-    record = module.TwinMemory().remember("Prefers trains.")
+    record = module.alexein_memory.remember("Prefers trains.")
     assert record is not None and record.content == "Prefers trains."
     assert hasattr(record, "scope") and hasattr(record, "importance")
     assert recorder.routes("dana")[-1] == "add"
@@ -296,11 +310,11 @@ def test_a_crew_without_whose_never_uses_the_last_runs_user(
     """A second crew on the same memory that skips the hook must not read or save as the
     user the first crew's run named: a wrong user is worse than no memory."""
     module, recorder = load(tmp_path, monkeypatch)
-    crew_of(module, stand(), memory=module.twin_memory).kickoff(
+    crew_of(module, stand(), memory=module.alexein_memory).kickoff(
         inputs={"user_id": "dana", "city": "Porto"}
     )
     recorder.sent.clear()
-    hookless = crew_of(module, stand(), memory=module.twin_memory)
+    hookless = crew_of(module, stand(), memory=module.alexein_memory)
     hookless.before_kickoff_callbacks = []
     out = hookless.kickoff(inputs={"user_id": "sam", "city": "Faro"})
     assert getattr(out, "raw", None) == "Lisbon it is."
@@ -326,11 +340,11 @@ def test_a_user_id_memory_cannot_hold_stops_at_kickoff(
 ) -> None:
     module, recorder = load(tmp_path, monkeypatch)
     llm = stand()
-    with pytest.raises(ValueError, match="not a usable end user id"):
+    with pytest.raises(ValueError, match="not a usable app user id"):
         crew_of(module, llm).kickoff(inputs={"user_id": user_id, "city": "Porto"})
     assert llm.prompts == [] and recorder.sent == []
-    with pytest.raises(ValueError, match="not a usable end user id"):
-        module.memory_tools(user_id)
+    with pytest.raises(ValueError, match="not a usable app user id"):
+        module.alexein_memory.tools(user_id)
 
 
 def test_recall_takes_arguments_a_newer_crewai_may_pass(
@@ -338,17 +352,17 @@ def test_recall_takes_arguments_a_newer_crewai_may_pass(
 ) -> None:
     module, _ = load(tmp_path, monkeypatch)
     module.whose({"user_id": "dana"})
-    assert module.TwinMemory().recall("where", limit=1, some_new_option=True) != []
+    assert module.alexein_memory.recall("where", limit=1, some_new_option=True) != []
 
 
 def test_strict_stops_the_run_when_memory_is_down_at_kickoff(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """CrewAI swallows what recall and saves raise, so kickoff is where STRICT can stop a run."""
-    module, _ = load(tmp_path, monkeypatch, lambda r: ok({"detail": "rebuilding"}, status=503))
-    monkeypatch.setattr(module, "STRICT", True)
+    down = lambda r: ok({"detail": "rebuilding"}, status=503)  # noqa: E731
+    module, _ = load(tmp_path, monkeypatch, down, edits=STRICT)
     llm = stand()
-    with pytest.raises(module.TwinMemoryError):
+    with pytest.raises(AlexeinError):
         crew_of(module, llm).kickoff(inputs={"user_id": "dana", "city": "Porto"})
     assert llm.prompts == []
 
@@ -359,11 +373,11 @@ def test_one_memory_shared_by_runs_for_different_users_keeps_them_apart(
     """A JSON crew's memory is one module-level object for every run; it holds no user."""
     module, recorder = load(tmp_path, monkeypatch)
     for user, city in (("dana", "Porto"), ("sam", "Faro")):
-        crew_of(module, stand(), memory=module.twin_memory).kickoff(
+        crew_of(module, stand(), memory=module.alexein_memory).kickoff(
             inputs={"user_id": user, "city": city}
         )
-    for route, account, body in recorder.sent:
-        if route in ("search", "add"):
+    for sent_to, account, body in recorder.sent:
+        if sent_to in ("search", "add"):
             text = json.dumps(body)
             assert ("Porto" in text) == (account == "dana") and ("Faro" in text) == (
                 account == "sam"
@@ -373,8 +387,7 @@ def test_one_memory_shared_by_runs_for_different_users_keeps_them_apart(
 def test_concurrent_runs_never_mix_users(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     module, recorder = load(tmp_path, monkeypatch)
     pairs = {"ann": "Porto", "ben": "Faro", "cy": "Braga", "di": "Evora"}
-    shared = module.TwinMemory()
-    crew = crew_of(module, stand(), memory=shared)
+    crew = crew_of(module, stand())
 
     async def all_at_once() -> None:
         await crew.kickoff_for_each_async(
@@ -401,58 +414,37 @@ def test_memory_down_lets_the_crew_finish(
     assert any("unavailable" in r.message for r in caplog.records)
 
 
-# ---------------------------------------------------------------------------- tools part --
+# ------------------------------------------------------------------------------- tools --
 
 
-def test_the_tools_only_part_binds_the_user_in_code(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    module, recorder = load(tmp_path, monkeypatch, parts=("tools", "tools_only"))
-    assert not hasattr(module, "TwinMemory")
-    tools = {t.name: t for t in module.memory_tools("dana")}
-    assert set(tools) == {"Search memory", "Read memory", "Save to memory"}
+def test_tools_bind_the_user_in_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module, recorder = load(tmp_path, monkeypatch)
+    tools = {t.name: t for t in module.alexein_memory.tools("dana", write=True)}
+    assert set(tools) == {"memory_search", "memory_open", "memory_add"}
     for each in tools.values():
         assert "user" not in json.dumps(each.args_schema.model_json_schema()).lower()
-    assert "Dana lives in Lisbon." in tools["Search memory"].run(query="home")
-    assert tools["Save to memory"].run(text="Prefers trains.") == "Saved."
+    assert "Dana lives in Lisbon." in tools["memory_search"].run(query="home")
+    assert tools["memory_add"].run(text="Prefers trains.") == "Saved."
     assert {a for _, a, _ in recorder.sent} == {"dana"}
-    assert set(t.name for t in module.memory_tools("dana", writes=False)) == {
-        "Search memory",
-        "Read memory",
-    }
+    assert [t.name for t in module.alexein_memory.tools("dana")] == ["memory_search", "memory_open"]
 
 
 def test_save_result_saves_a_finished_crews_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    module, recorder = load(tmp_path, monkeypatch, parts=("tools", "tools_only"))
-    out = crew_of_tools(module).kickoff(inputs={"city": "Porto"})
-    module.save_result("dana", out)
-    (add,) = [(a, b) for r, a, b in recorder.sent if r == "add"]
-    assert add[0] == "dana" and add[1]["items"][0]["text"] == "Lisbon it is."
-
-
-def crew_of_tools(module: ModuleType) -> Crew:
+    module, recorder = load(tmp_path, monkeypatch)
     planner = Agent(
         role="Travel planner",
         goal="Plan trips",
         backstory="Plans trips.",
         llm=stand(),
-        tools=module.memory_tools("dana"),
+        tools=module.alexein_memory.tools("dana"),
     )
     task = Task(description="Plan a weekend in {city}.", expected_output="A plan.", agent=planner)
-    return Crew(agents=[planner], tasks=[task])
-
-
-# --------------------------------------------------------------------------- written clean --
-
-
-@pytest.mark.parametrize("parts", [("auto", "tools"), ("tools", "tools_only")])
-@pytest.mark.parametrize("fast", ["False", "True"])
-def test_every_part_writes_clean_code(tmp_path: Path, parts: tuple[str, ...], fast: str) -> None:
-    path = tmp_path / "memory.py"
-    path.write_text(render("crewai/memory.py.tmpl", parts, {"version": "0.2.0", "fast": fast}))
-    lint_clean(path)
+    out = Crew(agents=[planner], tasks=[task]).kickoff(inputs={"city": "Porto"})
+    module.alexein_memory.save_result("dana", out)
+    (add,) = [(a, b) for r, a, b in recorder.sent if r == "add"]
+    assert add[0] == "dana" and add[1]["items"][0]["text"] == "Lisbon it is."
 
 
 def test_native_async_runs_never_mix_users(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -461,7 +453,7 @@ def test_native_async_runs_never_mix_users(tmp_path: Path, monkeypatch: pytest.M
     pairs = {"ann": "Porto", "ben": "Faro"}
 
     async def both() -> None:
-        crews = [crew_of(module, stand(), memory=module.twin_memory) for _ in pairs]
+        crews = [crew_of(module, stand(), memory=module.alexein_memory) for _ in pairs]
         await asyncio.gather(
             *(
                 c.akickoff(inputs={"user_id": u, "city": city})

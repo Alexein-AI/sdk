@@ -1,4 +1,4 @@
-"""`twinmemory-cli doctor` and `twinmemory-cli create langgraph`: the check of a project's
+"""`alexein-cli doctor` and `alexein-cli create langgraph`: the check of a project's
 setup, and a new project with memory wired in - run here with a stand-in model and a recorded
 memory API."""
 
@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import sys
 from collections.abc import Iterator, Sequence
 from pathlib import Path
@@ -13,17 +14,18 @@ from typing import Any
 
 import httpx
 import pytest
-from conftest import answer, async_memory, memory, routes
+from alexein import Memory
+from conftest import answer, wire
 from test_cli import lint_clean
-from twinmemory import Memory
 
-from twinmemory_cli import create as creating
-from twinmemory_cli import env
-from twinmemory_cli.create import create
-from twinmemory_cli.doctor import doctor
-from twinmemory_cli.render import render
-from twinmemory_cli.scaffold import Options
-from twinmemory_cli.ui import Console
+from alexein_cli import create as creating
+from alexein_cli import doctor as checking
+from alexein_cli import env
+from alexein_cli.create import create
+from alexein_cli.doctor import doctor
+from alexein_cli.render import render
+from alexein_cli.scaffold import Options
+from alexein_cli.ui import Console
 
 # The key's real check, kept before the fixture below answers it here.
 real_check = env.check
@@ -37,6 +39,22 @@ def checked(monkeypatch: pytest.MonkeyPatch) -> list[env.Check]:
     monkeypatch.delenv(env.KEY, raising=False)
     monkeypatch.delenv(env.BASE_URL, raising=False)
     return answers
+
+
+@pytest.fixture(autouse=True)
+def imports(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+    """The import check, run in the project's own Python: recorded and answered here (set
+    `imports[0]` to a module's name to make it fail). The real one is tested below."""
+    failing: list[list[str]] = [[]]
+
+    def ran(command: list[str], **_: Any) -> Any:
+        module = command[-1].removeprefix("import ")
+        failed = module in failing[0]
+        error = f"ModuleNotFoundError: No module named '{module.split('.')[-1]}'"
+        return type("Done", (), {"returncode": int(failed), "stderr": error if failed else ""})
+
+    monkeypatch.setattr(checking.subprocess, "run", ran)
+    return failing
 
 
 def quiet(**fields: Any) -> Console:
@@ -57,14 +75,16 @@ def default_address() -> str:
 
 
 def healthy(root: Path) -> Path:
-    deps = '"langgraph>=1", "langchain>=1", "twinmemory>=0.2"'
+    deps = '"langgraph>=1", "alexein[langgraph]>=0.3"'
     (root / "pyproject.toml").write_text(f'[project]\nname = "a"\ndependencies = [{deps}]\n')
     site = root / ".venv" / "lib" / "python3.12" / "site-packages"
-    for dist in ("langgraph-1.2.16", "langchain-1.4.7", "twinmemory-0.2.0"):
+    for dist in ("langgraph-1.2.16", "langchain-1.4.7", "alexein-0.3.0"):
         (site / f"{dist}.dist-info").mkdir(parents=True)
+    (root / ".venv" / "bin").mkdir()
+    (root / ".venv" / "bin" / "python").write_text("")
     (root / "app").mkdir()
-    values = {"version": "0.2.0", "fast": "False"}
-    (root / "app" / "memory.py").write_text(render("langgraph/memory.py.tmpl", ["nodes"], values))
+    values = {"version": "0.3.0", "fast": "False"}
+    (root / "app" / "memory.py").write_text(render("langgraph/memory.py.tmpl", (), values))
     (root / ".env").write_text(f"{env.KEY}=tm_x\n")
     (root / ".gitignore").write_text(".env\n")
     return root
@@ -74,8 +94,11 @@ def test_doctor_passes_a_project_that_is_set_up(tmp_path: Path) -> None:
     console = quiet()
     assert doctor(healthy(tmp_path), console) == 0
     text = said(console)
-    assert "✓ memory file app/memory.py (written by 0.2.0, for LangGraph)" in text
-    assert "✓ langgraph 1.2.16" in text
+    assert "✓ memory file app/memory.py (written by 0.3.0, for LangGraph)" in text
+    assert "✓ dependencies: alexein[langgraph]>=0.3" in text
+    assert "✓ alexein 0.3.0" in text and "✓ langgraph 1.2.16" in text
+    assert "✓ alexein.langgraph imports" in text
+    assert f"✓ {env.KEY} from .env" in text
     assert f"✓ key at {default_address()}: scratch/demo, reads and writes" in text
     assert "All good." in text
 
@@ -91,7 +114,33 @@ def test_doctor_names_the_address_the_client_calls(tmp_path: Path) -> None:
     (root / ".env").write_text(f"{env.KEY}=tm_x\n{env.BASE_URL}=https://memory.example.com/\n")
     console = quiet()
     assert doctor(root, console) == 0
+    assert f"✓ {env.BASE_URL} from .env: https://memory.example.com/" in said(console)
     assert "✓ key at https://memory.example.com: scratch/demo" in said(console)
+
+
+def test_doctor_reads_the_key_and_address_from_the_environment_too(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = healthy(tmp_path)
+    (root / ".env").write_text("")
+    monkeypatch.setenv(env.KEY, "tm_env")
+    monkeypatch.setenv(env.BASE_URL, "http://localhost:8210")
+    console = quiet()
+    assert doctor(root, console) == 0
+    text = said(console)
+    assert f"✓ {env.KEY} from the environment" in text
+    assert f"✓ {env.BASE_URL} from the environment: http://localhost:8210" in text
+    assert "✓ key at http://localhost:8210: scratch/demo" in text
+
+
+def test_doctor_notes_a_key_set_differently_in_both(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = healthy(tmp_path)
+    monkeypatch.setenv(env.KEY, "tm_other")
+    console = quiet()
+    assert doctor(root, console) == 0
+    assert f"- {env.KEY} is set in .env and in the environment, differently" in said(console)
 
 
 @pytest.mark.parametrize("base_url", [None, "https://memory.example.com/"])
@@ -113,7 +162,29 @@ def test_the_key_is_checked_where_doctor_says(
 
     monkeypatch.setattr(env, "Memory", client)
     assert real_check("tm_x", base_url) == env.Check(True, True, "o/p, reads and writes")
-    assert sent == [f"{named}/v1/me"]
+    assert sent == [f"{named}/v2/me"]
+
+
+def test_the_key_check_uses_the_consoles_names(monkeypatch: pytest.MonkeyPatch) -> None:
+    def answered(request: httpx.Request) -> httpx.Response:
+        me = {"kind": "key", "org": "o7k2", "org_name": "Acme", "project": "production"}
+        return httpx.Response(200, json={**me, "project_name": "Production", "writes": False})
+
+    def client(key: str, **options: Any) -> Memory:
+        http = httpx.Client(transport=httpx.MockTransport(answered))
+        return Memory(key, http_client=http, **options)
+
+    monkeypatch.setattr(env, "Memory", client)
+    assert real_check("tm_x", None) == env.Check(True, False, "Acme/Production, reads only")
+
+
+def test_a_key_the_service_does_not_know(monkeypatch: pytest.MonkeyPatch) -> None:
+    def client(key: str, **options: Any) -> Memory:
+        refused = httpx.MockTransport(lambda r: httpx.Response(401, json={"detail": "no"}))
+        return Memory(key, http_client=httpx.Client(transport=refused), **options)
+
+    monkeypatch.setattr(env, "Memory", client)
+    assert real_check("tm_x", None) == env.Check(False, None, "the service does not know this key")
 
 
 def test_doctor_says_what_is_missing_and_how_to_fix_it(tmp_path: Path) -> None:
@@ -123,10 +194,44 @@ def test_doctor_says_what_is_missing_and_how_to_fix_it(tmp_path: Path) -> None:
     assert doctor(tmp_path, console) == 1
 
     text = said(console)
-    assert "✗ no memory file" in text and "twinmemory-cli init langgraph" in text
-    assert "✗ not dependencies: twinmemory, langgraph, langchain" in text
+    assert "✗ no memory file" in text and "alexein-cli init langgraph" in text
+    assert "✗ not dependencies: alexein[langgraph]>=0.3" in text
     assert "- installed versions not checked" in text
+    assert "- imports not checked" in text
     assert f"✗ no {env.KEY}" in text
+
+
+def test_doctor_finds_the_extra_missing(tmp_path: Path, imports: list[list[str]]) -> None:
+    root = healthy(tmp_path)
+    (root / "pyproject.toml").write_text('[project]\nname = "a"\ndependencies = ["alexein"]\n')
+    imports[0] = ["alexein.langgraph"]
+    console = quiet()
+    assert doctor(root, console) == 1
+    text = said(console)
+    assert "✗ not dependencies: alexein[langgraph]>=0.3" in text
+    assert "✗ alexein.langgraph does not import: ModuleNotFoundError" in text
+    fix = text.split("does not import")[1].splitlines()[1].strip()
+    assert fix in ("uv add 'alexein[langgraph]>=0.3'", "pip install 'alexein[langgraph]>=0.3'")
+
+
+def test_the_import_check_runs_in_the_projects_python(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The real check: the project's interpreter imports the integration module, or says why."""
+    monkeypatch.undo()
+    root = tmp_path
+    python = root / ".venv" / "bin" / "python"
+    python.parent.mkdir(parents=True)
+    python.write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n')
+    os.chmod(python, 0o755)
+    console = quiet()
+    assert checking._importable(root, ["langgraph"], console)  # pyright: ignore[reportPrivateUsage]
+    assert "✓ alexein.langgraph imports" in said(console)
+    python.write_text("#!/bin/sh\necho 'ImportError: nope' >&2\nexit 1\n")
+    os.chmod(python, 0o755)
+    console = quiet()
+    assert not checking._importable(root, ["crewai"], console)  # pyright: ignore[reportPrivateUsage]
+    assert "✗ alexein.crewai does not import: ImportError: nope" in said(console)
 
 
 def test_doctor_catches_an_old_version_and_a_bad_key(
@@ -140,7 +245,7 @@ def test_doctor_catches_an_old_version_and_a_bad_key(
 
     assert doctor(root, console) == 1
 
-    assert "✗ langgraph 0.6.0 is older than 1.0" in said(console)
+    assert "✗ langgraph 0.6.0 is older than 1.2" in said(console)
     assert f"✗ key at {default_address()}: the service does not know this key" in said(console)
 
 
@@ -195,15 +300,7 @@ def test_create_makes_a_runnable_project(tmp_path: Path) -> None:
         env.KEY: "",
     }
     assert recorder.ran == [
-        [
-            "uv",
-            "add",
-            "twinmemory>=0.2",
-            "langgraph>=1.0",
-            "langchain>=1.0",
-            "python-dotenv",
-            "langchain-anthropic",
-        ],
+        ["uv", "add", "alexein[langgraph]>=0.3", "python-dotenv", "langchain-anthropic"],
         ["uv", "add", "--dev", "langgraph-cli[inmem]"],
     ]
     assert "uv run -m my_agent.chat --user dana" in said(console)
@@ -245,19 +342,9 @@ def test_create_needs_uv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     assert code == 1 and "needs uv" in said(console)
 
 
-PRESETS = [
-    pytest.param({}, id="both"),
-    pytest.param({"asynchronous": True}, id="async"),
-    pytest.param({"parts": ("nodes",)}, id="nodes-only"),
-    pytest.param({"parts": ("tools",)}, id="tools-only"),
-    pytest.param({"parts": ("nodes",), "asynchronous": True}, id="async-nodes-only"),
-    pytest.param({"parts": ("tools",), "asynchronous": True}, id="async-tools-only"),
-]
-
-
-@pytest.mark.parametrize("preset", PRESETS)
-def test_every_created_file_is_clean(tmp_path: Path, preset: dict[str, Any]) -> None:
-    made(tmp_path, **preset)
+@pytest.mark.parametrize("fast", [False, True])
+def test_every_created_file_is_clean(tmp_path: Path, fast: bool) -> None:
+    made(tmp_path, fast=fast)
     for path in (tmp_path / "my-agent" / "src" / "my_agent").glob("*.py"):
         if path.stat().st_size:
             lint_clean(path)
@@ -275,18 +362,16 @@ from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
 
 @pytest.fixture
 def created(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
-    """Make a project with a preset, import its graph, stand in for its model and memory."""
+    """Make a project, import its graph with no key set, stand in for its model and memory."""
 
-    def make(preset: dict[str, Any], replies: list[AIMessage]) -> tuple[Any, Any]:
-        made(tmp_path, **preset)
+    def make(replies: list[AIMessage]) -> tuple[Any, Any]:
+        made(tmp_path)
         monkeypatch.syspath_prepend(str(tmp_path / "my-agent" / "src"))
         for name in [m for m in sys.modules if m.startswith("my_agent")]:
             monkeypatch.delitem(sys.modules, name)
-        memory_module = importlib.import_module("my_agent.memory")
-        graph_module = importlib.import_module("my_agent.graph")
-        make_client = async_memory if preset.get("asynchronous") else memory
-        client, recorded = make_client(answer, fail_open=True)
-        monkeypatch.setattr(memory_module, "_memory", lambda: client)
+        graph_module = importlib.import_module("my_agent.graph")  # needs no key
+        monkeypatch.setenv(env.KEY, "tm_test")
+        recorded = wire(monkeypatch, answer)
         model = GenericFakeChatModel(messages=iter(replies))
         monkeypatch.setattr(graph_module, "_model", lambda: model)
         return graph_module.graph, recorded
@@ -311,80 +396,43 @@ def run(graph: Any, asynchronous: bool) -> Any:
 
 @pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
 def test_the_created_graph_recalls_searches_and_remembers(created: Any, asynchronous: bool) -> None:
-    graph, recorded = created(
-        {"asynchronous": asynchronous}, [SEARCH_CALL, AIMessage("Lisbon.", id="ai-1")]
-    )
+    graph, recorded = created([SEARCH_CALL, AIMessage("Lisbon.", id="ai-1")])
     out = run(graph, asynchronous)
     assert out["messages"][-1].text == "Lisbon."
-    assert routes(recorded) == ["search", "search", "add"]  # recall, the tool, remember
+    assert recorded.routes() == ["search", "search", "add"]  # recall, the tool, remember
+    assert recorded.users() == {"dana"}
+    assert json.loads(recorded.last.content)["items"][0]["session"] == "t-1"
 
 
-@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
 def test_the_chat_ends_quietly_when_its_input_does(
-    created: Any,
-    asynchronous: bool,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
+    created: Any, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Ctrl-D, or piped input with no empty line at the end, ends the conversation."""
-    import asyncio
     import io
 
-    created(
-        {"asynchronous": asynchronous},
-        [AIMessage("Lisbon.", id="ai-1"), AIMessage("Dana.", id="ai-2")],
-    )
+    created([AIMessage("Lisbon.", id="ai-1"), AIMessage("Dana.", id="ai-2")])
     chat = importlib.import_module("my_agent.chat")
     monkeypatch.setattr(sys, "argv", ["chat", "--user", "dana"])
     monkeypatch.setattr(sys, "stdin", io.StringIO("Where do I live?\nWho am I?\n"))
-    if asynchronous:
-        asyncio.run(chat.main())
-    else:
-        chat.main()
+    chat.main()
     out = capsys.readouterr().out
     assert "agent> Lisbon." in out and "agent> Dana." in out
 
 
-def test_the_nodes_only_graph(created: Any) -> None:
-    graph, recorded = created({"parts": ("nodes",)}, [AIMessage("Lisbon.", id="ai-1")])
-    run(graph, False)
-    assert routes(recorded) == ["search", "add"]
-
-
-def test_the_tools_only_graph_lets_the_model_save(created: Any) -> None:
-    save = AIMessage(
-        "", tool_calls=[{"name": "memory_add", "args": {"text": "Lives in Lisbon."}, "id": "c1"}]
-    )
-    graph, recorded = created({"parts": ("tools",)}, [save, AIMessage("Noted.", id="ai-1")])
-    run(graph, False)
-    assert routes(recorded) == ["add"]
-
-
-def test_doctor_fails_a_read_only_key_when_the_file_saves(
-    tmp_path: Path, checked: list[env.Check]
-) -> None:
-    root = healthy(tmp_path)  # its memory file has `remember`
+def test_doctor_notes_a_read_only_key(tmp_path: Path, checked: list[env.Check]) -> None:
+    """Whether the developer wires `remember` in is theirs to say: a key that only reads is
+    noted, not failed."""
+    root = healthy(tmp_path)
     checked[0] = env.Check(True, False, "scratch/demo, reads only")
     console = quiet()
-    assert doctor(root, console) == 1
-    assert "only reads, and the memory file saves" in said(console)
-
-
-def test_doctor_passes_a_read_only_key_for_a_file_that_only_reads(
-    tmp_path: Path, checked: list[env.Check]
-) -> None:
-    root = healthy(tmp_path)
-    values = {"version": "0.2.0", "fast": "False"}
-    reads = render("langgraph/memory.py.tmpl", ["tools"], values)
-    (root / "app" / "memory.py").write_text(reads.split("@tool\ndef memory_add")[0])  # reads only
-    checked[0] = env.Check(True, False, "scratch/demo, reads only")
-    assert doctor(root, quiet()) == 0
+    assert doctor(root, console) == 0
+    assert "- the key only reads: remember, memory_add" in said(console)
 
 
 def test_create_asks_only_for_the_keys_still_unset(tmp_path: Path) -> None:
     _, console, _ = made(tmp_path, key="tm_k")
     assert "fill in ANTHROPIC_API_KEY in .env" in said(console)
-    assert "TWIN_MEMORY_API_KEY in .env" not in said(console).split("Next:")[1]
+    assert f"{env.KEY} in .env" not in said(console).split("Next:")[1]
 
 
 def test_create_dry_run_makes_nothing(tmp_path: Path) -> None:

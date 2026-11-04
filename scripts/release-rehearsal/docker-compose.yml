@@ -1,11 +1,11 @@
-# A private npm registry and a private PyPI, on this machine only, to publish twin memory's packages to
-# before they are published for real - so the docs' own commands (uvx / npx twinmemory-cli ...) can be
+# A private npm registry and a private PyPI, on this machine only, to publish Alexein's packages to
+# before they are published for real - so the docs' own commands (uvx alexein-cli ..., npx @alexein/cli ...) can be
 # followed word for word. Nothing here talks to npmjs.org or pypi.org on our packages' behalf: they are
 # published here and only here. Everything else is fetched from the real registries as usual.
 #
 #   docker compose up -d       start
 #   docker compose down -v     stop, and forget everything published
-name: twin-memory-rehearsal
+name: alexein-rehearsal
 
 services:
   npm:

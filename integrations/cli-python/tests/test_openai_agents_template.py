@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # CrewAI and the OpenAI Agents SDK are never installed together (see pyproject.toml).
-"""The `memory.py` that `twinmemory-cli init openai-agents` writes, run inside the OpenAI Agents
+"""The `memory.py` that `alexein-cli init openai-agents` writes, run inside the OpenAI Agents
 SDK's own `Runner` - with its scripted model standing in for OpenAI - against a recorded memory
-API."""
+API: its settings reach the client and `alexein.openai_agents`, and what it wires recalls,
+remembers and offers tools as the docs say."""
 
 from __future__ import annotations
 
@@ -14,43 +15,25 @@ from typing import Any
 
 import httpx
 import pytest
-from conftest import Answer, answer, async_memory, load_memory_file, ok, routes
+from conftest import STRICT, Answer, answer, down, load_memory_file, ok, route, wrong_key
 
 pytest.importorskip("agents")
 
 from agents import Agent, RunConfig, Runner, SQLiteSession, UserError, handoff
 from agents.run import CallModelData, ModelInputData
 from agents.testing.model import ModelStep, ScriptedModel, assistant_message, function_call
+from alexein import AlexeinError, AuthenticationError, ServiceUnavailableError
 from pydantic import BaseModel
-from twinmemory import AuthenticationError, ServiceUnavailableError
 
 pytestmark = pytest.mark.anyio
 
-
-def down(request: httpx.Request) -> httpx.Response:
-    return ok({"detail": "rebuilding"}, status=503)
-
-
-def wrong_key(request: httpx.Request) -> httpx.Response:
-    return ok({"detail": "bad key"}, status=401)
+UNAVAILABLE = "Memory is unavailable right now; carry on without it."
 
 
 def load(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    answer: Answer,
-    *,
-    parts: tuple[str, ...] = ("nodes", "tools"),
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, answer: Answer = answer, **given: Any
 ) -> tuple[ModuleType, Any]:
-    return load_memory_file(
-        tmp_path,
-        monkeypatch,
-        "openai_agents/memory.py.tmpl",
-        answer,
-        parts=parts,
-        integration="openai-agents",
-        asynchronous=True,
-    )
+    return load_memory_file(tmp_path, monkeypatch, "openai-agents", answer, **given)
 
 
 @pytest.fixture
@@ -63,8 +46,12 @@ def told(call: Any) -> str:
     return call.system_instructions or ""
 
 
-def bodies(recorded: Any, route: str) -> list[Any]:
-    return [json.loads(r.content) for r in recorded.requests if r.url.path.endswith(route)]
+def bodies(recorded: Any, name: str) -> list[Any]:
+    return recorded.bodies(name)
+
+
+def routes(recorded: Any) -> list[str]:
+    return [route(r) for r in recorded.requests]
 
 
 async def turn(
@@ -74,10 +61,41 @@ async def turn(
         name="Assistant", instructions="Be brief.", model=model, tools=run.pop("tools", [])
     )
     run.setdefault("context", module.MemoryContext(user_id="dana", session_id="conv-7"))
-    config = RunConfig(call_model_input_filter=module.recall, tracing_disabled=True)
+    config = RunConfig(call_model_input_filter=module.memory.recall, tracing_disabled=True)
     result = await Runner.run(agent, said, run_config=config, **run)
-    await module.remember(result)
+    await module.memory.remember(result)
     return result
+
+
+# ------------------------------------------------------------------------------ the file --
+
+
+async def test_the_settings_reach_the_client_and_the_memory(
+    generated: tuple[ModuleType, Any],
+) -> None:
+    module, recorded = generated
+    memory = module.memory
+    assert (memory.fast, memory.max_chars, memory.strict) == (False, 4000, False)
+    assert memory.timeout == module.TIMEOUT
+    await turn(module, ScriptedModel([[assistant_message("Hi.")]]))
+    assert recorded.timeouts == [module.TIMEOUT]  # the client, made on first use
+    assert recorded.last.headers["user-agent"].endswith(" openai-agents")
+    assert recorded.last.headers["authorization"] == "Bearer tm_test"
+
+
+async def test_importing_needs_no_key_and_the_first_run_says_how_to_set_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, recorded = load(tmp_path, monkeypatch, key=None)
+    with pytest.raises(AlexeinError, match="ALEXEIN_API_KEY"):
+        await turn(module, ScriptedModel([[assistant_message("Hi.")]]))
+    assert recorded.requests == []
+
+
+async def test_fast_as_written(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module, recorded = load(tmp_path, monkeypatch, fast=True)
+    await turn(module, ScriptedModel([[assistant_message("Hi.")]]))
+    assert bodies(recorded, "search") == [{"query": "Where do I live?", "fast": True}]
 
 
 # ------------------------------------------------------------------- recall and remember --
@@ -93,7 +111,7 @@ async def test_a_turn_is_recalled_before_the_model_and_saved_after(
 
     assert result.final_output == "You live in Lisbon."
     assert routes(recorded) == ["search", "add"]
-    assert {r.headers["X-Twin-Account"] for r in recorded.requests} == {"dana"}
+    assert recorded.users() == {"dana"}
     assert bodies(recorded, "search")[0]["query"] == "Where do I live?"
     (call,) = model.calls
     assert told(call).startswith("Be brief.\n\nWhat you remember")
@@ -112,14 +130,14 @@ async def test_a_tool_loop_searches_once_and_every_call_has_the_memory(
     module, recorded = generated
     model = ScriptedModel(
         [
-            [function_call("memory_read", {"path": "passages/p1.md"}, call_id="c1")],
+            [function_call("memory_open", {"ref": "mem_e1"}, call_id="c1")],
             [assistant_message("Lisbon.")],
         ]
     )
 
-    await turn(module, model, tools=module.MEMORY_TOOLS)
+    await turn(module, model, tools=module.memory.tools())
 
-    assert routes(recorded) == ["search", "read", "add"]  # recall, the tool, remember
+    assert routes(recorded) == ["search", "open", "add"]  # recall, the tool, remember
     assert all("Dana lives in Lisbon." in told(c) for c in model.calls)
     items = bodies(recorded, "add")[0]["items"]
     assert [i["role"] for i in items] == ["user", "assistant"]  # no tool call, no tool output
@@ -133,12 +151,12 @@ async def test_after_a_handoff_the_next_agent_has_the_memory_too(
     expert = Agent(name="Expert", instructions="Know things.", model=expert_model)
     triage_model = ScriptedModel([[function_call("transfer_to_expert", {}, call_id="h1")]])
     triage = Agent(name="Triage", model=triage_model, handoffs=[handoff(expert)])
-    config = RunConfig(call_model_input_filter=module.recall, tracing_disabled=True)
+    config = RunConfig(call_model_input_filter=module.memory.recall, tracing_disabled=True)
 
     result = await Runner.run(
         triage, "Where do I live?", context=module.MemoryContext("dana"), run_config=config
     )
-    await module.remember(result)
+    await module.memory.remember(result)
 
     assert routes(recorded) == ["search", "add"]
     assert "Dana lives in Lisbon." in told(expert_model.calls[0])
@@ -151,14 +169,14 @@ async def test_a_streamed_run_is_remembered_once_consumed(
     module, recorded = generated
     model = ScriptedModel([[assistant_message("Lisbon.")]])
     agent = Agent(name="Assistant", model=model)
-    config = RunConfig(call_model_input_filter=module.recall, tracing_disabled=True)
+    config = RunConfig(call_model_input_filter=module.memory.recall, tracing_disabled=True)
 
     streamed = Runner.run_streamed(
         agent, "Where do I live?", context=module.MemoryContext("dana"), run_config=config
     )
     async for _ in streamed.stream_events():
         pass
-    await module.remember(streamed)
+    await module.memory.remember(streamed)
 
     assert routes(recorded) == ["search", "add"]
     assert bodies(recorded, "add")[0]["items"][1]["text"] == "Lisbon."
@@ -184,7 +202,7 @@ async def test_saving_the_same_result_twice_saves_the_same_ids(
 ) -> None:
     module, recorded = generated
     result = await turn(module, ScriptedModel([[assistant_message("Lisbon.")]]))
-    await module.remember(result)
+    await module.memory.remember(result)
     first, second = bodies(recorded, "add")
     assert [i["id"] for i in first["items"]] == [i["id"] for i in second["items"]]
 
@@ -197,12 +215,12 @@ async def test_structured_output_is_saved_as_json(generated: tuple[ModuleType, A
     module, recorded = generated
     model = ScriptedModel([[assistant_message('{"city": "Lisbon"}')]])
     agent = Agent(name="Assistant", model=model, output_type=Place)
-    config = RunConfig(call_model_input_filter=module.recall, tracing_disabled=True)
+    config = RunConfig(call_model_input_filter=module.memory.recall, tracing_disabled=True)
 
     result = await Runner.run(
         agent, "Where do I live?", context=module.MemoryContext("dana"), run_config=config
     )
-    await module.remember(result)
+    await module.memory.remember(result)
 
     assert json.loads(bodies(recorded, "add")[0]["items"][1]["text"]) == {"city": "Lisbon"}
 
@@ -212,7 +230,7 @@ async def test_a_user_with_no_memory_yet_recalls_nothing(
 ) -> None:
     def empty(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("search"):
-            return ok({"detail": "no such account"}, status=404)
+            return ok({"detail": "nothing added for this app user yet"}, status=404)
         return answer(request)
 
     module, _ = load(tmp_path, monkeypatch, empty)
@@ -235,7 +253,7 @@ async def test_any_context_with_a_user_id_will_do(
 ) -> None:
     module, recorded = generated
     await turn(module, ScriptedModel([[assistant_message("Hi.")]]), context=context)
-    assert {r.headers["X-Twin-Account"] for r in recorded.requests} == {"dana"}
+    assert recorded.users() == {"dana"}
     assert "session" not in bodies(recorded, "add")[0]["items"][0]
 
 
@@ -244,14 +262,6 @@ async def test_without_a_user_id_the_run_stops(generated: tuple[ModuleType, Any]
     with pytest.raises(ValueError, match="whose memory"):
         await turn(module, ScriptedModel([[assistant_message("Hi.")]]), context=None)
     assert recorded.requests == []
-
-
-async def test_requests_say_they_came_from_openai_agents(
-    generated: tuple[ModuleType, Any],
-) -> None:
-    module, recorded = generated
-    await turn(module, ScriptedModel([[assistant_message("Hi.")]]))
-    assert recorded.last.headers["User-Agent"].endswith(" openai-agents")
 
 
 # ------------------------------------------------- what a real model and server send --
@@ -276,7 +286,7 @@ async def test_a_model_without_response_ids_still_saves_each_turn_apart(
     context = module.MemoryContext("dana")
     first = await turn(module, model, "Thanks", context=context)
     await turn(module, model, "Thanks", context=context)
-    await module.remember(first)
+    await module.memory.remember(first)
     ids = [[i["id"] for i in body["items"]] for body in bodies(recorded, "add")]
     assert ids[0] != ids[1]  # two turns, said the same way
     assert ids[0] == ids[2]  # one turn, saved twice
@@ -294,8 +304,9 @@ TOOL_OUTPUT = {"type": "function_call_output", "call_id": "c1", "output": "..."}
 
 def echo(request: httpx.Request) -> httpx.Response:
     """A search that says which question it answered."""
-    if request.url.path.endswith("search"):
-        return ok({"query": "q", "known": [f"ANSWER FOR: {json.loads(request.content)['query']}"]})
+    if route(request) == "search":
+        asked = json.loads(request.content)["query"]
+        return ok({"query": asked, "memories": [{"type": "known", "text": f"ANSWER FOR: {asked}"}]})
     return answer(request)
 
 
@@ -304,10 +315,10 @@ async def test_two_turns_in_flight_for_one_user_keep_their_own_memory(
 ) -> None:
     module, _ = load(tmp_path, monkeypatch, echo)
     first, second = module.MemoryContext("dana"), module.MemoryContext("dana")
-    await module.recall(call(first, ASKED))
-    await module.recall(call(second, {"role": "user", "content": "My dog's name?"}))
+    await module.memory.recall(call(first, ASKED))
+    await module.memory.recall(call(second, {"role": "user", "content": "My dog's name?"}))
 
-    after_a_tool = await module.recall(call(first, ASKED, TOOL_OUTPUT))
+    after_a_tool = await module.memory.recall(call(first, ASKED, TOOL_OUTPUT))
 
     assert "ANSWER FOR: Where do I live?" in (after_a_tool.instructions or "")
     assert "dog" not in (after_a_tool.instructions or "")
@@ -318,7 +329,7 @@ async def test_a_resumed_run_with_nothing_kept_searches_its_users_message(
 ) -> None:
     """A run resumed after an approval, or in another process, starts on a tool output."""
     module, recorded = generated
-    resumed = await module.recall(call(module.MemoryContext("dana"), ASKED, TOOL_OUTPUT))
+    resumed = await module.memory.recall(call(module.MemoryContext("dana"), ASKED, TOOL_OUTPUT))
     assert [b["query"] for b in bodies(recorded, "search")] == ["Where do I live?"]
     assert "Dana lives in Lisbon." in (resumed.instructions or "")
 
@@ -328,7 +339,7 @@ async def test_a_developer_message_after_the_users_still_recalls(
 ) -> None:
     module, recorded = generated
     note = {"role": "developer", "content": "Today is Friday."}
-    await module.recall(call(module.MemoryContext("dana"), ASKED, note))
+    await module.memory.recall(call(module.MemoryContext("dana"), ASKED, note))
     assert [b["query"] for b in bodies(recorded, "search")] == ["Where do I live?"]
 
 
@@ -336,7 +347,7 @@ async def test_a_run_paused_for_an_approval_saves_nothing(
     generated: tuple[ModuleType, Any],
 ) -> None:
     module, recorded = generated
-    await module.remember(SimpleNamespace(interruptions=["approve memory_add?"]))
+    await module.memory.remember(SimpleNamespace(interruptions=["approve memory_add?"]))
     assert recorded.requests == []
 
 
@@ -344,7 +355,7 @@ async def test_a_run_paused_for_an_approval_saves_nothing(
 
 CALLS = [
     function_call("memory_search", {"query": "home"}, call_id="c1"),
-    function_call("memory_read", {"path": "passages/p1.md"}, call_id="c2"),
+    function_call("memory_open", {"ref": "mem_e1"}, call_id="c2"),
     function_call("memory_add", {"text": "Prefers trains."}, call_id="c3"),
 ]
 
@@ -352,7 +363,7 @@ CALLS = [
 async def tool_outputs(module: ModuleType, context: Any = None) -> dict[str, str]:
     """A model that calls every tool once, then stops: what each call returned."""
     model = ScriptedModel([CALLS, [assistant_message("Done.")]])
-    agent = Agent(name="Assistant", model=model, tools=module.MEMORY_WRITE_TOOLS)
+    agent = Agent(name="Assistant", model=model, tools=module.memory.tools(write=True))
     context = context or module.MemoryContext("dana", session_id="conv-7")
     config = RunConfig(tracing_disabled=True)
     await Runner.run(agent, "x", context=context, run_config=config)
@@ -367,14 +378,14 @@ async def test_tools_read_the_user_from_the_run_never_from_the_model(
     outputs = await tool_outputs(module)
 
     assert "Dana lives in Lisbon." in outputs["c1"]
-    assert "memory_read:\n- passages/p1.md" in outputs["c1"]
-    assert outputs["c2"] == "Dana: I moved to Lisbon."
+    assert "memory_open:\n- mem_f1\n- mem_e1" in outputs["c1"]
+    assert outputs["c2"] == "2026-10-01: Dana: I moved to Lisbon."
     assert outputs["c3"] == "Saved."
-    assert {r.headers["X-Twin-Account"] for r in recorded.requests} == {"dana"}
+    assert recorded.users() == {"dana"}
     assert bodies(recorded, "add")[0]["items"] == [
         {"text": "Prefers trains.", "kind": "note", "session": "conv-7"}
     ]
-    schemas = {t.name: t.params_json_schema for t in module.MEMORY_WRITE_TOOLS}
+    schemas = {t.name: t.params_json_schema for t in module.memory.tools(write=True)}
     assert all("user" not in json.dumps(s) for s in schemas.values())
 
 
@@ -384,21 +395,21 @@ async def test_the_models_own_mistakes_go_back_to_it(
     """A bad request from the model is the model's to fix: it is told, and the run goes on."""
 
     def strict(request: httpx.Request) -> httpx.Response:
-        if request.url.path.endswith("read"):
-            return ok({"detail": "read needs a path"}, status=422)
+        if route(request) == "open":
+            return ok({"detail": "open needs a ref"}, status=422)
         return answer(request)
 
     module, _ = load(tmp_path, monkeypatch, strict)
     model = ScriptedModel(
         [
             [
-                function_call("memory_read", {"path": ""}, call_id="c1"),
+                function_call("memory_open", {"ref": ""}, call_id="c1"),
                 function_call("memory_search", "not json", call_id="c2"),
             ],
             [assistant_message("Sorry.")],
         ]
     )
-    agent = Agent(name="A", model=model, tools=module.MEMORY_TOOLS)
+    agent = Agent(name="A", model=model, tools=module.memory.tools())
     context = module.MemoryContext("dana")
     result = await Runner.run(
         agent, "x", context=context, run_config=RunConfig(tracing_disabled=True)
@@ -407,7 +418,7 @@ async def test_the_models_own_mistakes_go_back_to_it(
     outputs = [i["output"] for i in model.calls[1].input if i.get("type") == "function_call_output"]
     assert result.final_output == "Sorry."
     assert all(o.startswith("That did not work:") for o in outputs), outputs
-    assert "read needs a path" in outputs[0]
+    assert "open needs a ref" in outputs[0]
 
 
 async def test_a_tool_run_with_no_user_raises(generated: tuple[ModuleType, Any]) -> None:
@@ -438,14 +449,14 @@ async def test_tools_tell_the_model_memory_is_down(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     module, _ = load(tmp_path, monkeypatch, down)
-    assert set((await tool_outputs(module)).values()) == {module.UNAVAILABLE}
+    assert set((await tool_outputs(module)).values()) == {UNAVAILABLE}
 
 
-async def test_strict_raises_instead(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    module, _ = load(tmp_path, monkeypatch, down)
-    client, _ = async_memory(down, fail_open=False)
-    monkeypatch.setattr(module, "_memory", lambda: client)
-    monkeypatch.setattr(module, "STRICT", True)
+async def test_strict_as_written_raises_instead(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, _ = load(tmp_path, monkeypatch, down, edits=STRICT)
+    assert module.memory.strict is True
     with pytest.raises(ServiceUnavailableError):
         await turn(module, ScriptedModel([[assistant_message("Hi.")]]))
 
@@ -458,20 +469,3 @@ async def test_a_wrong_key_raises_even_so(tmp_path: Path, monkeypatch: pytest.Mo
     with pytest.raises(UserError) as raised:
         await tool_outputs(module)
     assert isinstance(raised.value.__cause__, AuthenticationError)
-
-
-# ----------------------------------------------------------------------------- presets --
-
-
-async def test_tools_only_has_no_recall(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    module, recorded = load(tmp_path, monkeypatch, answer, parts=("tools",))
-    assert not hasattr(module, "recall") and not hasattr(module, "remember")
-    assert (await tool_outputs(module))["c3"] == "Saved."
-    assert routes(recorded) == ["search", "read", "add"]
-
-
-async def test_nodes_only_has_no_tools(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    module, recorded = load(tmp_path, monkeypatch, answer, parts=("nodes",))
-    assert not hasattr(module, "MEMORY_TOOLS")
-    await turn(module, ScriptedModel([[assistant_message("Hi.")]]))
-    assert routes(recorded) == ["search", "add"]

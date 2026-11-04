@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
-# Build the four packages from their checkouts and publish them to the rehearsal's registries - and
-# only there: every publish names its registry, and no real credentials are used or needed.
+# Build the packages from this repository and publish them to the rehearsal's registries - and only
+# there: every publish names its registry, and no real credentials are used or needed.
 #
 #   scripts/release-rehearsal/publish.sh
 #
-# The checkouts are found beside this repository's (../twin-memory-python, ../twin-memory-js), as they
-# are for development; set TWIN_MEMORY_PYTHON or TWIN_MEMORY_JS to point elsewhere. Publishing again
-# replaces what is there (both registries overwrite a version), so a rerun takes the checkouts' state.
+# npm: @alexein/sdk (typescript/) and @alexein/cli (integrations/cli-js/). PyPI: alexein (python/),
+# alexein-cli (integrations/cli-python/) and alexein-livekit (integrations/livekit/). Publishing
+# again replaces what is there (both registries overwrite a version), so a rerun takes the tree's
+# state.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
-py_sdk="${TWIN_MEMORY_PYTHON:-$repo/../twin-memory-python}"
-js_sdk="${TWIN_MEMORY_JS:-$repo/../twin-memory-js}"
 npm_registry=http://localhost:4873/
 pypi_upload=http://localhost:8070/
 work="$here/.cache/publish"
@@ -34,37 +33,38 @@ printf '//localhost:4873/:_authToken=%s\n' "$token" > "$npmrc"
 npm_publish() { npm publish --registry "$npm_registry" --userconfig "$npmrc" --access public "$@"; }
 unpublish_if_there() { npm unpublish "$1" --force --registry "$npm_registry" --userconfig "$npmrc" >/dev/null 2>&1 || true; }
 
-say "twinmemory (JavaScript) from $js_sdk"
-js_version=$(node -p "require('$js_sdk/package.json').version")
-(cd "$js_sdk" && npm ci --silent && npm run build --silent)
-unpublish_if_there "twinmemory@$js_version"
-(cd "$js_sdk" && npm_publish --ignore-scripts)
+say "@alexein/sdk from typescript/"
+sdk="$repo/typescript"
+js_version=$(node -p "require('$sdk/package.json').version")
+(cd "$sdk" && npm ci --silent && npm run build --silent)
+unpublish_if_there "@alexein/sdk@$js_version"
+(cd "$sdk" && npm_publish --ignore-scripts)
 
-say "twinmemory-cli (JavaScript) from packages/js"
-cli_js="$repo/packages/js"
-(cd "$cli_js" && npm run build --silent)
-# The checkout depends on the client by path, for development; what is published depends on it by
+say "@alexein/cli from integrations/cli-js/"
+cli_js="$repo/integrations/cli-js"
+(cd "$cli_js" && npm ci --silent && npm run build --silent)
+# The tree depends on the client by path, for development; what is published depends on it by
 # version, as the release does.
-staged="$work/js"
+staged="$work/cli-js"
 mkdir -p "$staged" && cp -R "$cli_js/package.json" "$cli_js/README.md" "$cli_js/CHANGELOG.md" "$cli_js/LICENSE" "$cli_js/dist" "$cli_js/templates" "$staged/"
-(cd "$staged" && npm pkg set "dependencies.twinmemory=^$js_version")
+(cd "$staged" && npm pkg set "dependencies.@alexein/sdk=^$js_version")
 cli_js_version=$(node -p "require('$staged/package.json').version")
-unpublish_if_there "twinmemory-cli@$cli_js_version"
+unpublish_if_there "@alexein/cli@$cli_js_version"
 (cd "$staged" && npm_publish --ignore-scripts)
 
-# --- PyPI: wheels and sdists, uploaded with uv -------------------------------------------------------
+# --- PyPI: wheels and sdists, uploaded with uv. A path in [tool.uv.sources] is for development
+# only: the built metadata names `alexein` by version. --------------------------------------------
 py_publish() { uv publish --publish-url "$pypi_upload" --username rehearsal --password rehearsal "$@"; }
 
-say "twinmemory (Python) from $py_sdk"
-(cd "$py_sdk" && rm -rf dist && uv build -q && py_publish dist/*)
-
-say "twinmemory-cli (Python) from packages/python"
-(cd "$repo/packages/python" && rm -rf dist && uv build -q && py_publish dist/*)
+for dir in python integrations/cli-python integrations/livekit; do
+  say "$(basename "$dir") (Python) from $dir/"
+  (cd "$repo/$dir" && rm -rf dist && uv build -q && py_publish dist/*)
+done
 
 say "published"
-for name in twinmemory twinmemory-cli; do
-  printf '  npm   %-16s %s\n' "$name" "$(curl -sf "${npm_registry}$name" | python3 -c 'import sys,json;print(json.load(sys.stdin)["dist-tags"]["latest"])')"
+for name in @alexein/sdk @alexein/cli; do
+  printf '  npm   %-16s %s\n' "$name" "$(curl -sf "${npm_registry}${name/\//%2F}" | python3 -c 'import sys,json;print(json.load(sys.stdin)["dist-tags"]["latest"])')"
 done
-curl -sf http://localhost:8070/simple/ | grep -o 'twinmemory[a-z-]*' | sort -u | while read -r name; do
+curl -sf http://localhost:8070/simple/ | grep -oE 'alexein[a-z-]*' | sort -u | while read -r name; do
   printf '  pypi  %-16s %s\n' "$name" "$(curl -sf "http://localhost:8070/simple/$name/" | grep -oE "$(echo "$name" | tr - _)-[0-9][^-]*-py3" | sed -E 's/.*-([0-9][^-]*)-py3/\1/' | sort -u | tr '\n' ' ')"
 done
