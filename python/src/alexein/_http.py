@@ -9,6 +9,7 @@ import os
 import random
 import re
 import time
+import uuid
 from typing import Any, TypeVar, cast
 
 import httpx
@@ -57,10 +58,21 @@ def headers(api_key: str | None, integration: str | None) -> dict[str, str]:
     return {"Authorization": f"Bearer {key}", "User-Agent": agent}
 
 
+def request_id() -> str:
+    """An id for one call, sent as `X-Request-Id` on each attempt of it. The API logs it and
+    answers with it, so an error can always be quoted and found in the console's request logs -
+    even one a proxy answered, which carries no id of the service's own."""
+    return f"req_{uuid.uuid4().hex}"
+
+
 def _request(
-    http: httpx.Client | httpx.AsyncClient, base: str, call: Call[Any], user: str | None
+    http: httpx.Client | httpx.AsyncClient,
+    base: str,
+    call: Call[Any],
+    user: str | None,
+    rid: str,
 ) -> httpx.Request:
-    sent = dict(call.headers)
+    sent = dict(call.headers) | {"X-Request-Id": rid}
     if user is not None:
         sent["X-Alexein-User"] = user
     if call.body is None:
@@ -68,7 +80,7 @@ def _request(
     return http.build_request(call.method, base + call.path, json=call.body, headers=sent)
 
 
-def _answer(response: httpx.Response, call: Call[T]) -> T:
+def _answer(response: httpx.Response, call: Call[T], rid: str) -> T:
     """The parsed answer, or the error the response is."""
     if response.is_success:
         return call.parse(response.json())
@@ -76,7 +88,7 @@ def _answer(response: httpx.Response, call: Call[T]) -> T:
         body: object = response.json()
     except ValueError:
         body = {"detail": response.text.strip() or None}
-    raise for_status(response.status_code, body, response.headers.get("X-Request-Id"))
+    raise for_status(response.status_code, body, response.headers.get("X-Request-Id") or rid)
 
 
 def _pause(attempt: int, response: httpx.Response | None) -> float | None:
@@ -96,10 +108,10 @@ def _pause(attempt: int, response: httpx.Response | None) -> float | None:
     return 0.5 * 2**attempt * random.uniform(0.75, 1.25)
 
 
-def _unreached(error: httpx.TransportError) -> APIConnectionError:
+def _unreached(error: httpx.TransportError, rid: str) -> APIConnectionError:
     if isinstance(error, httpx.TimeoutException):
-        return APITimeoutError(f"the service did not answer in time: {error}")
-    return APIConnectionError(f"the service could not be reached: {error}")
+        return APITimeoutError(f"the service did not answer in time: {error}", request_id=rid)
+    return APIConnectionError(f"the service could not be reached: {error}", request_id=rid)
 
 
 class Transport:
@@ -110,18 +122,18 @@ class Transport:
         http.headers.update(sent)
 
     def send(self, call: Call[T], user: str | None = None) -> T:
-        attempt = 0
+        attempt, rid = 0, request_id()
         while True:
             response, failure = None, None
             try:
-                response = self.http.send(_request(self.http, self.base, call, user))
+                response = self.http.send(_request(self.http, self.base, call, user, rid))
             except httpx.TransportError as error:
-                failure = _unreached(error)
+                failure = _unreached(error, rid)
             pause = _pause(attempt, response) if attempt < self.retries else None
             if pause is None:
                 if failure:
                     raise failure
-                return _answer(cast("httpx.Response", response), call)
+                return _answer(cast("httpx.Response", response), call, rid)
             time.sleep(pause)
             attempt += 1
 
@@ -136,18 +148,18 @@ class AsyncTransport:
         http.headers.update(sent)
 
     async def send(self, call: Call[T], user: str | None = None) -> T:
-        attempt = 0
+        attempt, rid = 0, request_id()
         while True:
             response, failure = None, None
             try:
-                response = await self.http.send(_request(self.http, self.base, call, user))
+                response = await self.http.send(_request(self.http, self.base, call, user, rid))
             except httpx.TransportError as error:
-                failure = _unreached(error)
+                failure = _unreached(error, rid)
             pause = _pause(attempt, response) if attempt < self.retries else None
             if pause is None:
                 if failure:
                     raise failure
-                return _answer(cast("httpx.Response", response), call)
+                return _answer(cast("httpx.Response", response), call, rid)
             await asyncio.sleep(pause)
             attempt += 1
 

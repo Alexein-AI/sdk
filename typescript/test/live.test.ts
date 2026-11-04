@@ -12,6 +12,23 @@ import { Memory } from "../src/index.js";
 
 const key = process.env.ALEXEIN_API_KEY;
 
+/**
+ * Wait until every id is searchable. `wait: true` waits only briefly (the API's word), and a busy
+ * service answers before its items land; a minute is what this test allows them.
+ */
+async function stored(user: ReturnType<Memory["user"]>, ids: string[]): Promise<void> {
+  const deadline = Date.now() + 60_000;
+  for (;;) {
+    const statuses = await user.status(ids);
+    if (!statuses.items.some((s) => s.status === "queued")) return;
+    expect(
+      Date.now() < deadline,
+      `still queued after a minute: ${JSON.stringify(statuses.raw)}`,
+    ).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+}
+
 describe.skipIf(!key)("a running service", () => {
   it("adds, searches, opens, versions and forgets", { timeout: 120_000 }, async () => {
     const memory = new Memory({ baseUrl: process.env.ALEXEIN_API_URL || "http://localhost:8210" });
@@ -30,7 +47,7 @@ describe.skipIf(!key)("a running service", () => {
         { session: "onboarding", wait: true },
       );
       expect(added.items).toHaveLength(2);
-      expect(added.waiting).toBe(0);
+      await stored(user, added.ids);
 
       const found = await user.search("Which city did I take the job at Acme in?", { fast: true });
       expect(found.context(), JSON.stringify(found.raw)).toContain("Lisbon");

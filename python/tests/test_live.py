@@ -8,8 +8,10 @@ finds it too."""
 from __future__ import annotations
 
 import os
+import time
 import uuid
 
+import anyio
 import pytest
 
 from alexein import AsyncMemory, Memory
@@ -24,6 +26,15 @@ def clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """The real environment, unlike the other tests', with a local stack by default."""
     if not os.environ.get("ALEXEIN_API_URL"):
         monkeypatch.setenv("ALEXEIN_API_URL", "http://localhost:8210")
+
+
+def _stored(user, ids: list[str]) -> None:
+    """Wait until every id is searchable. `wait=True` waits only briefly (the API's word), and a
+    busy service answers before its items land; a minute is what this test allows them."""
+    deadline = time.monotonic() + 60
+    while any(s == "queued" for s in user.status(ids).by_id.values()):
+        assert time.monotonic() < deadline, f"still queued after a minute: {user.status(ids).raw}"
+        time.sleep(1)
 
 
 def test_the_quickstart():
@@ -43,7 +54,8 @@ def test_the_quickstart():
                 session="onboarding",
                 wait=True,
             )
-            assert added.waiting == 0 and len(added.items) == 2
+            assert len(added.items) == 2
+            _stored(dana, added.ids)
 
             found = dana.search("Which city did I take the job at Acme in?", fast=True)
             assert "Lisbon" in found.context(), found.raw
@@ -69,6 +81,10 @@ async def test_the_async_client_against_the_same_service():
         sam = memory.user(f"sdk-live-{uuid.uuid4().hex[:8]}")
         try:
             await sam.add({"id": "tea", "kind": "note", "text": "Prefers green tea."}, wait=True)
+            deadline = time.monotonic() + 60  # as `_stored`: a busy service lands it later
+            while (await sam.status(["tea"])).by_id["tea"] == "queued":
+                assert time.monotonic() < deadline, "still queued after a minute"
+                await anyio.sleep(1)
             found = await sam.search("Which tea does she prefer?", fast=True)
             assert "green tea" in found.context()
         finally:

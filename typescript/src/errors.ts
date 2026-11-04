@@ -28,7 +28,10 @@ export class AlexeinError extends Error {
   readonly detail: string;
   /** On a 422: each field the body got wrong. Empty otherwise. */
   readonly errors: FieldError[];
-  /** The response's `X-Request-Id`: quote it when you ask for help. */
+  /**
+   * The request's id: the `X-Request-Id` this client sent, which the API logs and answers with.
+   * Quote it when you ask for help, or find the request in the console's request logs.
+   */
   readonly requestId: string | null;
 
   constructor(message: string, fields: ErrorFields = {}) {
@@ -123,11 +126,17 @@ export function errorFor(status: number, body: Json, requestId: string | null): 
 }
 
 /** What a request that got no answer became: a timeout, or a connection that failed. */
-export function unreached(error: unknown): AlexeinError {
+export function unreached(error: unknown, requestId: string | null = null): AlexeinError {
   const name = error instanceof Error ? error.name : "";
   const said = error instanceof Error ? error.message : String(error);
   if (name === "TimeoutError" || name === "AbortError") {
-    return new APITimeoutError(`Alexein did not answer in time: ${said}`, { cause: error });
+    return new APITimeoutError(`Alexein did not answer in time: ${said}`, {
+      cause: error,
+      requestId,
+    });
   }
-  return new APIConnectionError(`Alexein could not be reached: ${said}`, { cause: error });
+  return new APIConnectionError(`Alexein could not be reached: ${said}`, {
+    cause: error,
+    requestId,
+  });
 }

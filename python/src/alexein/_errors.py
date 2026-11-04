@@ -20,9 +20,10 @@ class AlexeinError(Exception):
     """Every error this package raises.
 
     `status` is the HTTP status (None when no response came), `detail` the API's own sentence,
-    `errors` each field a 422 names, and `request_id` the response's `X-Request-Id`, to quote
-    when you ask for help. `outage` says whether memory is unavailable - unreachable, too slow,
-    busy or failing - rather than the request or the key being wrong."""
+    `errors` each field a 422 names, and `request_id` the request's id - the `X-Request-Id` this
+    client sent, which the API logs and answers with - to quote when you ask for help, or to
+    find the request in the console's request logs. `outage` says whether memory is unavailable
+    - unreachable, too slow, busy or failing - rather than the request or the key being wrong."""
 
     def __init__(
         self,

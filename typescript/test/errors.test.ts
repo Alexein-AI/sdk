@@ -81,7 +81,7 @@ describe("an answer that is an error", () => {
     const error = await rejection(client.user("dana").grep("x"));
     expect(error).toBeInstanceOf(ServiceUnavailableError);
     expect(error.message).toBe("502: Bad Gateway");
-    expect(error.requestId).toBeNull();
+    expect(error.requestId).toMatch(/^req_/); // the one this client sent
   });
 
   it("is an AlexeinError when a success is not JSON", async () => {
@@ -102,7 +102,8 @@ describe("no answer", () => {
     const error = await rejection(client.user("dana").grep("x"));
     expect(error).toBeInstanceOf(APIConnectionError);
     expect(error).not.toBeInstanceOf(APITimeoutError);
-    expect([error.status, error.outage, error.requestId]).toEqual([null, true, null]);
+    expect([error.status, error.outage]).toEqual([null, true]);
+    expect(error.requestId).toMatch(/^req_/);
     expect(error.message).toMatch(/could not be reached: fetch failed/);
     expect(error.cause).toBeInstanceOf(TypeError);
   });

@@ -18,6 +18,9 @@ its `/v2` API.
 - Integrations, as extras: `alexein.langgraph` (`alexein[langgraph]`), `alexein.openai_agents`
   (`alexein[openai-agents]`) and `alexein.crewai` (`alexein[crewai]`), each offering a model `memory_search`,
   `memory_open` and `memory_add`. `import alexein` imports none of them.
+- Every call sends an `X-Request-Id` of its own (`req_...`), kept across its retries, and every error
+  carries it as `request_id` - even a 500 a proxy answered, or no answer at all - so it can be found in
+  the console's request logs.
 
 ## 0.2.0 - unreleased
 

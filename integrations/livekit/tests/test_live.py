@@ -26,8 +26,9 @@ pytestmark = pytest.mark.skipif(
 
 
 async def _findable(client: AsyncMemory, user: str, words: str) -> None:
-    """Wait until memory finds `words`: an add lands within the consumer's few seconds."""
-    deadline = time.monotonic() + 20
+    """Wait until memory finds `words`: an add lands within the consumer's few seconds, or - on a
+    busy service - within a minute."""
+    deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         try:
             found = await client.user(user).search(words, fast=True)

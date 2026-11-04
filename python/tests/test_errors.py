@@ -165,3 +165,27 @@ def test_a_body_that_is_not_json_is_still_an_error():
     with pytest.raises(ServiceUnavailableError) as raised:
         client.user("dana").summary()
     assert raised.value.detail == "Bad gateway"
+
+
+def test_every_call_sends_a_request_id_of_its_own_kept_across_its_retries(no_waiting: list[float]):
+    client, recorded = memory(then(ok({"detail": "busy"}, 503), ok({"items": 0, "sources": []})))
+    client.user("dana").summary()
+    client.user("dana").summary()
+    ids = [r.headers["X-Request-Id"] for r in recorded.requests]
+    assert ids[0] == ids[1] != ids[2] and all(i.startswith("req_") for i in ids)
+
+
+def test_an_error_carries_the_request_id_even_when_the_answer_has_none(no_waiting: list[float]):
+    """A 500 a proxy answered, or no answer at all, can still be found in the request logs."""
+    client, recorded = memory(then(httpx.Response(500, text="Internal Server Error")))
+    with pytest.raises(ServiceUnavailableError) as raised:
+        client.user("dana").summary()
+    assert raised.value.request_id == recorded.last.headers["X-Request-Id"]
+    client, recorded = memory(then(httpx.ConnectError("refused")))
+    with pytest.raises(APIConnectionError) as unreached:
+        client.user("dana").summary()
+    assert unreached.value.request_id == recorded.last.headers["X-Request-Id"]
+    client, _ = memory(then(ok({"detail": "no"}, 401, **{"X-Request-Id": "theirs"})))
+    with pytest.raises(AuthenticationError) as refused:
+        client.me()
+    assert refused.value.request_id == "theirs"

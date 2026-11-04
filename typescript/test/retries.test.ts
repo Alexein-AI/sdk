@@ -2,7 +2,9 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  APIConnectionError,
   APITimeoutError,
+  AuthenticationError,
   InvalidRequestError,
   Memory,
   RateLimitError,
@@ -126,4 +128,44 @@ it("a mistake is never an outage", async () => {
     .catch((e: unknown) => e);
   expect(error).toBeInstanceOf(InvalidRequestError);
   expect((error as InvalidRequestError).outage).toBe(false);
+});
+
+describe("request ids", () => {
+  it("send one per call, kept across its retries", async () => {
+    noWaiting();
+    const answers = [ok({ detail: "busy" }, 503), ok(SEARCH), ok(SEARCH)];
+    const { client, sent } = memory(() => answers.shift()!);
+    await client.user("dana").search("x");
+    await client.user("dana").search("x");
+    const ids = sent.requests.map((r) => r.headers["X-Request-Id"]);
+    expect(ids[0]).toMatch(/^req_[0-9a-f]{32}$/);
+    expect(ids[1]).toBe(ids[0]);
+    expect(ids[2]).not.toBe(ids[0]);
+  });
+
+  it("are on every error, even one whose answer carries none", async () => {
+    noWaiting();
+    const proxied = memory(() => new Response("Internal Server Error", { status: 500 }));
+    const failed = await proxied.client
+      .user("dana")
+      .summary()
+      .catch((e: unknown) => e);
+    expect(failed).toBeInstanceOf(ServiceUnavailableError);
+    expect((failed as ServiceUnavailableError).requestId).toBe(
+      proxied.sent.last.headers["X-Request-Id"],
+    );
+    const down = memory(() => Promise.reject(new TypeError("fetch failed")), { maxRetries: 0 });
+    const unreached = await down.client
+      .user("dana")
+      .summary()
+      .catch((e: unknown) => e);
+    expect(unreached).toBeInstanceOf(APIConnectionError);
+    expect((unreached as APIConnectionError).requestId).toBe(
+      down.sent.last.headers["X-Request-Id"],
+    );
+    const theirs = memory(() => ok({ detail: "no" }, 401, { "X-Request-Id": "theirs" }));
+    const refused = await theirs.client.me().catch((e: unknown) => e);
+    expect(refused).toBeInstanceOf(AuthenticationError);
+    expect((refused as AuthenticationError).requestId).toBe("theirs");
+  });
 });

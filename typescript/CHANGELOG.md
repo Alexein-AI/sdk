@@ -26,6 +26,9 @@ the API is (`0.3.0`), as the Python client is.
   SDK: `recall` as a `callModelInputFilter`, `remember`, `tools`). The main entry imports no
   framework.
 - Still no runtime dependencies; ESM and CommonJS with types, Node 20 or newer, edge runtimes.
+- Every call sends an `X-Request-Id` of its own (`req_...`), kept across its retries, and every error
+  carries it as `requestId` - even a 500 a proxy answered, or no answer at all - so it can be found in
+  the console's request logs.
 
 ## 0.1.0
 

@@ -15,6 +15,7 @@ describe("headers", () => {
       Authorization: "Bearer ak_test",
       "User-Agent": `alexein-js/${VERSION}`,
       "X-Alexein-User": "dana",
+      "X-Request-Id": expect.stringMatching(/^req_[0-9a-f]{32}$/),
       "Content-Type": "application/json",
     });
   });

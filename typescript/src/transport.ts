@@ -27,6 +27,15 @@ const SETS_USER_AGENT = typeof (globalThis as { document?: unknown }).document =
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * An id for one call, sent as `X-Request-Id` on each attempt of it. The API logs it and answers
+ * with it, so an error can always be quoted and found in the console's request logs - even one a
+ * proxy answered, which carries no id of the service's own.
+ */
+function requestId(): string {
+  return `req_${globalThis.crypto.randomUUID().replaceAll("-", "")}`;
+}
+
 /** Milliseconds to wait before trying again, or undefined when this is not retried. */
 function pauseFor(attempt: number, response: Response | undefined): number | undefined {
   if (response !== undefined) {
@@ -57,25 +66,27 @@ export class Transport {
 
   /** Send `call` for app user `user` (none for `me` and `users`), retrying as the API asks. */
   async send<T>(call: Call<T>, user?: string): Promise<T> {
+    const rid = requestId();
     for (let attempt = 0; ; attempt++) {
       let response: Response | undefined;
       let failure: AlexeinError | undefined;
       try {
-        response = await this.attempt(call, user);
+        response = await this.attempt(call, user, rid);
       } catch (error) {
-        failure = unreached(error);
+        failure = unreached(error, rid);
       }
-      if (response?.ok) return this.answer(response, call);
+      if (response?.ok) return this.answer(response, call, rid);
       const pause = attempt < this.settings.maxRetries ? pauseFor(attempt, response) : undefined;
-      if (pause === undefined) throw failure ?? (await this.refusal(response!));
+      if (pause === undefined) throw failure ?? (await this.refusal(response!, rid));
       await response?.body?.cancel().catch(() => {});
       await sleep(pause);
     }
   }
 
-  private attempt<T>(call: Call<T>, user: string | undefined): Promise<Response> {
+  private attempt<T>(call: Call<T>, user: string | undefined, rid: string): Promise<Response> {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.settings.key}`,
+      "X-Request-Id": rid,
       ...call.headers,
     };
     if (SETS_USER_AGENT) headers["User-Agent"] = this.settings.userAgent;
@@ -89,20 +100,20 @@ export class Transport {
     });
   }
 
-  private async answer<T>(response: Response, call: Call<T>): Promise<T> {
+  private async answer<T>(response: Response, call: Call<T>, rid: string): Promise<T> {
     const { body, said } = await bodyOf(response);
     if (body === undefined) {
       throw new AlexeinError(`${response.status}: the answer is not JSON: ${said.slice(0, 200)}`, {
         status: response.status,
-        requestId: response.headers.get("X-Request-Id"),
+        requestId: response.headers.get("X-Request-Id") ?? rid,
       });
     }
     return call.parse(body);
   }
 
-  private async refusal(response: Response): Promise<AlexeinError> {
+  private async refusal(response: Response, rid: string): Promise<AlexeinError> {
     const { body, said } = await bodyOf(response);
     const json = body === undefined ? { detail: said.trim() } : object(body);
-    return errorFor(response.status, json, response.headers.get("X-Request-Id"));
+    return errorFor(response.status, json, response.headers.get("X-Request-Id") ?? rid);
   }
 }
