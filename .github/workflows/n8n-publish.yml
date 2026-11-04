@@ -5,7 +5,7 @@
 # One-time setup, on npmjs.com, for package @alexein/n8n-nodes-alexein: Settings > Trusted
 # Publishers > GitHub Actions, owner Alexein-AI, repository sdk, workflow n8n-publish.yml. A trusted
 # publisher can only be added once the package exists, so the first release uses an npm token
-# instead (an NPM_TOKEN repository secret): see integrations/n8n/TESTING-AND-PUBLISHING.md, C2.
+# instead (the `npm` environment's NPM_TOKEN secret): see integrations/n8n/TESTING-AND-PUBLISHING.md, C2.
 name: n8n publish
 
 on:
@@ -22,6 +22,9 @@ defaults:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # The `npm` environment, as every npm release here: its NPM_TOKEN for the first publish, and
+    # its required reviewer before anything is published.
+    environment: npm
     permissions:
       contents: read
       id-token: write
