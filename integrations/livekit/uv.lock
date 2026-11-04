@@ -232,7 +232,7 @@ requires-dist = [
     { name = "crewai", marker = "extra == 'crewai'", specifier = ">=1.15,<1.16" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "langchain", marker = "extra == 'langgraph'", specifier = ">=1" },
-    { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1" },
+    { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1.2" },
     { name = "openai-agents", marker = "extra == 'openai-agents'", specifier = ">=0.24" },
 ]
 provides-extras = ["langgraph", "openai-agents", "crewai"]
@@ -242,7 +242,7 @@ crewai = [{ name = "crewai", specifier = ">=1.15,<1.16" }]
 dev = [
     { name = "anyio", specifier = ">=4" },
     { name = "langchain", specifier = ">=1" },
-    { name = "langgraph", specifier = ">=1" },
+    { name = "langgraph", specifier = ">=1.2" },
     { name = "pyright", specifier = ">=1.1.380" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.6" },
