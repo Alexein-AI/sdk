@@ -1,0 +1,83 @@
+"""The agent: a model that remembers the people it talks to.
+
+Made by `twinmemory-cli create openai-agents`. Memory comes from `memory.py`, beside it:
+# >>> nodes
+`recall` looks up what memory holds before the model answers, and `remember` saves the
+turn after it.
+# <<< nodes
+# >>> tools
+# >>> nodes
+The model can also search memory itself, with `MEMORY_TOOLS`.
+# <<< nodes
+# >>> tools_only
+The model searches memory and saves to it itself, with `MEMORY_WRITE_TOOLS`.
+# <<< tools_only
+# <<< tools
+
+Whose memory a run reads is the `user_id` in its context, which your code sets:
+
+    await reply("Where do I live?", MemoryContext(user_id="dana"))
+"""
+
+from __future__ import annotations
+
+import os
+
+# >>> nodes
+from agents import Agent, RunConfig, Runner, TResponseInputItem
+# <<< nodes
+# >>> tools_only
+from agents import Agent, Runner, TResponseInputItem
+# <<< tools_only
+from agents.result import RunResult
+
+from {package}.memory import (
+# >>> both
+    MEMORY_TOOLS,
+# <<< both
+# >>> tools_only
+    MEMORY_WRITE_TOOLS,
+# <<< tools_only
+    MemoryContext,
+# >>> nodes
+    recall,
+    remember,
+# <<< nodes
+)
+
+agent = Agent[MemoryContext](
+    name="Assistant",
+    instructions=(
+        "You are a helpful assistant. You remember the people you talk to across "
+        "conversations; use what you remember where it helps, and never invent it."
+    ),
+    # `MODEL` in .env; empty, the OpenAI Agents SDK's default.
+    model=os.environ.get("MODEL") or None,
+# >>> both
+    # `remember` saves every turn, so the model is only given the tools that read.
+    tools=MEMORY_TOOLS,
+# <<< both
+# >>> tools_only
+    # Nothing else saves, so the model is given the tool that does.
+    tools=MEMORY_WRITE_TOOLS,
+# <<< tools_only
+)
+# >>> nodes
+
+# Memory goes into the instructions of every model call, looked up once a turn.
+RUN_CONFIG = RunConfig(call_model_input_filter=recall)
+# <<< nodes
+
+
+async def reply(
+    said: str | list[TResponseInputItem], context: MemoryContext
+) -> RunResult:
+    """One turn. `said` is the user's message, or the conversation ending with it."""
+# >>> nodes
+    result = await Runner.run(agent, said, context=context, run_config=RUN_CONFIG)
+    await remember(result)
+    return result
+# <<< nodes
+# >>> tools_only
+    return await Runner.run(agent, said, context=context)
+# <<< tools_only

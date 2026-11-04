@@ -1,0 +1,17 @@
+{
+  "name": "{name}",
+  "version": "0.1.0",
+  "description": "{description}",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "chat": "tsx src/chat.ts",
+// >>> langgraph
+    "dev": "langgraphjs dev",
+// <<< langgraph
+    "typecheck": "tsc --noEmit"
+  }
+}

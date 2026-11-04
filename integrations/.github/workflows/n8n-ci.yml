@@ -1,0 +1,34 @@
+name: n8n
+
+on:
+  pull_request:
+    paths: ["packages/n8n/**", ".github/workflows/n8n-*.yml"]
+  push:
+    branches: [main]
+    paths: ["packages/n8n/**", ".github/workflows/n8n-*.yml"]
+
+concurrency:
+  group: n8n-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: packages/n8n
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: npm
+          cache-dependency-path: packages/n8n/package-lock.json
+      - run: npm ci
+      - run: npx prettier --check nodes credentials test e2e
+      - run: npm run lint
+      - run: npm test

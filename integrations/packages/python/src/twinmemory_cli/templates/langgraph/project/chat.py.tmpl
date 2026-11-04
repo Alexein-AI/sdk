@@ -1,0 +1,63 @@
+"""Talk to the agent in a terminal, as one of your users:
+
+    uv run -m {package}.chat --user dana
+
+Each run is a new conversation; what the agent remembers from the last one is memory's.
+"""
+
+from __future__ import annotations
+
+import argparse
+# >>> async
+import asyncio
+# <<< async
+import uuid
+
+from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage
+
+load_dotenv()
+
+from {package}.graph import graph  # noqa: E402 - after .env, which the model reads
+
+
+# >>> sync
+def main() -> None:
+# <<< sync
+# >>> async
+async def main() -> None:
+# <<< async
+    parser = argparse.ArgumentParser(description="Talk to the agent.")
+    parser.add_argument("--user", default="dana", help="whose memory the agent reads")
+    user = parser.parse_args().user
+    thread = uuid.uuid4().hex
+    config = {"configurable": {"thread_id": thread}}
+    print(f"Talking as {user}. An empty line, or Ctrl-D, ends the conversation.")
+    messages: list = []
+    while True:
+        try:
+            line = input("you> ").strip()
+        except EOFError:  # Ctrl-D, or the end of piped input
+            print()
+            break
+        if not line:
+            break
+        messages.append(HumanMessage(line))
+        inputs = {"messages": messages}
+# >>> sync
+        out = graph.invoke(inputs, config=config, context={"user_id": user})
+# <<< sync
+# >>> async
+        out = await graph.ainvoke(inputs, config=config, context={"user_id": user})
+# <<< async
+        messages = out["messages"]
+        print(f"agent> {messages[-1].text}")
+
+
+if __name__ == "__main__":
+# >>> sync
+    main()
+# <<< sync
+# >>> async
+    asyncio.run(main())
+# <<< async

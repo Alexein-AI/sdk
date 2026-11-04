@@ -1,0 +1,50 @@
+/**
+ * Talk to the agent in a terminal, as one of your users:
+ *
+ *     npm run chat -- --user dana
+ *
+ * Each run is a new conversation; what the agent remembers from the last one is memory's.
+ */
+
+import "dotenv/config";
+
+import { randomUUID } from "node:crypto";
+import { stdin, stdout } from "node:process";
+import { createInterface } from "node:readline/promises";
+import { parseArgs } from "node:util";
+
+import { type BaseMessage, HumanMessage } from "@langchain/core/messages";
+
+import { graph } from "./graph.js";
+
+const { values } = parseArgs({
+  options: { user: { type: "string", default: "dana" } },
+});
+const user = values.user!;
+const config = {
+  context: { user_id: user },
+  configurable: { thread_id: randomUUID() },
+};
+
+console.log(
+  `Talking as ${user}. An empty line, or Ctrl-D, ends the conversation.`,
+);
+// Read lines as they come, so none is lost while the agent answers, and the end of the
+// input (Ctrl-D, or the end of piped input) ends the conversation.
+const rl = createInterface({ input: stdin, output: stdout, prompt: "you> " });
+let open = true;
+rl.on("close", () => (open = false));
+let messages: BaseMessage[] = [];
+rl.prompt();
+for await (const said of rl) {
+  const line = said.trim();
+  if (!line) break;
+  const out = await graph.invoke(
+    { messages: [...messages, new HumanMessage(line)] },
+    config,
+  );
+  messages = out.messages;
+  console.log(`agent> ${messages.at(-1)!.text}`);
+  if (open) rl.prompt();
+}
+rl.close();

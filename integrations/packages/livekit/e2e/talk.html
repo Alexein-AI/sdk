@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk to memory</title>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.3/dist/livekit-client.umd.js"></script>
+<style>
+  :root { --bg: #f7f7f5; --fg: #1d1d1b; --muted: #6b6b66; --line: #deded8; --you: #e6eefc;
+          --agent: #eaf5ea; --accent: #2457c5; --bad: #b3261e; color-scheme: light; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151514; --fg: #ececea; --muted: #9a9a94; --line: #33332f; --you: #1c2a44;
+            --agent: #1c3320; --accent: #7aa2ff; --bad: #ff8a80; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .meta { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+  .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  button { font: inherit; padding: 8px 18px; border-radius: 8px; border: 1px solid var(--line);
+           background: var(--accent); color: #fff; cursor: pointer; }
+  button[disabled] { opacity: .45; cursor: default; }
+  button.secondary { background: transparent; color: var(--fg); }
+  .pill { font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); }
+  #status.error { color: var(--bad); }
+  #transcript { display: flex; flex-direction: column; gap: 8px; }
+  .msg { padding: 8px 12px; border-radius: 10px; max-width: 90%; }
+  .msg.you { background: var(--you); align-self: flex-end; }
+  .msg.agent { background: var(--agent); align-self: flex-start; }
+  .msg .who { display: block; font-size: 12px; color: var(--muted); }
+  .msg.interim { opacity: .65; }
+  .hint { color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Talk to the memory agent</h1>
+  <div class="meta" id="meta">Each call is a new room. Hang up and call again: the agent remembers.</div>
+  <div class="bar">
+    <button id="start">Start call</button>
+    <button id="stop" class="secondary" disabled>Hang up</button>
+    <span class="pill" id="status" data-state="idle">idle</span>
+    <span class="pill" id="agent-state">agent: -</span>
+  </div>
+  <div id="transcript" aria-live="polite"></div>
+  <p class="hint" id="hint">Allow the microphone when asked. Audio plays from the agent once the call starts.</p>
+</main>
+<script>
+const LK = window.LivekitClient;
+const $ = (id) => document.getElementById(id);
+let room = null;
+let identity = null;
+const lines = new Map(); // lk.segment_id -> element
+
+function setStatus(text, state, error) {
+  const s = $("status");
+  s.textContent = text;
+  s.dataset.state = state;
+  s.classList.toggle("error", !!error);
+}
+
+function line(segment, who, text, final) {
+  let el = lines.get(segment);
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "msg " + who;
+    el.dataset.who = who;
+    el.innerHTML = '<span class="who"></span><span class="text"></span>';
+    el.querySelector(".who").textContent = who === "you" ? "you" : "agent";
+    $("transcript").appendChild(el);
+    lines.set(segment, el);
+  }
+  el.querySelector(".text").textContent = text;
+  el.classList.toggle("interim", !final);
+  el.dataset.final = final ? "1" : "0";
+  el.scrollIntoView({ block: "end" });
+}
+
+function agentState(p) {
+  if (p.isAgent || p.kind === LK.ParticipantKind?.AGENT) {
+    $("agent-state").textContent = "agent: " + (p.attributes["lk.agent.state"] || "joined");
+    $("agent-state").dataset.state = p.attributes["lk.agent.state"] || "joined";
+  }
+}
+
+async function start() {
+  $("start").disabled = true;
+  setStatus("starting", "starting");
+  try {
+    const cfg = await (await fetch("/call", { method: "POST" })).json();
+    identity = cfg.identity;
+    $("meta").textContent = `You are "${cfg.identity}" in ${cfg.room}; memory mode ${cfg.mode}.`;
+    room = new LK.Room({ adaptiveStream: true, dynacast: true });
+    room
+      .on(LK.RoomEvent.TrackSubscribed, (track, _pub, participant) => {
+        if (track.kind === LK.Track.Kind.Audio) {
+          const el = track.attach();
+          el.dataset.from = participant.identity;
+          document.body.appendChild(el);
+        }
+      })
+      .on(LK.RoomEvent.TrackUnsubscribed, (track) => track.detach().forEach((el) => el.remove()))
+      .on(LK.RoomEvent.ParticipantConnected, agentState)
+      .on(LK.RoomEvent.ParticipantAttributesChanged, (_changed, p) => agentState(p))
+      .on(LK.RoomEvent.Disconnected, () => {
+        setStatus("disconnected", "disconnected");
+        $("start").disabled = false;
+        $("stop").disabled = true;
+      });
+    room.registerTextStreamHandler("lk.transcription", async (reader, info) => {
+      const attrs = reader.info.attributes || {};
+      const segment = attrs["lk.segment_id"] || reader.info.id;
+      const who = info.identity === identity ? "you" : "agent";
+      let text = "";
+      for await (const chunk of reader) {
+        text += chunk;
+        line(segment, who, text, false);
+      }
+      if (text.trim()) line(segment, who, text, true);
+    });
+    await room.connect(cfg.url, cfg.token);
+    room.remoteParticipants.forEach(agentState);
+    await room.localParticipant.setMicrophoneEnabled(true);
+    await room.startAudio();
+    setStatus("connected", "connected");
+    $("stop").disabled = false;
+    $("hint").textContent = "Speak now. The agent answers aloud, and both sides appear here.";
+  } catch (e) {
+    console.error(e);
+    setStatus("error: " + (e.message || e), "error", true);
+    $("start").disabled = false;
+  }
+}
+
+$("start").addEventListener("click", start);
+$("stop").addEventListener("click", async () => { if (room) await room.disconnect(); });
+</script>
+</body>
+</html>

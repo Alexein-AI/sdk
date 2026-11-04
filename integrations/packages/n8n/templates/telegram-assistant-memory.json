@@ -1,0 +1,216 @@
+{
+  "name": "Telegram assistant with long-term memory (Alexein)",
+  "nodes": [
+    {
+      "id": "ac7323bc-2321-4f46-b35a-548a9dcb7623",
+      "name": "Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        -260
+      ],
+      "parameters": {
+        "width": 420,
+        "height": 520,
+        "content": "## Telegram assistant with long-term memory\n\nA Telegram bot that remembers what each person tells it, across chats and days, with **Alexein**. Simple Memory keeps the last few messages; Alexein keeps everything else and finds it again.\n\n### Set up\n1. Install the community node **n8n-nodes-twinmemory** (Settings > Community Nodes).\n2. Create a Telegram bot with @BotFather and add its token to **Telegram Trigger** and **Send Reply**.\n3. Add your OpenAI key to **OpenAI Chat Model**.\n4. Create an API key at app.alexein.ai (Console > API keys) and add it to both memory tools.\n5. Activate the workflow and message your bot.\n\nEach Telegram user is their own end user in Alexein, by their Telegram user ID, so one bot keeps every person's memory apart."
+      }
+    },
+    {
+      "id": "15594514-a8de-40e2-b5a9-9fd097a5ac7b",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "05473026-5a1c-406d-b5b7-cd92177c32b6",
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "afc4f1d5-c99d-4597-83a0-2baeba6d0258",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "You are a helpful personal assistant in Telegram, with a long-term memory of this person.\n\n- Before you answer anything about them - their life, work, people, plans or preferences - search their memory with the Search Memory tool.\n- Whenever they tell you something new about themselves or the people, places and things around them, save it with the Save to Memory tool: one fact per call, in their words. When in doubt, save.\n- Never save passwords, keys or payment details.\n\nAnswer briefly, as a friend who remembers would."
+        }
+      }
+    },
+    {
+      "id": "ccf20899-6a6e-448f-a13b-a7b5f435be03",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        120,
+        240
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f8f62bda-9dff-411e-8a32-9459aee90a89",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        280,
+        240
+      ],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "contextWindowLength": 10
+      }
+    },
+    {
+      "id": "904afd75-b3dd-406d-b8fb-4afabb979ad1",
+      "name": "Search Memory",
+      "type": "n8n-nodes-twinmemory.twinMemoryTool",
+      "typeVersion": 1,
+      "position": [
+        440,
+        240
+      ],
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Search this person's long-term memory (Alexein) with a plain-words question. Call it before answering anything about them: their life, work, the people around them, their plans and preferences, or anything they told you before.",
+        "resource": "memory",
+        "operation": "search",
+        "endUser": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "query": "={{ $fromAI('query', 'A plain-words question about this person, such as: What does she like to eat?', 'string') }}"
+      }
+    },
+    {
+      "id": "029cc458-d582-40e6-9dd5-ff19be34b1b6",
+      "name": "Save to Memory",
+      "type": "n8n-nodes-twinmemory.twinMemoryTool",
+      "typeVersion": 1,
+      "position": [
+        600,
+        240
+      ],
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Save to this person's long-term memory (Alexein), which their other apps read too. Call this on your own, without being asked, on every turn where they say anything new: about themselves, their work, or the people, places, projects and things around them - preferences, facts, opinions, decisions, plans, dates, names and numbers, small details and passing remarks. Also save what was asked, tried, decided or built together, and why. When in doubt, save.\n\nOne fact per call, as a note, in their words. Never save secrets, passwords, keys or payment details, or your own suggestions as facts about them.",
+        "resource": "memory",
+        "operation": "add",
+        "endUser": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "={{ $fromAI('fact', 'One new fact about this person, in their words', 'string') }}",
+        "kind": "note"
+      }
+    },
+    {
+      "id": "9e0c1aae-a075-4599-b69f-5280db331802",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        620,
+        0
+      ],
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Memory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Memory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

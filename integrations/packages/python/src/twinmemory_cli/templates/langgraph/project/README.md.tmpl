@@ -1,0 +1,31 @@
+# {name}
+
+A LangGraph agent that remembers the people it talks to, with [Alexein](https://alexein.ai).
+Made by `twinmemory-cli create langgraph`.
+
+## Run it
+
+1. Fill in `.env`: `TWIN_MEMORY_API_KEY` (the console, under API keys), and the key for the model
+   `MODEL` names.
+2. Talk to it in a terminal, as one of your users:
+
+   ```bash
+   uv run -m {package}.chat --user dana
+   ```
+
+   Or open it in LangGraph Studio, passing `{"user_id": "dana"}` as the run's context:
+
+   ```bash
+   uv run langgraph dev
+   ```
+
+3. `uvx twinmemory-cli doctor` checks the setup.
+
+## What is where
+
+- `src/{package}/graph.py` - the graph: memory is wired in here.
+- `src/{package}/memory.py` - memory's nodes and tools, written by `twinmemory-cli init langgraph`.
+  Yours to edit.
+- `src/{package}/chat.py` - the terminal chat.
+
+Whose memory a run reads is the `user_id` in its context, set by your code and never by the model.

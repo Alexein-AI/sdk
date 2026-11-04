@@ -1,0 +1,41 @@
+# twinmemory-cli for Python (packages/python). The twinmemory client comes from vendor/ until it is
+# on PyPI, so this needs nothing from any other repository.
+name: python
+
+on:
+  pull_request:
+    paths: ["packages/python/**", "vendor/**", ".github/workflows/python-*.yml"]
+  push:
+    branches: [main]
+    paths: ["packages/python/**", "vendor/**", ".github/workflows/python-*.yml"]
+
+concurrency:
+  group: python-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: packages/python
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.13"]
+        # CrewAI and the OpenAI Agents SDK need different majors of openai: one run with each.
+        group: ["crewai", "openai-agents"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --no-default-groups --group dev --group ${{ matrix.group }}
+      - run: uv run --no-sync ruff format --check .
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync pyright
+      - run: uv run --no-sync pytest -q

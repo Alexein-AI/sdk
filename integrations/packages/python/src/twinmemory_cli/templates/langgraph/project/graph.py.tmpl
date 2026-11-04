@@ -1,0 +1,146 @@
+"""The agent: a model that remembers the people it talks to.
+
+Made by `twinmemory-cli create langgraph`. Memory comes from `memory.py`, beside it:
+# >>> nodes
+`recall` looks up what memory holds before the model answers, and `remember` saves the
+turn after it.
+# <<< nodes
+# >>> tools
+# >>> nodes
+The model can also search memory itself, with `MEMORY_TOOLS`.
+# <<< nodes
+# >>> tools_only
+The model searches memory and saves to it itself, with `MEMORY_WRITE_TOOLS`.
+# <<< tools_only
+# <<< tools
+
+Whose memory a run reads is the `user_id` in its context, which your code sets:
+
+    graph.invoke(inputs, context={"user_id": "dana"})
+"""
+
+from __future__ import annotations
+
+import os
+from functools import cache
+from typing import Any
+
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import SystemMessage
+# >>> nodes
+from langgraph.graph import END, START, StateGraph
+# <<< nodes
+# >>> tools_only
+from langgraph.graph import END, START, MessagesState, StateGraph
+# <<< tools_only
+# >>> tools
+from langgraph.prebuilt import ToolNode, tools_condition
+# <<< tools
+
+from {package}.memory import (
+# >>> tools
+# >>> nodes
+    MEMORY_TOOLS,
+# <<< nodes
+# >>> tools_only
+    MEMORY_WRITE_TOOLS,
+# <<< tools_only
+# <<< tools
+    MemoryContext,
+# >>> nodes
+    MemoryState,
+    memory_prompt,
+    recall,
+    remember,
+# <<< nodes
+)
+# >>> tools_only
+
+State = MessagesState
+# <<< tools_only
+# >>> nodes
+
+State = MemoryState
+# <<< nodes
+# >>> tools
+# >>> nodes
+
+# `remember` saves every turn, so the model is only given the tools that read.
+TOOLS = MEMORY_TOOLS
+# <<< nodes
+# >>> tools_only
+
+# Nothing else saves, so the model is given the tool that does.
+TOOLS = MEMORY_WRITE_TOOLS
+# <<< tools_only
+# <<< tools
+
+SYSTEM = (
+    "You are a helpful assistant. You remember the people you talk to across "
+    "conversations; use what you remember where it helps, and never invent it."
+)
+
+
+@cache
+def _model() -> Any:
+    """The chat model `MODEL` in .env names, made on first use."""
+    chat = init_chat_model(os.environ.get("MODEL", "{model}"))
+# >>> tools
+    return chat.bind_tools(TOOLS)
+# <<< tools
+# >>> nodes_only
+    return chat
+# <<< nodes_only
+
+
+# >>> sync
+def agent(state: State) -> dict[str, Any]:
+# <<< sync
+# >>> async
+async def agent(state: State) -> dict[str, Any]:
+# <<< async
+    system = SYSTEM
+# >>> nodes
+    remembered = memory_prompt(state)
+    if remembered:
+        system += "\n\n" + remembered
+# <<< nodes
+# >>> sync
+    reply = _model().invoke([SystemMessage(system), *state["messages"]])
+# <<< sync
+# >>> async
+    reply = await _model().ainvoke([SystemMessage(system), *state["messages"]])
+# <<< async
+    return {"messages": [reply]}
+
+
+builder = StateGraph(State, context_schema=MemoryContext)
+builder.add_node("agent", agent)
+# >>> nodes
+builder.add_node("recall", recall)
+builder.add_node("remember", remember)
+builder.add_edge(START, "recall")
+builder.add_edge("recall", "agent")
+builder.add_edge("remember", END)
+# <<< nodes
+# >>> tools_only
+builder.add_edge(START, "agent")
+# <<< tools_only
+# >>> tools
+builder.add_node("tools", ToolNode(TOOLS))
+builder.add_edge("tools", "agent")
+# <<< tools
+# >>> both
+builder.add_conditional_edges(
+    "agent", tools_condition, {"tools": "tools", "__end__": "remember"}
+)
+# <<< both
+# >>> tools_only
+builder.add_conditional_edges(
+    "agent", tools_condition, {"tools": "tools", "__end__": END}
+)
+# <<< tools_only
+# >>> nodes_only
+builder.add_edge("agent", "remember")
+# <<< nodes_only
+graph = builder.compile()

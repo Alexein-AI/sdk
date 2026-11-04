@@ -1,0 +1,10 @@
+{
+	"node": "n8n-nodes-twinmemory.twinMemory",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Data & Storage", "Development"],
+	"resources": {
+		"credentialDocumentation": [{ "url": "https://docs.alexein.ai/integrations/n8n#credential" }],
+		"primaryDocumentation": [{ "url": "https://docs.alexein.ai/integrations/n8n" }]
+	}
+}
