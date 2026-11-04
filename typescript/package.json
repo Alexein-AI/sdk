@@ -1,6 +1,6 @@
 {
   "name": "@alexein/sdk",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "JavaScript and TypeScript client for Alexein: long-term memory for your users and agents, with LangGraph.js and OpenAI Agents SDK integrations.",
   "license": "MIT",
   "author": "Alexein AI",

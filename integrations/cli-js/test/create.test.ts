@@ -25,6 +25,7 @@ import { doctor } from "../src/doctor.js";
 import * as env from "../src/env.js";
 import { GENERATED as ALL_GENERATED, Project, quiet, said } from "./helpers.js";
 import { routes, serve, writeMemoryFile } from "./recorded.js";
+import { VERSION } from "../src/version.js";
 
 /** This file's own corner, so files running in parallel never remove each other's. */
 const GENERATED = ALL_GENERATED + "create/";
@@ -340,7 +341,7 @@ describe("doctor", () => {
     const console = quiet();
     expect(await doctor(healthy().root, console, good)).toBe(0);
     const text = said(console);
-    expect(text).toContain("@alexein/cli 0.3.0 - checking");
+    expect(text).toContain(`@alexein/cli ${VERSION} - checking`);
     expect(text).toContain("✓ memory file src/memory.ts (written by 0.3.0)");
     expect(text).toContain(
       "✓ dependencies: @alexein/sdk, @langchain/langgraph, @langchain/core, zod",

@@ -135,4 +135,8 @@ def test_every_route_in_the_document_has_a_method():
 def test_the_document_is_the_version_this_client_speaks():
     from alexein import __version__
 
-    assert DOCUMENT["info"]["version"] == __version__
+    # A patch release (0.3.1) is the client's own; any 0.3.x speaks the API's 0.3.
+    def minor(version: str) -> list[str]:
+        return version.split(".")[:2]
+
+    assert minor(DOCUMENT["info"]["version"]) == minor(__version__)

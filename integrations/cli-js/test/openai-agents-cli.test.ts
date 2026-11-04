@@ -19,6 +19,7 @@ import * as env from "../src/env.js";
 import { calls, says, Scripted } from "./agents.js";
 import { GENERATED as ALL_GENERATED, Project, quiet, said } from "./helpers.js";
 import { bodies, routes, serve, users, writeMemoryFile } from "./recorded.js";
+import { VERSION } from "../src/version.js";
 
 /** This file's own corner, so files running in parallel never remove each other's. */
 const GENERATED = ALL_GENERATED + "openai-agents-cli/";
@@ -51,7 +52,7 @@ describe("init openai-agents: where it writes", () => {
 
     expect(code).toBe(0);
     const written = readFileSync(join(p.root, "src/support/memory.ts"), "utf8");
-    expect(written).toContain("`npx @alexein/cli init openai-agents` (@alexein/cli 0.3.0)");
+    expect(written).toContain(`\`npx @alexein/cli init openai-agents\` (@alexein/cli ${VERSION})`);
     expect(written).toContain('import { AlexeinMemory } from "@alexein/sdk/openai-agents";');
     expect(written).not.toContain("// >>>");
     expect(p.ran).toEqual([["npm", "install", "@alexein/sdk@>=0.3", "zod@>=4.0"]]);

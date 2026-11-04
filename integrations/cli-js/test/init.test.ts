@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { main } from "../src/cli.js";
 import * as env from "../src/env.js";
 import { Project, quiet, said } from "./helpers.js";
+import { VERSION } from "../src/version.js";
 
 const projects: Project[] = [];
 function project(): Project {
@@ -423,7 +424,7 @@ describe("the command line", () => {
   it("says its version, and shows help", async () => {
     const console = quiet();
     expect(await main(["--version"], console)).toBe(0);
-    expect(said(console)).toBe("@alexein/cli 0.3.0");
+    expect(said(console)).toBe(`@alexein/cli ${VERSION}`);
     expect(await main(["--help"], quiet())).toBe(0);
     expect(await main(["nonsense"], quiet())).toBe(2);
   });

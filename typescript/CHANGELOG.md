@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 - 2026-11-04
+
+- Published through npm's trusted publishing from GitHub Actions, with no token: the provenance on npm is
+  GitHub's alone. The client is the same as 0.3.0. A patch release is the package's own; any 0.3.x speaks
+  the API's 0.3.
+
 ## 0.3.0 - 2026-11-04
 
 Renamed from `twinmemory` to `@alexein/sdk`, rebuilt on the API's `/v2` surface, and numbered as

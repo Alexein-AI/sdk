@@ -26,8 +26,8 @@ own behaviour wins, then the docs, then this file - and this file is fixed.
 | User-Agent                 | `alexein-python/<version>[ <integration>]` | `alexein-js/<version>[ <integration>]` |
 | Logger                     | `logging.getLogger("alexein")`          | `console.warn` or the `logger` option   |
 
-Versions: every package starts at `0.3.0` (the API's `info.version`), so the docs, the clients and
-the API say one number. Nothing named `twin`, `twinmemory` or "twin memory" survives in code,
+Versions: every package started at `0.3.0` (the API's `info.version`). A client's major and minor are the
+API's it speaks (`0.3.x` speaks API 0.3, checked by both contract tests); a patch is the package's own. Nothing named `twin`, `twinmemory` or "twin memory" survives in code,
 docs, package metadata or user-facing strings. The product is "Alexein"; an end user of a
 customer's app is an "app user".
 

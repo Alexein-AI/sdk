@@ -124,9 +124,11 @@ function operation(request: Sent): Operation {
 const NOT_OFFERED = new Set(["post /memory/events/lookup"]);
 
 describe("the API's contract", () => {
-  it("names the API's version the client says it is", async () => {
+  it("is the API version the client speaks: the same major and minor", async () => {
+    // A patch release (0.3.1) is the client's own; any 0.3.x speaks the API's 0.3.
     const { VERSION } = await import("../src/index.js");
-    expect(CONTRACT.info.version).toBe(VERSION);
+    const minor = (v: string) => v.split(".").slice(0, 2).join(".");
+    expect(minor(CONTRACT.info.version)).toBe(minor(VERSION));
     expect(CONTRACT.servers[0].url).toBe("https://api.alexein.ai/v2");
   });
 
