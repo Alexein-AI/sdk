@@ -1,12 +1,12 @@
 """Real conversations, real model, real memory: callers who ring back days later, in both modes.
 
-    cd packages/livekit
+    cd integrations/livekit
     set -a; . ../../../.livekit-test.env; set +a        # OPENROUTER_API_KEY (or OPENAI_API_KEY)
-    export TWIN_MEMORY_API_KEY=tm_... TWIN_MEMORY_BASE_URL=http://localhost:8210
+    export ALEXEIN_API_KEY=tm_... ALEXEIN_API_URL=http://localhost:8210
     uv run --with "livekit-plugins-openai~=1.8" python e2e/scenarios.py   # --mode auto, -k NAME
 
-Each scenario is two or three calls by one caller (a fresh end user per run), typed through the
-same `AgentSession` and `TwinMemoryAgent` a voice agent uses, with a real model. Between calls it
+Each scenario is two or three calls by one caller (a fresh app user per run), typed through the
+same `AgentSession` and `AlexeinMemoryAgent` a voice agent uses, with a real model. Between calls it
 waits until memory can find the last call. The checks are on what the agent answered in the last
 call, and on what memory holds. Costs a few cents. Not a benchmark: a pass is "the agent said the
 right thing", a fail prints the whole last call to read.
@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import os
 import re
 import sys
@@ -24,10 +25,10 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from alexein import AsyncMemory, NotFoundError
 from livekit.agents import AgentSession, llm
-from twinmemory import AsyncMemory, NotFoundError
 
-from twinmemory_livekit import TwinMemory, TwinMemoryAgent
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent
 
 INSTRUCTIONS = (
     "You are Ava, the phone assistant of a concierge service. You speak with the same callers "
@@ -293,7 +294,7 @@ class Call:
 
 
 async def _call(user: str, mode: str, said: list[str], *, redact: bool) -> Call:
-    memory = TwinMemory(
+    memory = AlexeinMemory(
         user,
         mode=mode,
         session_id=f"sc-{uuid.uuid4().hex[:8]}",  # pyright: ignore[reportArgumentType]
@@ -314,7 +315,7 @@ async def _call(user: str, mode: str, said: list[str], *, redact: bool) -> Call:
 
     session.on("conversation_item_added", item)
     session.on("function_tools_executed", tools)
-    await session.start(TwinMemoryAgent(memory, instructions=INSTRUCTIONS))
+    await session.start(AlexeinMemoryAgent(memory, instructions=INSTRUCTIONS))
     for words in said:
         await session.run(user_input=words)
         if memory.last_recall is not None and not memory.last_recall.reused:
@@ -346,9 +347,9 @@ async def _landed(client: AsyncMemory, user: str, words: str, before: str, mode:
 
 
 async def _saved(client: AsyncMemory, user: str, words: str) -> bool:
-    """Whether any passage of `user`'s memory holds `words`, exactly, ignoring case."""
+    """Whether any excerpt of `user`'s memory holds `words`, exactly, ignoring case."""
     try:
-        return bool((await client.user(user).grep(words)).matches)
+        return bool(len(await client.user(user).grep(words)))
     except NotFoundError:
         return False
 
@@ -356,31 +357,12 @@ async def _saved(client: AsyncMemory, user: str, words: str) -> bool:
 USERS: list[str] = []
 
 
-async def _cleanup() -> None:
-    """Delete every caller the run made, through the control route (as e2e/room.py does)."""
-    import httpx
-
-    env = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "..", "twin-memory-frontend", ".env"
-    )
-    secret = os.environ.get("MEMORY_CONTROL_SECRET", "")
-    if not secret and os.path.exists(env):
-        with open(env) as f:
-            lines = [x for x in f.read().splitlines() if x.startswith("MEMORY_CONTROL_SECRET=")]
-        secret = lines[-1].split("=", 1)[1] if lines else ""
-    if not secret:
-        print(f"(left {len(USERS)} test callers: no MEMORY_CONTROL_SECRET to delete them with)")
-        return
-    async with AsyncMemory(max_retries=0) as client:
-        me = await client.me()
-    base = os.environ.get("TWIN_MEMORY_BASE_URL", "http://localhost:8210").rstrip("/")
-    async with httpx.AsyncClient(timeout=10) as http:
-        for user in USERS:
-            await http.delete(
-                f"{base}/v1/control/accounts",
-                params={"org": me.org, "project": me.project or "", "user": user},
-                headers={"Authorization": f"Bearer {secret}"},
-            )
+async def _cleanup(client: AsyncMemory) -> None:
+    """Erase every caller the run made, whole, with the key that wrote them (as e2e/room.py
+    does)."""
+    for user in USERS:
+        with contextlib.suppress(NotFoundError):  # nothing was ever added for it
+            await client.user(user).delete()
 
 
 async def run(scenario: Scenario, mode: str, client: AsyncMemory) -> bool:
@@ -435,8 +417,8 @@ async def main() -> int:
             for scenario in SCENARIOS:
                 if mode in scenario.modes and args.k.lower() in scenario.name.lower():
                     results.append(await run(scenario, mode, client))
-    print(f"\n{sum(results)}/{len(results)} passed")
-    await _cleanup()
+        print(f"\n{sum(results)}/{len(results)} passed")
+        await _cleanup(client)
     return 0 if all(results) else 1
 
 

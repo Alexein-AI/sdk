@@ -1,13 +1,13 @@
-"""twinmemory-livekit by voice: real speech into a real LiveKit room, a real agent (OpenAI STT, LLM
+"""alexein-livekit by voice: real speech into a real LiveKit room, a real agent (OpenAI STT, LLM
 and TTS, Silero VAD) answering aloud, and its answer checked by transcribing the audio it spoke.
 
-    cd packages/livekit && uv run --with "livekit-plugins-openai~=1.8" \
+    cd integrations/livekit && uv run --with "livekit-plugins-openai~=1.8" \
         --with "livekit-plugins-silero~=1.8" python e2e/voice.py            # exit 0 = all held
 
-Needs what e2e/room.py needs (the LiveKit dev server, twin memory and a writing key, the control
-secret for cleanup), plus OPENAI_API_KEY or OPENROUTER_API_KEY (from the environment, or
-$VOICE_ENV, by default the .livekit-test.env beside the repositories; OpenAI when both are set),
-and macOS `say` and `afconvert` for the caller's voice. Keys are never printed.
+Needs what e2e/room.py needs (the LiveKit dev server, the Alexein API and a key that writes, which
+also deletes the app users the run made), plus OPENAI_API_KEY or OPENROUTER_API_KEY (from the
+environment, or $VOICE_ENV, by default the .livekit-test.env beside the repositories; OpenAI when
+both are set), and macOS `say` and `afconvert` for the caller's voice. Keys are never printed.
 
 The caller is a participant with a microphone track that sends 10 ms frames at real-time pace for
 the whole call, silence between utterances, as a real microphone does; each utterance is `say`
@@ -45,23 +45,20 @@ from typing import Any
 
 import httpx
 import numpy as np
+from alexein import AsyncMemory, NotFoundError
 from livekit import api, rtc
 from room import Events, read_env  # e2e/room.py, beside this file
-from twinmemory import AsyncMemory, NotFoundError
 
-from twinmemory_livekit import participant_id
+from alexein_livekit import participant_id
 
 warnings.filterwarnings("ignore", message="The HMAC key")  # the 6-byte dev secret
 HERE = Path(__file__).resolve().parent
 LK_URL = os.environ.get("LIVEKIT_URL", "ws://localhost:7880")
 LK_KEY = os.environ.get("LIVEKIT_API_KEY", "devkey")
 LK_SECRET = os.environ.get("LIVEKIT_API_SECRET", "secret")
-AGENT_NAME = "twinmemory-voice-e2e"
+AGENT_NAME = "alexein-voice-e2e"
 ENV_FILE = os.environ.get("E2E_ENV", "")
 VOICE_ENV = os.environ.get("VOICE_ENV", str(HERE.parents[3] / ".livekit-test.env"))
-CONTROL_ENV = os.environ.get(
-    "E2E_CONTROL_ENV", str(HERE.parents[3] / "twin-memory-frontend" / ".env")
-)
 # Each model through LiveKit's OpenAI plugin; OpenRouter is OpenAI-compatible at its base URL.
 # OpenAI is used when both keys are there. VOICE_LLM, VOICE_STT, VOICE_TTS (or "say") and
 # VOICE_JUDGE_STT override a model; VOICE_PROVIDER picks the provider.
@@ -451,14 +448,14 @@ class Run:
         if mode != "off":
             await self.shutdown(room)  # the job's last write is done once it has shut down
             errors = self.package_errors(room)
-            check(not errors, f"{label}: twin memory logged no error ({errors[:2]})")
+            check(not errors, f"{label}: alexein.livekit logged no error ({errors[:2]})")
         return c, c.turns
 
     def package_errors(self, room: str) -> list[str]:
-        """What the package logged at ERROR for this call's job, as `twinmemory.livekit` says it."""
+        """What the package logged at ERROR for this call's job, as `alexein.livekit` says it."""
         out = []
         for line in (self.out / "worker.log").read_text(errors="replace").splitlines():
-            if '"twinmemory.livekit"' in line and '"ERROR"' in line and room in line:
+            if '"alexein.livekit"' in line and '"ERROR"' in line and room in line:
                 try:
                     out.append(json.loads(line)["message"])
                 except ValueError:
@@ -472,14 +469,14 @@ class Run:
     async def searchable(
         self, user: str, queries: list[str], ok: Any, timeout: float = 30
     ) -> tuple[float, str] | None:
-        """Seconds until one of `queries` finds a passage `ok` accepts, and that query."""
+        """Seconds until one of `queries` finds a memory `ok` accepts, and that query."""
         t0 = time.monotonic()
         while time.monotonic() - t0 < timeout:
             for query in queries:
                 try:
                     # Bound by participant: the identity's own namespace (participant_id).
                     r = await self.memory.user(participant_id(user)).search(query, fast=True)
-                    if any(ok(h.text) for h in r.hits) or any(ok(k) for k in r.known):
+                    if any(ok(m.text) for m in r.memories):
                         return round(time.monotonic() - t0, 1), query
                 except NotFoundError:
                     pass
@@ -501,9 +498,7 @@ class Run:
         shut = await self.shutdown(r1)
         check(shut.get("closed") is True, "auto call 1 ended with memory closed (turns flushed)")
         t = await self.searchable(user, ["locker code at the Alfama gym"], holds_code)
-        check(
-            t is not None, f"the code is searchable in twin memory ((s, query) after the call: {t})"
-        )
+        check(t is not None, f"the code is searchable in memory ((s, query) after the call: {t})")
 
         c2, t2 = await self.call("auto", user, "auto-call2", [QUESTION])
         r2 = c2.room_name
@@ -574,7 +569,7 @@ class Run:
         t = await self.searchable(
             user, ["favourite colour", "favorite color"], lambda s: "teal" in s.lower()
         )
-        check(t is not None, f"teal is searchable in twin memory ((s, query) after the call: {t})")
+        check(t is not None, f"teal is searchable in memory ((s, query) after the call: {t})")
 
         c2, t2 = await self.call("tools", user, "tools-call2", [ASK_COLOUR])
         r2 = c2.room_name
@@ -628,18 +623,14 @@ def cost(tot: dict[str, float], judged_s: float) -> float:
     return usd + 0.006 * judged_s / 60
 
 
-async def cleanup(users: list[str], secret: str | None, org: str, project: str) -> None:
-    if not secret:
-        say("  no MEMORY_CONTROL_SECRET: users left in memory: " + ", ".join(users))
-        return
-    async with httpx.AsyncClient(timeout=10) as http:
-        for u in users:
-            r = await http.delete(
-                "http://localhost:8210/v1/control/accounts",
-                params={"org": org, "project": project, "user": u},
-                headers={"Authorization": f"Bearer {secret}"},
-            )
-            say(f"cleanup: DELETE user {u} -> {r.status_code}")
+async def cleanup(memory: AsyncMemory, users: list[str]) -> None:
+    """Erase each app user the run made, whole, with the key that wrote them."""
+    for u in users:
+        try:
+            erased = (await memory.user(u).delete()).deleted
+        except NotFoundError:
+            erased = False  # nothing was ever added for it
+        say(f"cleanup: app user {u} erased: {erased}")
 
 
 def start_worker(env: dict[str, str], out: Path) -> subprocess.Popen[bytes]:
@@ -676,7 +667,7 @@ def environment() -> dict[str, str]:
     environment or their KEY=VALUE files, with VOICE_* naming the provider's URL, key and models.
     OpenAI when its key is there, else OpenRouter. Never printed."""
     env = dict(os.environ)
-    for k, v in read_env(ENV_FILE, "TWIN_MEMORY_BASE_URL", "TWIN_MEMORY_API_KEY").items():
+    for k, v in read_env(ENV_FILE, "ALEXEIN_API_URL", "ALEXEIN_API_KEY").items():
         env.setdefault(k, v)
     for k, v in read_env(VOICE_ENV, "OPENAI_API_KEY", "OPENROUTER_API_KEY").items():
         env.setdefault(k, v)
@@ -701,7 +692,7 @@ def main() -> int:
     args = ap.parse_args()
 
     env = environment()
-    for k, where in (("TWIN_MEMORY_API_KEY", ENV_FILE), ("VOICE_API_KEY", VOICE_ENV)):
+    for k, where in (("ALEXEIN_API_KEY", ENV_FILE), ("VOICE_API_KEY", VOICE_ENV)):
         if not env.get(k):
             say(f"FAIL: no {k} (or OPENAI_API_KEY / OPENROUTER_API_KEY) in the env or {where}")
             return 1
@@ -709,19 +700,14 @@ def main() -> int:
         f"provider {env['VOICE_PROVIDER']}: LLM {env['VOICE_LLM']}, STT {env['VOICE_STT']}, "
         f"TTS {env['VOICE_TTS']}, judge {env['VOICE_JUDGE_STT']}"
     )
-    os.environ.update(
-        {k: env[k] for k in ("TWIN_MEMORY_BASE_URL", "TWIN_MEMORY_API_KEY") if k in env}
-    )
-    secret = os.environ.get("MEMORY_CONTROL_SECRET") or read_env(
-        CONTROL_ENV, "MEMORY_CONTROL_SECRET"
-    ).get("MEMORY_CONTROL_SECRET")
+    os.environ.update({k: env[k] for k in ("ALEXEIN_API_URL", "ALEXEIN_API_KEY") if k in env})
     try:
         httpx.get(LK_URL.replace("ws", "http", 1), timeout=3).raise_for_status()
     except Exception as e:
-        say(f"FAIL: LiveKit server not reachable at {LK_URL} ({e}); start twin-livekit-dev")
+        say(f"FAIL: LiveKit server not reachable at {LK_URL} ({e}); start livekit-dev")
         return 1
 
-    out = Path(tempfile.mkdtemp(prefix="twinmemory-livekit-voice-"))
+    out = Path(tempfile.mkdtemp(prefix="alexein-livekit-voice-"))
     events = out / "events.jsonl"
     env.update({"E2E_EVENTS": str(events), "E2E_AGENT_NAME": AGENT_NAME,
                 "PYTHONWARNINGS": "ignore", "PYTHONUNBUFFERED": "1"})  # fmt: skip
@@ -735,7 +721,6 @@ def main() -> int:
         await registered(worker, out)
         say(f"worker registered in {(time.perf_counter() - t0) * 1000:.0f} ms")
         memory = AsyncMemory(integration="livekit")
-        me = await memory.me()
         async with httpx.AsyncClient() as http:
             run = Run(Events(events), memory, http, env, out)
             try:
@@ -746,9 +731,9 @@ def main() -> int:
                     say("---- scenario 2: tools mode")
                     await run.tools()
             finally:
-                await memory.close()
                 if not args.keep_users:
-                    await cleanup(run.users, secret, me.org, me.project or "")
+                    await cleanup(memory, run.users)
+                await memory.close()
 
     try:
         asyncio.run(go())

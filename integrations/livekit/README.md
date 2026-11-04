@@ -1,4 +1,4 @@
-# twinmemory-livekit
+# alexein-livekit
 
 Long-term memory for [LiveKit Agents](https://docs.livekit.io/agents/) voice agents, from
 [Alexein](https://alexein.ai). Before each reply your agent is given what the caller said in
@@ -6,17 +6,18 @@ earlier calls; every turn of this call is saved for the next one. Memory never h
 more than half a second, and never stops one.
 
 ```bash
-pip install twinmemory-livekit
-export TWIN_MEMORY_API_KEY=tm_...       # a key that writes, from the console's API keys
+pip install alexein-livekit
+export ALEXEIN_API_KEY=tm_...           # a key that writes, from the console's API keys
 ```
 
-Python 3.10 or newer, `livekit-agents` 1.5.1 or newer and below 2.
+Python 3.10 or newer, `livekit-agents` 1.5.1 or newer and below 2. It is built on the `alexein`
+client (0.3 or newer), which it installs.
 
 ## Quickstart
 
 ```python
 from livekit.agents import AgentServer, AgentSession, JobContext, cli, inference
-from twinmemory_livekit import TwinMemory, TwinMemoryAgent
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent
 
 server = AgentServer()
 
@@ -24,7 +25,7 @@ server = AgentServer()
 @server.rtc_session()
 async def entrypoint(ctx: JobContext) -> None:
     # Your own id for the caller, which your backend names when it dispatches the agent.
-    memory = TwinMemory.from_job(ctx, metadata_key="twinmemory_user_id")
+    memory = AlexeinMemory.from_job(ctx, metadata_key="alexein_user_id")
     await ctx.connect()
     if memory.user_id is None:  # none dispatched: one memory per LiveKit identity
         memory.bind(participant=await ctx.wait_for_participant())
@@ -35,7 +36,7 @@ async def entrypoint(ctx: JobContext) -> None:
         tts=inference.TTS("cartesia/sonic-3"),
     )
     memory.attach(session)
-    agent = TwinMemoryAgent(memory, instructions="You are a friendly voice assistant.")
+    agent = AlexeinMemoryAgent(memory, instructions="You are a friendly voice assistant.")
     await session.start(room=ctx.room, agent=agent)
 
 
@@ -52,7 +53,7 @@ that knows it today.
 |---|---|---|
 | Before each reply | what memory holds for the caller's words is put in front of the model | nothing |
 | After each turn | the turn is saved | nothing |
-| The model's tools | `memory_search`, `memory_read`, for a deeper look | `memory_search`, `memory_read`, `memory_add` |
+| The model's tools | `memory_search`, `memory_open`, for a deeper look | `memory_search`, `memory_open`, `memory_add` |
 | What the model is told | that memory comes before each reply, and to search only for what is not in it | when to search and when to save, with examples |
 
 **auto** is memory that is always there: no turn waits for the model to think of it, and every
@@ -63,17 +64,17 @@ round trip (LiveKit plays a thinking sound if you give it one); a save waits at 
 `save_timeout` (2 s), and one memory is slow for is saved behind the reply.
 
 ```python
-memory = TwinMemory.from_job(ctx, mode="tools")
+memory = AlexeinMemory.from_job(ctx, mode="tools")
 ```
 
 ## Whose memory a call is
 
-A call reads and writes one end user's memory, and your code decides whose; nothing said in the call
+A call reads and writes one app user's memory, and your code decides whose; nothing said in the call
 can change it, and the model's tools act on that user only.
 
 - **Your own id for the caller** is the one to use - the id your app already knows them by:
-  - in the job's metadata, from your backend's dispatch (`metadata=json.dumps({"twinmemory_user_id":
-    "dana"})`), read with `TwinMemory.from_job(ctx, metadata_key="twinmemory_user_id")`, as in the
+  - in the job's metadata, from your backend's dispatch (`metadata=json.dumps({"alexein_user_id":
+    "dana"})`), read with `AlexeinMemory.from_job(ctx, metadata_key="alexein_user_id")`, as in the
     quickstart. Only where your server writes that metadata: a token server that copies it from a
     client's request would let the caller choose whose memory they get;
   - or `memory.bind(user_id="...")`, from your own records.
@@ -81,11 +82,12 @@ can change it, and the model's tools act on that user only.
   identity is only as good as the token server that issued it - LiveKit asks only that it be unique
   within its room - so it gets a namespace of its own: `participant_id(identity)`, `lk-` and a hash,
   which no id your backend writes can meet. Your backend can call `participant_id` to reach the same
-  memory. `bind(participant=..., share_identity=True)` uses the identity itself instead, where the
-  `twinmemory` client accepts it as an end user id, so the agent shares memory with ids your
-  backend writes - only where your token server issues the identity from your own user ids, and
-  keeps them to the [id rule](https://docs.alexein.ai/concepts/end-users#the-id-rule): up to 35
-  characters always fits. Either way, an identity every caller is given ("guest", "user") is one
+  memory. `bind(participant=..., share_identity=True)` uses the identity itself instead, where it
+  is an app user id by the [id rule](https://docs.alexein.ai/concepts/app-users#the-id-rule) (1 to
+  35 letters, digits, `.`, `_` or `-`), so the agent shares memory with ids your backend writes -
+  only where your token server issues the identity from your own user ids. An identity the rule
+  does not take, such as a UUID with its dashes (36 characters), is hashed as `app_user_id`
+  says. Either way, an identity every caller is given ("guest", "user") is one
   memory for all of them.
 
 A phone caller's identity (SIP, or a connector such as WhatsApp) is a number, which a caller can
@@ -114,7 +116,8 @@ reply only - as what was said, line by line, not whole conversations:
 - It runs in `llm_node`, so it keeps LiveKit's preemptive generation (on by default, and lost when
   `on_user_turn_completed` changes the turn) and it covers typed turns, which that hook never sees.
   One lookup is shared by the early reply, the confirmed one and the model call after a tool runs.
-- It searches earlier calls only: the model already has this one.
+- It searches earlier calls only - everything but this call's session - since the model already
+  has this one.
 - A reply waits for it at most `recall_timeout` seconds (0.5 by default), however many model calls
   the reply makes; when memory is slow or down, the reply goes ahead without it. Nothing memory
   does, or answers, can stop a reply.
@@ -153,12 +156,12 @@ def redact(role: str, text: str) -> str | None:
     return re.sub(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", "[email]", text)
 
 
-memory = TwinMemory.from_job(ctx, redact=redact)
+memory = AlexeinMemory.from_job(ctx, redact=redact)
 ```
 
 ## Your own agent
 
-`TwinMemoryAgent` takes every keyword an `Agent` does. With an agent class of your own, call
+`AlexeinMemoryAgent` takes every keyword an `Agent` does. With an agent class of your own, call
 `memory.attach(session)` in the entrypoint as above, give its model `memory.tools()` with
 `memory.guide` after its instructions - in both modes: in auto mode it is what keeps a model from
 searching on every statement, a model round trip (1 to 1.5 s) each - and add recall to its
@@ -166,7 +169,7 @@ searching on every statement, a model round trip (1 to 1.5 s) each - and add rec
 
 ```python
 class Receptionist(Agent):
-    def __init__(self, memory: TwinMemory) -> None:
+    def __init__(self, memory: AlexeinMemory) -> None:
         super().__init__(instructions=f"...\n\n{memory.guide}", tools=memory.tools())
         self.memory = memory
 
@@ -185,12 +188,18 @@ The model's tools act on the bound user only, and when memory is down they answe
 the agent can say, rather than fail (`memory_tools=False` leaves them out, in auto mode):
 
 - `memory_search(query)`: what memory holds for a question, as the lines recall shows, with the
-  sources it found them in;
-- `memory_read(path)`: one of those sources whole;
-- `memory_add(fact)`, in tools mode: one fact about the caller (500 characters at most). It waits
+  refs of the excerpts it found them in;
+- `memory_open(ref)`: one of those whole;
+- `memory_add(text)`, in tools mode: one fact about the caller (500 characters at most). It waits
   up to 2 s for the save, so the model is never told "Saved." for a fact memory refused, and leaves
   one memory is slow for to the writer. The fact is saved as the agent's own line in the call,
   "Noted: ...", at the time it was said.
+
+They are named as the hosted MCP server's tools and the `alexein` client's LangGraph and OpenAI
+Agents integrations name theirs. What differs is for a call: they answer in words the agent can
+say aloud ("I couldn't reach my memory just now."), a search answers the lines recall would show
+rather than the client's `context()`, and a fact is saved as the agent's line in the call rather
+than as a note, so it keeps its place in the call's time.
 
 In tools mode the model is told when to search and save, with examples: a small model told only
 the rules left out a booking's time and an order number, and said "I've noted that" with nothing
@@ -198,18 +207,19 @@ saved.
 
 ## Settings
 
-Every choice the package makes is a keyword of `TwinMemory` (and of `TwinMemory.from_job`), kept
-read-only as `memory.settings`. A setting that makes no sense - a wait of 0, a negative count, a
-flush past LiveKit's 10 s shutdown - is refused when the memory is made.
+Every choice the package makes is a keyword of `AlexeinMemory` (and of
+`AlexeinMemory.from_job`), kept read-only as `memory.settings`. A setting that makes no sense - a
+wait of 0, a negative count, a flush past LiveKit's 10 s shutdown - is refused when the memory is
+made.
 
 **Who and where**
 
 | Setting | Default | What it does |
 |---|---|---|
-| `user_id` | none | the end user, or `bind()` later |
+| `user_id` | none | the app user, or `bind()` later |
 | `mode` | `"auto"` | `"tools"`: nothing by itself, the model decides when to search and save |
-| `client` | made for you | a `twinmemory.AsyncMemory` of your own; make it with `max_retries=0` |
-| `api_key`, `base_url` | `TWIN_MEMORY_API_KEY`, `TWIN_MEMORY_BASE_URL` | for the client made for you |
+| `client` | made for you | an `alexein.AsyncMemory` of your own; make it with `max_retries=0` |
+| `api_key`, `base_url` | `ALEXEIN_API_KEY`, `ALEXEIN_API_URL` | for the client made for you |
 | `session_id` | the job's id | the call's name in memory |
 
 **Recall, before each reply** (auto mode)
@@ -220,7 +230,7 @@ flush past LiveKit's 10 s shutdown - is refused when the memory is made.
 | `recall_timeout` | `0.5` | the most a reply waits for memory, in seconds, however many model calls it makes |
 | `recall_max_chars` | `2000` | the most a reply is shown, about 500 tokens |
 | `recall_agent_turns` | `True` | show the agent's own earlier words too; `False` only the caller's |
-| `recall_recent` | `6` | how many of the caller's last passages follow what the search matched (a call each in auto mode, a fact each in tools mode); `0` for none |
+| `recall_recent` | `6` | how many of the caller's last excerpts follow what the search matched (a call each in auto mode, a fact each in tools mode); `0` for none |
 | `recall_known` | `True` | look up, once a call, what memory holds about the caller (search's `known` lines), to lead with |
 | `recall_skip_small_talk` | `True` | search nothing for "thanks" or "okay", and recall none of it |
 | `recall_reuse_seconds` | `30.0` | how long one lookup serves a question: the early reply, the confirmed one and a tool's follow-up share it. Not a wait |
@@ -232,12 +242,12 @@ flush past LiveKit's 10 s shutdown - is refused when the memory is made.
 | Setting | Default | What it does |
 |---|---|---|
 | `tool_fast` | `True` | `memory_search` skips the relevance check, as with `recall_fast` |
-| `tool_timeout` | `4.0` | the most `memory_search` and `memory_read` wait, in seconds |
+| `tool_timeout` | `4.0` | the most `memory_search` and `memory_open` wait, in seconds |
 | `save_timeout` | `2.0` | how long `memory_add` waits to confirm a save before the writer takes it, so a refused fact is never reported saved |
 | `note_max_chars` | `500` | the longest fact `memory_add` saves |
 | `tool_guide` | the mode's own | what a model given the tools is told, after your instructions; `""` for nothing |
 
-`TwinMemoryAgent(memory_tools=False)` leaves the tools out (auto mode only).
+`AlexeinMemoryAgent(memory_tools=False)` leaves the tools out (auto mode only).
 
 **Saving each turn** (auto mode)
 
@@ -251,7 +261,7 @@ flush past LiveKit's 10 s shutdown - is refused when the memory is made.
 | `flush_timeout` | `5.0` | what the last turns get when the call ends, under LiveKit's 10 s |
 
 `memory.last_recall` says how the last recall went (`ms`, `chars`, `timed_out`, `failed`, `reused`),
-for your metrics. The `twinmemory.livekit` logger warns once per call when memory is unreachable,
+for your metrics. The `alexein.livekit` logger warns once per call when memory is unreachable,
 and logs an error once if the key is refused; it logs the kind of error, its status and request id,
 never the service's words or the user's.
 
@@ -266,10 +276,10 @@ from livekit.agents import mcp
 
 tools = [
     mcp.MCPToolset(
-        id="twinmemory",
+        id="alexein",
         mcp_server=mcp.MCPServerHTTP(
             url="https://api.alexein.ai/v1/mcp",
-            headers={"Authorization": f"Bearer {key}", "X-Twin-Account": user_id},
+            headers={"Authorization": f"Bearer {key}", "X-Alexein-User": user_id},
             allowed_tools=["memory_search", "memory_add"],
         ),
     )
@@ -288,6 +298,6 @@ tools = [
 - In auto mode every turn is saved, so "don't remember this" said in a call cannot be honoured:
   for callers who need that, pass `redact`, or use tools mode, where the model saves only what it
   should.
-- Alexein serves each end user up to 10 reads a second (in bursts of up to 20), and refuses a read
-  while 4 requests for that end user are already in flight
+- Alexein serves each app user up to 10 reads a second (in bursts of up to 20), and refuses a read
+  while 4 requests for that app user are already in flight
   ([limits](https://docs.alexein.ai/concepts/limits)).

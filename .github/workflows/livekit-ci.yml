@@ -1,13 +1,23 @@
-# twinmemory-livekit (packages/livekit). The twinmemory client comes from vendor/ until it is
-# on PyPI, so this needs nothing from any other repository.
-name: livekit
+# alexein-livekit (integrations/livekit). It depends on the alexein client from this repository,
+# ../../python, editable (pyproject's [tool.uv.sources]), so a change to the client or to the API's
+# contract runs these tests too. A release workflow, when there is one, publishes on a tag
+# livekit-v<version>, after alexein is on PyPI.
+name: livekit-ci
 
 on:
   pull_request:
-    paths: ["packages/livekit/**", "vendor/**", ".github/workflows/livekit-*.yml"]
+    paths:
+      - "integrations/livekit/**"
+      - "python/**"
+      - "contract/**"
+      - ".github/workflows/livekit-ci.yml"
   push:
     branches: [main]
-    paths: ["packages/livekit/**", "vendor/**", ".github/workflows/livekit-*.yml"]
+    paths:
+      - "integrations/livekit/**"
+      - "python/**"
+      - "contract/**"
+      - ".github/workflows/livekit-ci.yml"
 
 concurrency:
   group: livekit-${{ github.ref }}
@@ -18,7 +28,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: packages/livekit
+    working-directory: integrations/livekit
 
 jobs:
   check:

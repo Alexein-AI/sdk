@@ -1,6 +1,6 @@
 """Talk to the memory voice agent yourself, in the browser.
 
-    cd packages/livekit && uv run --with "livekit-plugins-openai~=1.8" \
+    cd integrations/livekit && uv run --with "livekit-plugins-openai~=1.8" \
         --with "livekit-plugins-silero~=1.8" python e2e/talk.py --identity dana --mode auto
 
 then open http://localhost:8765 and press Start call. Each call is a new room and a new job, so
@@ -9,7 +9,7 @@ hanging up and calling again is "call 2": what you said before is in memory for 
 
 It starts e2e/voice_worker.py (the same worker e2e/voice.py tests), and serves talk.html with a
 fresh room, dispatch and token per call from /call. Needs what voice.py needs: the LiveKit dev
-server, TWIN_MEMORY_API_KEY (or $E2E_ENV), and OPENAI_API_KEY or OPENROUTER_API_KEY (or
+server, ALEXEIN_API_KEY (or $E2E_ENV), and OPENAI_API_KEY or OPENROUTER_API_KEY (or
 $VOICE_ENV). What the agent heard and said, its tool calls and its recall are printed here as they
 happen.
 """
@@ -41,7 +41,7 @@ from voice import (  # e2e/voice.py, beside this file
 )
 
 HERE = Path(__file__).resolve().parent
-AGENT_NAME = "twinmemory-voice-talk"
+AGENT_NAME = "alexein-voice-talk"
 
 
 def show(line: str) -> None:
@@ -83,11 +83,11 @@ def main() -> int:
     args = ap.parse_args()
 
     env = environment()
-    for k in ("TWIN_MEMORY_API_KEY", "VOICE_API_KEY"):
+    for k in ("ALEXEIN_API_KEY", "VOICE_API_KEY"):
         if not env.get(k):
             show(f"no {k} in the environment or its file; see e2e/README.md")
             return 1
-    out = Path(tempfile.mkdtemp(prefix="twinmemory-livekit-talk-"))
+    out = Path(tempfile.mkdtemp(prefix="alexein-livekit-talk-"))
     events = out / "events.jsonl"
     env.update({"E2E_EVENTS": str(events), "E2E_AGENT_NAME": AGENT_NAME,
                 "VOICE_MODE": args.mode, "PYTHONWARNINGS": "ignore"})  # fmt: skip

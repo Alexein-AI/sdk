@@ -1,4 +1,4 @@
-"""What earlier conversations said, line by line: the passages a search found, cut back into the
+"""What earlier conversations said, line by line: the excerpts a search found, cut back into the
 turns they hold, so a reply is shown what the caller said and not whole conversations.
 
 Kept: each distinct thing said once, the agent's words marked as its own ("you said"), a short
@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from twinmemory import Hit
+from alexein import Excerpt
 
 _TURN = re.compile(r"\*\*([^*]{1,64})\*\* ((?:\d{1,2} \w{3} \d{4} )?\d{1,2}:\d{2}) · ")
 _DAY = re.compile(r"^Context: [^,]*, (\d{1,2} \w{3} \d{4})")
@@ -63,8 +63,8 @@ class Line:
 
 
 def _turns(text: str) -> list[tuple[str, str, str]]:
-    """(speaker, time, words) for each turn a passage holds; a passage with none, such as a note,
-    is one turn with no speaker."""
+    """(speaker, time, words) for each turn an excerpt holds; an excerpt with none, such as a
+    note, is one turn with no speaker."""
     marks = list(_TURN.finditer(text))
     if not marks:
         body = _untitled(_HEADER.sub("", text, count=1).strip())
@@ -89,7 +89,7 @@ def _key(text: str) -> str:
     return " ".join(words(text))
 
 
-def _lines(hit: Hit, rank: int, agent: bool, skip_small_talk: bool = True) -> list[Line]:
+def _lines(hit: Excerpt, rank: int, agent: bool, skip_small_talk: bool = True) -> list[Line]:
     day = (m.group(1) + " ") if (m := _DAY.match(hit.text)) else ""
     turns = _turns(" ".join(hit.text.split()))
     out: list[Line] = []
@@ -118,7 +118,7 @@ def _lines(hit: Hit, rank: int, agent: bool, skip_small_talk: bool = True) -> li
 
 def said(
     known: list[str],
-    hits: list[Hit],
+    hits: list[Excerpt],
     query: str,
     *,
     agent: bool,

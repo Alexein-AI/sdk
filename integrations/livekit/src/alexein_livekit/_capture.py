@@ -17,13 +17,13 @@ import logging
 import re
 from datetime import datetime, timezone
 
+from alexein import AlexeinError, AsyncUser, Author, InvalidRequestError, Item
 from livekit.agents import llm
-from twinmemory import AsyncUser, Author, InvalidRequestError, Item, TwinMemoryError
 
-from twinmemory_livekit._recall import MARK, how
-from twinmemory_livekit._settings import Settings
+from alexein_livekit._recall import MARK, how
+from alexein_livekit._settings import Settings
 
-log = logging.getLogger("twinmemory.livekit")
+log = logging.getLogger("alexein.livekit")
 
 # Turns wait while memory is down or the user is not yet known, up to `capture_buffer`; past it
 # the oldest go, with a warning, so a long outage cannot grow a call's memory use without bound.
@@ -195,7 +195,7 @@ class Writer:
             asyncio.get_running_loop()
         except RuntimeError:
             return  # no running loop yet: the first turn starts it
-        self._task = asyncio.create_task(self._run(), name="twinmemory.capture")
+        self._task = asyncio.create_task(self._run(), name="alexein.capture")
         self._task.add_done_callback(_reported)
 
     async def _run(self) -> None:
@@ -229,7 +229,7 @@ class Writer:
                 return True
             self._refuse(error)
             return True
-        except TwinMemoryError as error:
+        except AlexeinError as error:
             if error.outage:
                 return False
             self._refuse(error)  # a wrong key, or one that cannot write: retrying cannot help
@@ -242,7 +242,7 @@ class Writer:
             return False
         return not result.failed
 
-    def _refuse(self, error: TwinMemoryError) -> None:
+    def _refuse(self, error: AlexeinError) -> None:
         if not self._refused:
             self._refused = True
             log.error("Alexein refused this call's turns, not saved (%s)", how(error))

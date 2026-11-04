@@ -7,39 +7,43 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from alexein import Excerpt
 from livekit import rtc
 from livekit.agents import llm
-from twinmemory import Hit
 
-from twinmemory_livekit import account_id, participant_id
-from twinmemory_livekit._capture import masked
-from twinmemory_livekit._identity import from_metadata, from_participant
-from twinmemory_livekit._lines import said
-from twinmemory_livekit._recall import place, question, wrap
+from alexein_livekit import app_user_id, participant_id
+from alexein_livekit._capture import masked
+from alexein_livekit._identity import from_metadata, from_participant
+from alexein_livekit._lines import said
+from alexein_livekit._recall import place, question, wrap
 
 # ---------------------------------------------------------------------------- identity --
 
 
-def test_an_identity_twin_memory_can_use_is_the_user_id_as_it_is() -> None:
-    assert account_id("dana") == "dana"
-    assert account_id("user_42.prod-A") == "user_42.prod-A"
+def test_an_identity_alexein_can_use_is_the_user_id_as_it_is() -> None:
+    assert app_user_id("dana") == "dana"
+    assert app_user_id("user_42.prod-A") == "user_42.prod-A"
+    longest = "user-" + "7" * 30  # 35 characters, the most an app user id has
+    assert app_user_id(longest) == longest  # the same memory a backend writes to by that id
+    # A UUID with its dashes is 36 characters, one more than an app user id takes: hashed, as
+    # the client would refuse it.
     uuid = "6f1c2b9e-3d4a-4e5f-8a7b-9c0d1e2f3a4b"
-    assert account_id(uuid) == uuid  # the same memory a backend writes to by that id
+    assert app_user_id(uuid) == participant_id(uuid)
 
 
 def test_other_identities_are_hashed_short_and_name_nobody() -> None:
     for identity in ("dana@acme.dev", "+15551234567", "x" * 70, "é", "a b"):
-        made = account_id(identity)
+        made = app_user_id(identity)
         assert made.startswith("lk-") and len(made) == 27
         assert "dana" not in made and "555" not in made  # no address or number in the id
-    assert account_id("dana@acme.dev") != account_id("dana-acme.dev")
+    assert app_user_id("dana@acme.dev") != app_user_id("dana-acme.dev")
     with pytest.raises(ValueError):
-        account_id("")
+        app_user_id("")
 
 
 def test_nobody_can_pick_an_identity_that_lands_in_someone_elses_memory() -> None:
-    victim = account_id("dana@acme.dev")
-    assert account_id(victim) != victim  # an identity spelled like a made id is hashed again
+    victim = app_user_id("dana@acme.dev")
+    assert app_user_id(victim) != victim  # an identity spelled like a made id is hashed again
 
 
 def _participant(identity: str, kind: int) -> rtc.Participant:
@@ -67,9 +71,9 @@ def test_a_participant_has_a_memory_of_its_own_unless_shared() -> None:
 
 
 def test_job_metadata_names_the_user_only_when_it_says_so() -> None:
-    key = "twinmemory_user_id"
+    key = "alexein_user_id"
     assert from_metadata(json.dumps({key: "dana"}), key) == "dana"
-    made = account_id("dana@acme.dev")  # an id the agent used, handed back by your backend
+    made = app_user_id("dana@acme.dev")  # an id the agent used, handed back by your backend
     assert from_metadata(json.dumps({key: made}), key) == made
     for metadata in ("", "dana", "[1]", json.dumps({"other": "x"}), json.dumps({key: 7})):
         assert from_metadata(metadata, key) is None
@@ -108,7 +112,7 @@ def test_a_question_in_any_script_is_searched(said_: str) -> None:
 
 
 def test_a_question_is_known_by_how_it_ends_in_any_script() -> None:
-    from twinmemory_livekit._lines import asks
+    from alexein_livekit._lines import asks
 
     assert asks("Where?") and asks("哪里？") and asks("کہاں؟") and not asks("Here.")
 
@@ -124,21 +128,21 @@ def test_small_talk_is_not_searched() -> None:
     assert question(_ctx(("user", "thanks, and what's my gate?"))) is not None
 
 
-def _passage(title: str, *turns: tuple[str, str, str], day: str = "23 Oct 2026") -> Hit:
-    """A conversation passage as the engine writes one (`passages.turn` and `_header`)."""
+def _excerpt(title: str, *turns: tuple[str, str, str], day: str = "23 Oct 2026") -> Excerpt:
+    """A conversation excerpt as search returns one."""
     said_ = " ".join(f"**{who}** {at} · {text}" for who, at, text in turns)
-    header = f"Context: messages (memory), {day}. user and assistant, in “{title}”. Turns 1-4."
-    return Hit("passages/memory/messages/th_1/p_0001.md", "p1", f"{header} {said_}")
+    header = f"Context: messages (memory), {day}. user and assistant, in “{title}”."
+    return Excerpt("p1", f"{header} {said_}")
 
 
-LOCKER = _passage(
+LOCKER = _excerpt(
     "hi",
     ("user", "11:24", "hi"),
     ("assistant", "11:24", "Hello! How can I help?"),
     ("user", "11:25", "My locker code at the Alfama gym is 4417."),
     ("assistant", "11:25", "Got it, your locker code is 4417."),
 )
-ASKED = _passage(
+ASKED = _excerpt(
     "What is my locker code at the gym?",
     ("user", "11:26", "What is my locker code at the gym?"),
     ("assistant", "11:26", "It's 4417."),
@@ -159,7 +163,7 @@ def test_the_answer_to_small_talk_is_small_talk_too() -> None:
     "turn", ["میں لاہور میں رہتا ہوں", "Я живу в Москве", "我住在上海", "Vivo en Lisboa"]
 )
 def test_what_was_said_in_any_script_is_recalled_with_its_answer(turn: str) -> None:
-    hit = _passage("x", ("user", "18:02", turn), ("assistant", "18:02", "Got it."))
+    hit = _excerpt("x", ("user", "18:02", turn), ("assistant", "18:02", "Got it."))
     assert said([], [hit], "where do I live", agent=True, max_chars=1500) == [
         f"23 Oct 2026 18:02, they said: {turn}",
         "23 Oct 2026 18:02, you said: Got it.",
@@ -172,7 +176,7 @@ def test_the_agents_words_only_when_asked_for() -> None:
 
 
 def test_a_short_answer_comes_with_the_question_it_answers() -> None:
-    hit = _passage(
+    hit = _excerpt(
         "trip",
         ("assistant", "09:00", "Should I book Lisbon or Porto?"),
         ("user", "09:01", "the second one"),
@@ -195,8 +199,8 @@ def test_an_old_question_comes_after_what_answers_it_and_the_same_question_not_a
 
 
 def test_each_thing_said_once_and_within_the_budget() -> None:
-    again = _passage("again", ("user", "12:00", "My locker code at the Alfama gym is 4417."))
-    many = [_passage(f"t{n}", ("user", "10:00", f"Fact number {n} " + "x" * 80)) for n in range(40)]
+    again = _excerpt("again", ("user", "12:00", "My locker code at the Alfama gym is 4417."))
+    many = [_excerpt(f"t{n}", ("user", "10:00", f"Fact number {n} " + "x" * 80)) for n in range(40)]
     lines = said(["Lives in Lisbon."], [LOCKER, again, *many], "q", agent=False, max_chars=500)
     assert lines[0] == "Lives in Lisbon."  # what is known leads
     assert sum("4417" in line for line in lines) == 1
@@ -204,8 +208,7 @@ def test_each_thing_said_once_and_within_the_budget() -> None:
 
 
 def test_a_note_is_its_text_once() -> None:
-    note = Hit(
-        "passages/memory/notes/n.md",
+    note = Excerpt(
         "n1",
         "Context: notes (memory), 23 Oct 2026. Prefers a window seat.. Prefers a window seat.",
     )

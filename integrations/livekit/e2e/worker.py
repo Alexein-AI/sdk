@@ -3,7 +3,7 @@ tests/fakes.py's FakeLLM in place of a model. Not meant to be run by hand, thoug
 
     uv run python e2e/worker.py start --url ws://localhost:7880 --api-key devkey --api-secret secret
 
-with E2E_EVENTS=<file.jsonl> and TWIN_MEMORY_API_KEY / TWIN_MEMORY_BASE_URL set. Every event the
+with E2E_EVENTS=<file.jsonl> and ALEXEIN_API_KEY / ALEXEIN_API_URL set. Every event the
 driver asserts on is one JSON line in E2E_EVENTS, written by the job process that saw it.
 """
 
@@ -23,9 +23,9 @@ from fakes import FakeLLM, seen
 from livekit.agents import AgentServer, AgentSession, JobContext, cli, llm
 from livekit.agents.voice import room_io
 
-from twinmemory_livekit import TwinMemory, TwinMemoryAgent
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent
 
-AGENT_NAME = os.environ.get("E2E_AGENT_NAME", "twinmemory-e2e")
+AGENT_NAME = os.environ.get("E2E_AGENT_NAME", "alexein-e2e")
 EVENTS = os.environ.get("E2E_EVENTS", "")
 _tasks: set[asyncio.Task[None]] = set()
 
@@ -52,7 +52,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     # ---- the README pattern
     # The driver's backend role: it names the user in the dispatch's metadata, for call 3.
-    memory = TwinMemory.from_job(ctx, metadata_key="twinmemory_user_id")
+    memory = AlexeinMemory.from_job(ctx, metadata_key="alexein_user_id")
     emit(
         "job_start",
         **base,
@@ -123,7 +123,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     await session.start(
         room=ctx.room,
-        agent=TwinMemoryAgent(memory, instructions="You are a test agent.", memory_tools=False),
+        agent=AlexeinMemoryAgent(memory, instructions="You are a test agent.", memory_tools=False),
         record=False,
         room_options=room_io.RoomOptions(
             text_input=True, audio_input=False, audio_output=False, text_output=True

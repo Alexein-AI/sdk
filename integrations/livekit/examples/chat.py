@@ -1,14 +1,15 @@
-"""Talk to a twin memory agent in your terminal: each run is one call, your typed turns go
-through the same `AgentSession` and `TwinMemoryAgent` a LiveKit voice agent uses, and quitting
+"""Talk to an agent with Alexein memory in your terminal: each run is one call, your typed turns go
+through the same `AgentSession` and `AlexeinMemoryAgent` a LiveKit voice agent uses, and quitting
 ends the call.
 
     uv run python examples/chat.py dana     # call 1: tell it something, then /quit
     uv run python examples/chat.py dana     # call 2, a few seconds later: ask about it
 
 `--mode tools` is the other mode: nothing is recalled or saved by itself, and the model calls
-memory_search, memory_read and memory_add when it decides to - so it needs a real model.
+memory_search, memory_open and memory_add when it decides to - so it needs a real model.
 
-Needs TWIN_MEMORY_API_KEY (a key that writes) and TWIN_MEMORY_BASE_URL. Without a model key the
+Needs ALEXEIN_API_KEY (a key that writes); ALEXEIN_API_URL for a server other than
+https://api.alexein.ai. Without a model key the
 agent's model is a stand-in that only says what memory it was shown before each reply. With
 OPENAI_API_KEY or OPENROUTER_API_KEY it is a real model:
 
@@ -28,8 +29,8 @@ from typing import Any
 
 from livekit.agents import DEFAULT_API_CONNECT_OPTIONS, Agent, AgentSession, ModelSettings, llm
 
-from twinmemory_livekit import TwinMemory, TwinMemoryAgent
-from twinmemory_livekit._memory import Mode
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent
+from alexein_livekit._settings import Mode
 
 INSTRUCTIONS = (
     "You are a friendly assistant on a phone line. Keep replies to one or two sentences. Use what "
@@ -48,7 +49,7 @@ def shown(chat_ctx: llm.ChatContext) -> list[str]:
 
 
 class StandIn(llm.LLM):
-    """A model that only says how much memory it was shown; the passages are printed above it."""
+    """A model that only says how much memory it was shown; the lines are printed above it."""
 
     def chat(self, *, chat_ctx: llm.ChatContext, **kwargs: Any) -> llm.LLMStream:
         return _Said(self, chat_ctx=chat_ctx, tools=[], conn_options=DEFAULT_API_CONNECT_OPTIONS)
@@ -56,9 +57,9 @@ class StandIn(llm.LLM):
 
 class _Said(llm.LLMStream):
     async def _run(self) -> None:
-        passages = shown(self._chat_ctx)
-        if passages:
-            reply = f"(stand-in model) I was shown the {len(passages)} memories printed above."
+        lines = shown(self._chat_ctx)
+        if lines:
+            reply = f"(stand-in model) I was shown the {len(lines)} memories printed above."
         else:
             reply = "(stand-in model) I was shown no memory for this turn."
         self._event_ch.send_nowait(
@@ -80,8 +81,8 @@ def model() -> llm.LLM:
     return StandIn()
 
 
-class ChatAgent(TwinMemoryAgent):
-    """`TwinMemoryAgent`, printing what recall found before each reply."""
+class ChatAgent(AlexeinMemoryAgent):
+    """`AlexeinMemoryAgent`, printing what recall found before each reply."""
 
     async def llm_node(
         self, chat_ctx: llm.ChatContext, tools: list[llm.Tool], model_settings: ModelSettings
@@ -108,7 +109,7 @@ async def call(user: str, mode: Mode) -> None:
         raise SystemExit(
             "--mode tools needs a real model: set OPENAI_API_KEY or OPENROUTER_API_KEY"
         )
-    memory = TwinMemory(user, mode=mode, session_id=f"chat-{uuid.uuid4().hex[:8]}")
+    memory = AlexeinMemory(user, mode=mode, session_id=f"chat-{uuid.uuid4().hex[:8]}")
     session = AgentSession(llm=llm_)
     memory.attach(session)
 
@@ -147,7 +148,7 @@ async def call(user: str, mode: Mode) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
-    parser.add_argument("user", help="the caller's end user id, e.g. dana")
+    parser.add_argument("user", help="the caller's app user id, e.g. dana")
     parser.add_argument("--mode", choices=("auto", "tools"), default="auto")
     args = parser.parse_args()
     asyncio.run(call(args.user, args.mode))

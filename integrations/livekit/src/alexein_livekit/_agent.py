@@ -1,4 +1,4 @@
-"""`TwinMemoryAgent`: a LiveKit `Agent` that recalls before each reply and saves every turn.
+"""`AlexeinMemoryAgent`: a LiveKit `Agent` that recalls before each reply and saves every turn.
 
 Not the only way in. An agent of your own gets the same by calling `memory.enrich(chat_ctx)` at the
 top of its `llm_node`, with `memory.attach(session)` before the session starts; this class is those
@@ -13,12 +13,12 @@ from typing import Any
 
 from livekit.agents import Agent, ModelSettings, llm
 
-from twinmemory_livekit._memory import TwinMemory
+from alexein_livekit._memory import AlexeinMemory
 
 
-class TwinMemoryAgent(Agent):
+class AlexeinMemoryAgent(Agent):
     """An `Agent` with long-term memory, in the memory's mode. Every keyword an `Agent` takes is
-    passed on. In auto mode `memory_tools=False` leaves out `memory_search` and `memory_read`; in
+    passed on. In auto mode `memory_tools=False` leaves out `memory_search` and `memory_open`; in
     tools mode the tools are its memory, and the model is told when to use them.
 
     If you override `llm_node` or `on_enter`, call `super()`.
@@ -26,7 +26,7 @@ class TwinMemoryAgent(Agent):
 
     def __init__(
         self,
-        memory: TwinMemory,
+        memory: AlexeinMemory,
         *,
         instructions: str,
         tools: list[llm.Tool | llm.Toolset] | None = None,

@@ -6,26 +6,27 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from alexein import AlexeinError
 from fakes import FakeLLM, MemoryService
 from livekit.agents import AgentSession, llm
 
-from twinmemory_livekit import Settings, TwinMemory, TwinMemoryAgent
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent, Settings
 
 LOCKER = (
-    "Context: messages (memory), 2 Oct 2026. user and assistant, in “gym”. Turns 1-2. "
+    "Context: messages (memory), 2 Oct 2026. user and assistant, in “gym”. "
     "**user** 18:02 · My locker code at the Alfama gym is 4417. "
     "**assistant** 18:02 · Got it, your locker code is 4417."
 )
 
 
-def _memory(service: MemoryService, **kwargs: Any) -> TwinMemory:
-    return TwinMemory("dana", client=service.client(), session_id="call-2", **kwargs)
+def _memory(service: MemoryService, **kwargs: Any) -> AlexeinMemory:
+    return AlexeinMemory("dana", client=service.client(), session_id="call-2", **kwargs)
 
 
-async def _turn(memory: TwinMemory, said: str, **agent: Any) -> FakeLLM:
+async def _turn(memory: AlexeinMemory, said: str, **agent: Any) -> FakeLLM:
     fake = FakeLLM(reply="Noted.")
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="Be brief.", **agent))
+        await session.start(AlexeinMemoryAgent(memory, instructions="Be brief.", **agent))
         await session.run(user_input=said)
         await memory.flush(5)
     return fake
@@ -40,8 +41,8 @@ async def test_recall_fast_and_tool_fast_are_apart() -> None:
     memory = _memory(service, recall_fast=False, tool_fast=True)
     await _turn(memory, "What is my locker code at the gym?", memory_tools=False)
     recall = next(s for s in service.searches if s["query"].startswith("What is my locker"))
-    assert recall["fast"] is False  # memory's model filter judges this one
-    search, _read = memory.tools()
+    assert "fast" not in recall  # memory's model filter judges this one
+    search, _open = memory.tools()
     await search("locker code")
     assert service.searches[-1]["fast"] is True
     await memory.aclose()
@@ -52,8 +53,8 @@ async def test_search_current_call_lifts_the_earlier_calls_only_rule() -> None:
     memory = _memory(service, search_current_call=True)
     await _turn(memory, "What is my locker code at the gym?", memory_tools=False)
     recall = next(s for s in service.searches if s["query"].startswith("What is my locker"))
-    assert "scope" not in recall and "before" not in recall
-    assert service.latests[0].get("before") is None
+    assert "filters" not in recall
+    assert "filters" not in service.latests[0]
     await memory.aclose()
 
 
@@ -106,7 +107,7 @@ async def test_the_guide_is_yours_to_word_or_leave_out() -> None:
     service = MemoryService()
     for guide, ends in (("Use memory sparingly.", "Use memory sparingly."), ("", "Be brief.")):
         memory = _memory(service, mode="tools", tool_guide=guide)
-        agent = TwinMemoryAgent(memory, instructions="Be brief.")
+        agent = AlexeinMemoryAgent(memory, instructions="Be brief.")
         assert str(agent.instructions).rstrip().endswith(ends)
         await memory.aclose()
 
@@ -114,7 +115,7 @@ async def test_the_guide_is_yours_to_word_or_leave_out() -> None:
 async def test_a_note_is_cut_where_you_say() -> None:
     service = MemoryService()
     memory = _memory(service, mode="tools", note_max_chars=12)
-    _search, _read, add = memory.tools()
+    _search, _open, add = memory.tools()
     assert await add("Prefers a window seat on long flights.") == "Saved."
     assert service.added[-1]["text"] == "Noted: Prefers a wi"  # the fact cut at 12 characters
     await memory.aclose()
@@ -134,11 +135,11 @@ async def test_a_note_is_cut_where_you_say() -> None:
 )
 def test_a_setting_that_makes_no_sense_is_refused(bad: dict[str, Any]) -> None:
     with pytest.raises(ValueError):
-        TwinMemory("dana", client=MemoryService().client(), **bad)
+        AlexeinMemory("dana", client=MemoryService().client(), **bad)
 
 
 def test_the_settings_are_kept_to_read() -> None:
-    memory = TwinMemory("dana", client=MemoryService().client(), recall_timeout=0.8)
+    memory = AlexeinMemory("dana", client=MemoryService().client(), recall_timeout=0.8)
     assert isinstance(memory.settings, Settings) and memory.settings.recall_timeout == 0.8
     with pytest.raises(AttributeError):
         memory.settings.recall_timeout = 2  # pyright: ignore[reportAttributeAccessIssue]
@@ -149,7 +150,21 @@ def test_the_defaults_live_in_one_place() -> None:
     import inspect
     from dataclasses import fields
 
-    given = inspect.signature(TwinMemory.__init__).parameters
+    given = inspect.signature(AlexeinMemory.__init__).parameters
     assert {f.name: f.default for f in fields(Settings)} == {
         f.name: given[f.name].default for f in fields(Settings)
     }
+
+
+async def test_the_client_made_for_you_is_alexeins_with_this_integration_named(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ALEXEIN_API_KEY", "tm_test")
+    monkeypatch.setenv("ALEXEIN_API_URL", "http://localhost:8210/v2/")
+    memory = AlexeinMemory("dana")
+    assert memory.client.integration == "livekit" and memory.client.max_retries == 0
+    assert memory.client.base_url == "http://localhost:8210"
+    await memory.aclose()
+    monkeypatch.delenv("ALEXEIN_API_KEY")
+    with pytest.raises(AlexeinError, match="ALEXEIN_API_KEY"):
+        AlexeinMemory("dana")

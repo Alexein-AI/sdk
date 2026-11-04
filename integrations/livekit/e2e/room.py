@@ -1,21 +1,20 @@
-"""twinmemory-livekit in a real LiveKit room, against the real twin memory API.
+"""alexein-livekit in a real LiveKit room, against the real Alexein API.
 
-    cd packages/livekit && uv run python e2e/room.py
+    cd integrations/livekit && uv run python e2e/room.py
 
-Needs: the LiveKit dev server on ws://localhost:7880 (devkey/secret), twin memory on
-TWIN_MEMORY_BASE_URL, TWIN_MEMORY_API_KEY (from the environment, or E2E_ENV, a KEY=VALUE file), and
-MEMORY_CONTROL_SECRET to delete the users it made (from the environment, or E2E_CONTROL_ENV, by
-default the .env of a twin-memory-frontend checkout beside this repository, as memory-up.sh lays
-them out). Exit 0 only if every check holds. The key and the secret are never printed.
+Needs: the LiveKit dev server on ws://localhost:7880 (devkey/secret), the Alexein API on
+ALEXEIN_API_URL and a key that writes in ALEXEIN_API_KEY (from the environment, or E2E_ENV, a
+KEY=VALUE file); the key deletes the app users the run made, at the end. Exit 0 only if every
+check holds. The key is never printed.
 
-Three calls, one end user `e2e-<hex>`, each in a new room and so a new job:
+Three calls, one app user `e2e-<hex>`, each in a new room and so a new job:
   1. identity = the user, no metadata -> bound from the participant. Two turns with a fact.
-     Then the driver polls twin memory until a search finds the fact.
+     Then the driver polls memory until a search finds the fact.
   2. same identity, new room. Turn 1 says a call-2 marker; the driver waits until that has landed
      in memory, then asks for the fact: the model must be shown it inside <memory>, and none of
      call 2's own turns.
   3. a different participant identity (`kiosk-<hex>`) and dispatch metadata
-     {"twinmemory_user_id": user}: the user must come from the metadata, recall must work for
+     {"alexein_user_id": user}: the user must come from the metadata, recall must work for
      them, and nothing may be saved under the kiosk identity.
 """
 
@@ -38,23 +37,18 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from alexein import AsyncMemory, NotFoundError
 from livekit import api, rtc
-from twinmemory import AsyncMemory, NotFoundError
 
-from twinmemory_livekit import participant_id
+from alexein_livekit import participant_id
 
 warnings.filterwarnings("ignore", message="The HMAC key")  # the 6-byte dev secret
 HERE = Path(__file__).resolve().parent
 LK_URL = os.environ.get("LIVEKIT_URL", "ws://localhost:7880")
 LK_KEY = os.environ.get("LIVEKIT_API_KEY", "devkey")
 LK_SECRET = os.environ.get("LIVEKIT_API_SECRET", "secret")
-AGENT_NAME = "twinmemory-e2e"
+AGENT_NAME = "alexein-e2e"
 ENV_FILE = os.environ.get("E2E_ENV", "")
-CONTROL_ENV = os.environ.get(
-    "E2E_CONTROL_ENV", str(HERE.parents[3] / "twin-memory-frontend" / ".env")
-)
-# The organisation and project the key belongs to, asked of memory at the start.
-CONTROL_ORG, CONTROL_PROJECT = "", ""
 
 FACT = "My locker code at the Alfama gym is 4417."
 FACT_TOKEN = "4417"
@@ -215,12 +209,12 @@ class Events:
 async def found_in_memory(
     memory: AsyncMemory, user: str, query: str, token: str, timeout: float = 15.0
 ) -> float | None:
-    """Seconds until a search for `query` returns a passage holding `token`; None if never."""
+    """Seconds until a search for `query` returns an excerpt holding `token`; None if never."""
     t0 = time.monotonic()
     while time.monotonic() - t0 < timeout:
         try:
             r = await memory.user(user).search(query, fast=True)
-            if any(token in h.text for h in r.hits) or any(token in k for k in r.known):
+            if any(token in m.text for m in r.memories):
                 return time.monotonic() - t0
         except NotFoundError:
             pass
@@ -269,7 +263,7 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
     since_said = time.time() - c1.turns[0]["sent_at"]
     check(
         landed is not None,
-        f"fact searchable in twin memory after call 1 (by {since_said:.2f} s "
+        f"fact searchable in memory after call 1 (by {since_said:.2f} s "
         "after it was said; polling starts once the session has closed)",
     )
     timings["fact_searchable_s"] = round(since_said, 2)
@@ -320,8 +314,8 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
 
     # ---- call 3: the metadata path; the participant is someone else's device
     r3 = f"e2e-call3-{tag}"
-    say(f"call 3: room {r3}, identity {kiosk}, metadata twinmemory_user_id={uid}")
-    async with Call(r3, kiosk, {"twinmemory_user_id": uid}) as c3:
+    say(f"call 3: room {r3}, identity {kiosk}, metadata alexein_user_id={uid}")
+    async with Call(r3, kiosk, {"alexein_user_id": uid}) as c3:
         ans3 = await c3.say(QUESTION)
     timings["call3"] = c3.turns
     start3 = ev.all(r3, "job_start")
@@ -344,18 +338,17 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
         "call 3 <memory> holds the fact",
     )
     await ev.wait(lambda: ev.all(r3, "flushed"), 15, "call 3 flush on session close")
-    try:
-        await memory.user(kiosk_id).search("locker", fast=True)
-        kiosk_empty = False
+    try:  # an app user nothing was added for has no memory: its reads but search answer 404
+        kiosk_empty = not len(await memory.user(kiosk_id).latest(k=1))
     except NotFoundError:
         kiosk_empty = True
     check(kiosk_empty, f"nothing saved under the kiosk identity {kiosk}")
 
-    # ---- what was saved: one thread per call, the turns as said, never what recall added
+    # ---- what was saved: one session per call, the turns as said, never what recall added
     async def saved() -> Any:
         u = memory.user(uid)
         try:
-            threads = {h.thread for h in (await u.latest(k=20)).passages}
+            threads = {e.session for e in await u.latest(k=20)}
             asked = (await u.grep(QUESTION)).total
         except NotFoundError:
             return None
@@ -365,7 +358,7 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
         threads, asked = await ev.wait(saved, 15, "all three calls' turns searchable")
         check(
             len(threads) == 3,
-            f"twin memory holds 3 threads for {user}, one per call ({len(threads)})",
+            f"memory holds 3 sessions for {user}, one per call ({len(threads)})",
         )
         check(asked == 2, f"call 2's and call 3's question both saved under {user} ({asked})")
     except AssertionError as e:
@@ -399,18 +392,14 @@ async def scenario(ev: Events, memory: AsyncMemory, user: str, kiosk: str) -> di
     return timings
 
 
-async def cleanup(users: list[str], secret: str | None) -> None:
-    if not secret:
-        say("  no MEMORY_CONTROL_SECRET: e2e users left in memory: " + ", ".join(users))
-        return
-    async with httpx.AsyncClient(timeout=10) as http:
-        for u in users:
-            r = await http.delete(
-                "http://localhost:8210/v1/control/accounts",
-                params={"org": CONTROL_ORG, "project": CONTROL_PROJECT, "user": u},
-                headers={"Authorization": f"Bearer {secret}"},
-            )
-            say(f"cleanup: DELETE user {u} -> {r.status_code}")
+async def cleanup(memory: AsyncMemory, users: list[str]) -> None:
+    """Erase each app user the run made, whole, with the key that wrote them."""
+    for u in users:
+        try:
+            erased = (await memory.user(u).delete()).deleted
+        except NotFoundError:
+            erased = False  # nothing was ever added for it
+        say(f"cleanup: app user {u} erased: {erased}")
 
 
 def main() -> int:
@@ -419,25 +408,20 @@ def main() -> int:
     args = ap.parse_args()
 
     env = dict(os.environ)
-    for k, v in read_env(ENV_FILE, "TWIN_MEMORY_BASE_URL", "TWIN_MEMORY_API_KEY").items():
+    for k, v in read_env(ENV_FILE, "ALEXEIN_API_URL", "ALEXEIN_API_KEY").items():
         env.setdefault(k, v)
-    if not env.get("TWIN_MEMORY_API_KEY"):
-        say(f"FAIL: no TWIN_MEMORY_API_KEY in the environment or {ENV_FILE}")
+    if not env.get("ALEXEIN_API_KEY"):
+        say(f"FAIL: no ALEXEIN_API_KEY in the environment or {ENV_FILE}")
         return 1
-    os.environ.update(
-        {k: env[k] for k in ("TWIN_MEMORY_BASE_URL", "TWIN_MEMORY_API_KEY") if k in env}
-    )
-    secret = os.environ.get("MEMORY_CONTROL_SECRET") or read_env(
-        CONTROL_ENV, "MEMORY_CONTROL_SECRET"
-    ).get("MEMORY_CONTROL_SECRET")
+    os.environ.update({k: env[k] for k in ("ALEXEIN_API_URL", "ALEXEIN_API_KEY") if k in env})
 
     try:
         httpx.get(LK_URL.replace("ws", "http", 1), timeout=3).raise_for_status()
     except Exception as e:
-        say(f"FAIL: LiveKit server not reachable at {LK_URL} ({e}); start twin-livekit-dev")
+        say(f"FAIL: LiveKit server not reachable at {LK_URL} ({e}); start livekit-dev")
         return 1
 
-    out = Path(tempfile.mkdtemp(prefix="twinmemory-livekit-e2e-"))
+    out = Path(tempfile.mkdtemp(prefix="alexein-livekit-e2e-"))
     worker_log = open(out / "worker.log", "w")  # noqa: SIM115 - the worker outlives any block
     events = out / "events.jsonl"
     env.update(
@@ -487,15 +471,12 @@ def main() -> int:
             await asyncio.sleep(0.2)
         say(f"worker registered in {(time.perf_counter() - t0) * 1000:.0f} ms")
         memory = AsyncMemory(integration="livekit")
-        global CONTROL_ORG, CONTROL_PROJECT
-        key = await memory.me()
-        CONTROL_ORG, CONTROL_PROJECT = key.org, key.project or ""
         try:
             timings = await scenario(ev, memory, user, kiosk)
         finally:
-            await memory.close()
             if not args.keep_users:
-                await cleanup([participant_id(user), participant_id(kiosk), user, kiosk], secret)
+                await cleanup(memory, [participant_id(user), participant_id(kiosk), user, kiosk])
+            await memory.close()
 
     try:
         asyncio.run(run())

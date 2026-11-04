@@ -1,4 +1,4 @@
-"""Whose memory a call reads and writes: an end user id taken from the participant, or from job
+"""Whose memory a call reads and writes: an app user id taken from the participant, or from job
 metadata your backend wrote, never from anything said in the call.
 
 Not authentication. A participant's identity is set by your token server and a job's metadata by
@@ -19,22 +19,20 @@ import re
 
 from livekit import rtc
 
-# Alexein's end user ids (the `X-Twin-Account` header), as the client checks them: letters,
-# digits, `.`, `_` and `-`, starting with a letter or digit. One of your own that passes is used
-# as it is, the same memory your backend writes to. Up to 35 characters always fits; the 400 for
-# a longer one states the maximum.
-_USABLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+# Alexein's app user ids (the `X-Alexein-User` header), as the client checks them before it sends
+# one: 1 to 35 letters, digits, `.`, `_` and `-`, starting with a letter or digit. One of your own
+# that passes is used as it is, the same memory your backend writes to; any other is hashed.
+_USABLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,34}")
 # What this module makes: an identity that already looks like one is hashed again, so nobody can
 # pick an identity that lands in somebody else's memory.
 _MADE = re.compile(r"lk-[0-9a-f]{24}")
 _PHONE = (rtc.ParticipantKind.PARTICIPANT_KIND_SIP, rtc.ParticipantKind.PARTICIPANT_KIND_CONNECTOR)
 
 
-def account_id(identity: str) -> str:
-    """`identity` as an end user id: itself when it passes the client's id check (`_USABLE`),
-    else `lk-` and a hash of it (27 characters), which names nobody's number or address and that
-    no other identity maps to. Up to 35 characters always fits; a longer identity that passes the
-    check is used as it is, and the service may refuse it with 400."""
+def app_user_id(identity: str) -> str:
+    """`identity` as an app user id: itself when it passes the client's id check (`_USABLE`: 35
+    characters at most), else `lk-` and a hash of it (27 characters), which names nobody's number
+    or address and that no other identity maps to."""
     if not identity:
         raise ValueError("an empty identity names nobody")
     if _USABLE.fullmatch(identity) and not _MADE.fullmatch(identity):
@@ -43,7 +41,7 @@ def account_id(identity: str) -> str:
 
 
 def participant_id(identity: str) -> str:
-    """The end user id a LiveKit `identity` is given: `lk-` and a hash of it, in a namespace no id
+    """The app user id a LiveKit `identity` is given: `lk-` and a hash of it, in a namespace no id
     your backend writes can meet. Your backend can call this too, to reach the same memory."""
     if not identity:
         raise ValueError("an empty identity names nobody")
@@ -53,8 +51,8 @@ def participant_id(identity: str) -> str:
 def from_participant(
     participant: rtc.Participant, *, trust_phone: bool = False, share_identity: bool = False
 ) -> str | None:
-    """The end user id for the person behind `participant`: `participant_id`, or with
-    `share_identity` the identity itself where it is a usable id (`account_id`), so it is the
+    """The app user id for the person behind `participant`: `participant_id`, or with
+    `share_identity` the identity itself where it is a usable id (`app_user_id`), so it is the
     memory your backend writes to under that id. None for a phone caller unless `trust_phone`,
     and for anything that is not a person (an agent, an ingress, a bridge)."""
     if participant.kind in _PHONE and not trust_phone:
@@ -62,7 +60,7 @@ def from_participant(
     if participant.kind not in (*_PHONE, rtc.ParticipantKind.PARTICIPANT_KIND_STANDARD):
         return None
     identity = participant.identity
-    return account_id(identity) if share_identity else participant_id(identity)
+    return app_user_id(identity) if share_identity else participant_id(identity)
 
 
 def from_metadata(metadata: str, key: str) -> str | None:
@@ -76,4 +74,4 @@ def from_metadata(metadata: str, key: str) -> str | None:
     if not isinstance(found, str) or not found:
         return None
     # Your backend wrote it, so an id it already holds - one this module made included - is kept.
-    return found if _USABLE.fullmatch(found) else account_id(found)
+    return found if _USABLE.fullmatch(found) else app_user_id(found)

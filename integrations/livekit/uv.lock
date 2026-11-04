@@ -220,6 +220,67 @@ wheels = [
 ]
 
 [[package]]
+name = "alexein"
+version = "0.3.0"
+source = { editable = "../../python" }
+dependencies = [
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "crewai", marker = "extra == 'crewai'", specifier = ">=1.15,<1.16" },
+    { name = "httpx", specifier = ">=0.27,<1" },
+    { name = "langchain", marker = "extra == 'langgraph'", specifier = ">=1" },
+    { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1" },
+    { name = "openai-agents", marker = "extra == 'openai-agents'", specifier = ">=0.24" },
+]
+provides-extras = ["langgraph", "openai-agents", "crewai"]
+
+[package.metadata.requires-dev]
+crewai = [{ name = "crewai", specifier = ">=1.15,<1.16" }]
+dev = [
+    { name = "anyio", specifier = ">=4" },
+    { name = "langchain", specifier = ">=1" },
+    { name = "langgraph", specifier = ">=1" },
+    { name = "pyright", specifier = ">=1.1.380" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.6" },
+]
+openai-agents = [{ name = "openai-agents", specifier = ">=0.24" }]
+
+[[package]]
+name = "alexein-livekit"
+version = "0.3.0"
+source = { editable = "." }
+dependencies = [
+    { name = "alexein" },
+    { name = "livekit-agents" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alexein", editable = "../../python" },
+    { name = "livekit-agents", specifier = ">=1.5.1,<2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.380" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+    { name = "ruff", specifier = ">=0.6" },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.5"
 source = { registry = "https://pypi.org/simple" }
@@ -2660,51 +2721,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ee/9f/c5201d42a484c061e528825fc8e2d565f5abd50a4ced6fb7d29c4ec99b2b/truststore-0.10.5.tar.gz", hash = "sha256:30d36967ccaded5cbb38d602c433f53600036c79d502f4533a49b60a03bbefcd", size = 28091, upload-time = "2026-10-12T22:27:31.808Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/51/e9/3a7820be2bb0fe53b6bc9c3be26d3d1158004e4c3ab953aa6840b955b1e9/truststore-0.10.5-py3-none-any.whl", hash = "sha256:9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c", size = 19017, upload-time = "2026-10-12T22:27:30.377Z" },
-]
-
-[[package]]
-name = "twinmemory"
-version = "0.2.0"
-source = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
-dependencies = [
-    { name = "httpx" },
-]
-wheels = [
-    { filename = "twinmemory-0.2.0-py3-none-any.whl", hash = "sha256:8fe0b1b64bbe47c04d7bf4c42e3e1e0d729017eaa400fb3a67fa10c10b0c7ea5" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "httpx", specifier = ">=0.27,<1" }]
-
-[[package]]
-name = "twinmemory-livekit"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "livekit-agents" },
-    { name = "twinmemory" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "livekit-agents", specifier = ">=1.5.1,<2" },
-    { name = "twinmemory", path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.380" },
-    { name = "pytest", specifier = ">=8" },
-    { name = "pytest-asyncio", specifier = ">=0.24" },
-    { name = "ruff", specifier = ">=0.6" },
 ]
 
 [[package]]

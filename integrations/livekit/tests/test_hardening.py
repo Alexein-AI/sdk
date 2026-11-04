@@ -11,19 +11,19 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from alexein import Item
 from fakes import FakeLLM, MemoryService
 from livekit import rtc
 from livekit.agents import AgentSession, llm
-from twinmemory import Item
 
-from twinmemory_livekit import TwinMemory, TwinMemoryAgent
-from twinmemory_livekit._capture import Writer
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent
+from alexein_livekit._capture import Writer
 
 LISBON = "user, 2 Oct 2026: I moved to Lisbon for the job at Acme."
 
 
-def _memory(service: MemoryService, user: str | None = "dana", **kwargs: Any) -> TwinMemory:
-    return TwinMemory(user, client=service.client(), session_id="call-2", **kwargs)
+def _memory(service: MemoryService, user: str | None = "dana", **kwargs: Any) -> AlexeinMemory:
+    return AlexeinMemory(user, client=service.client(), session_id="call-2", **kwargs)
 
 
 def _ctx(text: str) -> llm.ChatContext:
@@ -36,7 +36,7 @@ async def test_a_page_that_is_not_memorys_answer_never_stops_a_reply_or_the_savi
     service = MemoryService(hits=[LISBON], garbage=True)
     memory, fake = _memory(service), FakeLLM(reply="Sure.")
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+        await session.start(AlexeinMemoryAgent(memory, instructions="x", memory_tools=False))
         result = await session.run(user_input="Where do I live now?")
         result.expect.contains_message(role="assistant")
         assert len(fake.calls) == 1
@@ -62,7 +62,7 @@ async def test_a_reply_with_a_tool_call_waits_for_a_hung_memory_once_not_twice()
         return "found"
 
     async with AgentSession(llm=FakeLLM(reply_fn=reply)) as session:
-        agent = TwinMemoryAgent(memory, instructions="x", tools=[lookup], memory_tools=False)
+        agent = AlexeinMemoryAgent(memory, instructions="x", tools=[lookup], memory_tools=False)
         await session.start(agent)
         started = time.monotonic()
         await session.run(user_input="Where do I live now?")
@@ -167,13 +167,13 @@ def _job(metadata: str) -> Any:
 
 
 async def test_job_metadata_chooses_the_user_only_when_asked_to() -> None:
-    service, metadata = MemoryService(), json.dumps({"twinmemory_user_id": "victim"})
+    service, metadata = MemoryService(), json.dumps({"alexein_user_id": "victim"})
     ctx = _job(metadata)
-    plain = TwinMemory.from_job(ctx, client=service.client())
+    plain = AlexeinMemory.from_job(ctx, client=service.client())
     assert plain.user_id is None and plain.session_id == "AJ_1" and plain.room == "room-1"
     assert ctx.callbacks == [plain.aclose]  # saved when the job ends
-    named = TwinMemory.from_job(
-        _job(metadata), metadata_key="twinmemory_user_id", client=service.client()
+    named = AlexeinMemory.from_job(
+        _job(metadata), metadata_key="alexein_user_id", client=service.client()
     )
     assert named.user_id == "victim"
     await plain.aclose()
@@ -189,7 +189,7 @@ async def test_redact_changes_or_drops_a_turn_before_it_leaves_the_process() -> 
     service = MemoryService()
     memory = _memory(service, redact=redact)
     async with AgentSession(llm=FakeLLM(reply="Noted.")) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+        await session.start(AlexeinMemoryAgent(memory, instructions="x", memory_tools=False))
         await session.run(user_input="My card is 4111 1111 1111 1111.")
         await session.run(user_input="My flight is TP 1234 on Friday.")
         assert await memory.flush(5) == 0
@@ -204,7 +204,7 @@ async def test_redact_changes_or_drops_a_turn_before_it_leaves_the_process() -> 
 async def test_the_memory_tools_are_free_and_a_note_is_short() -> None:
     service = MemoryService(hits=[LISBON])
     memory = _memory(service, mode="tools")
-    search, _read, add = memory.tools()
+    search, _open, add = memory.tools()
     assert await search("where do I live") and service.searches[-1]["fast"] is True
     assert await add("x" * 5000) == "Saved."  # answered at once, saved by the writer
     assert await memory.flush(5) == 0

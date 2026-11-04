@@ -1,6 +1,6 @@
 [project]
-name = "twinmemory-livekit"
-version = "0.1.0"
+name = "alexein-livekit"
+version = "0.3.0"
 description = "Long-term memory for LiveKit voice agents, from Alexein: recalled before each reply, every turn saved."
 readme = "README.md"
 license = "MIT"
@@ -20,33 +20,34 @@ classifiers = [
     "Typing :: Typed",
 ]
 # 1.5.1 is the oldest LiveKit Agents the tests pass on (CI runs it); 2.0 is a beta with a new API.
-dependencies = ["twinmemory>=0.2", "livekit-agents>=1.5.1,<2"]
+dependencies = ["alexein>=0.3", "livekit-agents>=1.5.1,<2"]
 
 [project.urls]
 Homepage = "https://alexein.ai"
 Documentation = "https://docs.alexein.ai/integrations/livekit"
-Repository = "https://github.com/Alexein-AI/twin-memory-integrations"
+Repository = "https://github.com/Alexein-AI/sdk"
+Changelog = "https://github.com/Alexein-AI/sdk/blob/main/integrations/livekit/CHANGELOG.md"
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "pyright>=1.1.380"]
 
-# Until twinmemory is on PyPI, the wheel in vendor/ (scripts/vendor-clients.sh builds it). Then
-# this goes, and the dependency above is met from PyPI.
+# In this repository the client is the one beside it, so a change to both is tested together; a
+# build from PyPI meets the dependency above from PyPI.
 [tool.uv.sources]
-twinmemory = { path = "../../vendor/twinmemory-0.2.0-py3-none-any.whl" }
+alexein = { path = "../../python", editable = true }
 
 [build-system]
 requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/twinmemory_livekit"]
+packages = ["src/alexein_livekit"]
 
 # The source distribution holds what the wheel is built from and the pages a user reads: no
 # tests, e2e runs, examples, lock file or CONTRIBUTING.md. pyproject.toml and PKG-INFO are
 # always added.
 [tool.hatch.build.targets.sdist]
-include = ["/src/twinmemory_livekit", "/README.md", "/CHANGELOG.md", "/LICENSE"]
+include = ["/src/alexein_livekit", "/README.md", "/CHANGELOG.md", "/LICENSE"]
 
 [tool.ruff]
 line-length = 100
@@ -61,7 +62,7 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 "tests/test_parts.py" = ["RUF001"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["twinmemory_livekit"]
+known-first-party = ["alexein_livekit"]
 
 [tool.pyright]
 include = ["src", "tests"]

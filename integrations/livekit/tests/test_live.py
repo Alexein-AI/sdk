@@ -1,7 +1,7 @@
-"""Two calls against a running twin memory, end to end: what the first call said is recalled in the
+"""Two calls against a running Alexein API, end to end: what the first call said is recalled in the
 second, and the second call's own words are never handed back to it. Skipped unless
-TWIN_MEMORY_LIVE=1, with TWIN_MEMORY_API_KEY (a key that writes) and TWIN_MEMORY_BASE_URL set (a
-local stack: http://localhost:8210).
+ALEXEIN_LIVE=1, with ALEXEIN_API_KEY (a key that writes) and ALEXEIN_API_URL set (a local stack:
+http://localhost:8210).
 
 Free: recall is a fast search, and what was added is forgotten at the end.
 """
@@ -14,14 +14,14 @@ import time
 import uuid
 
 import pytest
+from alexein import AsyncMemory, NotFoundError
 from fakes import FakeLLM
 from livekit.agents import AgentSession
-from twinmemory import AsyncMemory, NotFoundError
 
-from twinmemory_livekit import TwinMemory, TwinMemoryAgent
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("TWIN_MEMORY_LIVE") != "1", reason="set TWIN_MEMORY_LIVE=1 to run"
+    os.environ.get("ALEXEIN_LIVE") != "1", reason="set ALEXEIN_LIVE=1 to run"
 )
 
 
@@ -31,7 +31,7 @@ async def _findable(client: AsyncMemory, user: str, words: str) -> None:
     while time.monotonic() < deadline:
         try:
             found = await client.user(user).search(words, fast=True)
-            if any(words in h.text for h in found.hits):
+            if any(words in e.text for e in found.excerpts):
                 return
         except NotFoundError:
             pass
@@ -39,10 +39,12 @@ async def _findable(client: AsyncMemory, user: str, words: str) -> None:
     raise AssertionError(f"{words!r} never became findable")
 
 
-async def _call(user: str, call: str, *said: str) -> tuple[FakeLLM, TwinMemory]:
-    memory, fake = TwinMemory(user, session_id=call), FakeLLM(reply="Got it.")
+async def _call(user: str, call: str, *said: str) -> tuple[FakeLLM, AlexeinMemory]:
+    memory, fake = AlexeinMemory(user, session_id=call), FakeLLM(reply="Got it.")
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="Be brief.", memory_tools=False))
+        await session.start(
+            AlexeinMemoryAgent(memory, instructions="Be brief.", memory_tools=False)
+        )
         for text in said:
             await session.run(user_input=text)
         assert await memory.flush(10) == 0
@@ -62,9 +64,9 @@ async def test_the_next_call_remembers_this_one_and_never_itself() -> None:
         await _call(user, calls[0], f"My locker code at the Alfama gym is {code}.")
         await _findable(client, user, code)
 
-        memory, fake = TwinMemory(user, session_id=calls[1]), FakeLLM(reply="Got it.")
+        memory, fake = AlexeinMemory(user, session_id=calls[1]), FakeLLM(reply="Got it.")
         async with AgentSession(llm=fake) as session:
-            agent = TwinMemoryAgent(memory, instructions="Be brief.", memory_tools=False)
+            agent = AlexeinMemoryAgent(memory, instructions="Be brief.", memory_tools=False)
             await session.start(agent)
             await session.run(user_input="What is my locker code at the gym?")
             shown = _memory_for_last_turn(fake)

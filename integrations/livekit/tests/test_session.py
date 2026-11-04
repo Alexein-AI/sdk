@@ -1,4 +1,4 @@
-"""Whole turns through a real `AgentSession`, typed and spoken, with a scripted LLM and twin memory
+"""Whole turns through a real `AgentSession`, typed and spoken, with a scripted LLM and memory
 in process: what the model is shown, what is saved, and that a reply is never held up or stopped
 by memory being slow, down, new or wrong."""
 
@@ -12,14 +12,14 @@ import pytest
 from fakes import FakeLLM, MemoryService, ScriptedSTT, SilentAudioInput
 from livekit.agents import Agent, AgentSession, ConversationItemAddedEvent, llm
 
-from twinmemory_livekit import TwinMemory, TwinMemoryAgent
-from twinmemory_livekit._tools import UNAVAILABLE
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent
+from alexein_livekit._tools import UNAVAILABLE
 
 LISBON = "user, 2 Oct 2026: I moved to Lisbon for the job at Acme."
 
 
-def _memory(service: MemoryService, user: str | None = "dana", **kwargs: object) -> TwinMemory:
-    return TwinMemory(user, client=service.client(), session_id="call-2", **kwargs)  # pyright: ignore[reportArgumentType]
+def _memory(service: MemoryService, user: str | None = "dana", **kwargs: object) -> AlexeinMemory:
+    return AlexeinMemory(user, client=service.client(), session_id="call-2", **kwargs)  # pyright: ignore[reportArgumentType]
 
 
 def _before_user(call: list[tuple[str, str]]) -> tuple[str, str]:
@@ -51,15 +51,17 @@ async def test_a_reply_is_given_what_earlier_calls_said() -> None:
     service = MemoryService(hits=[LISBON])
     memory, fake = _memory(service), FakeLLM()
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="Be brief.", memory_tools=False))
+        await session.start(
+            AlexeinMemoryAgent(memory, instructions="Be brief.", memory_tools=False)
+        )
         await _say(session, "Where do I live now?")
     role, shown = _before_user(fake.calls[-1])
     assert role == "assistant" and "<memory>" in shown and LISBON in shown
     assert fake.calls[-1][0] == ("system", "Be brief.")  # never ahead of the instructions
-    scoped = [s for s in service.searches if s.get("scope")]
+    scoped = [s for s in service.searches if s.get("filters")]
     assert len(scoped) == 1 and scoped[0]["fast"] is True
-    # Earlier calls only: this call's own turns are left out by time, to the second.
-    assert scoped[0]["scope"] == "passages/memory" and "T" in scoped[0]["before"]
+    # Earlier calls only: this call's own turns, its session, are left out.
+    assert scoped[0]["filters"] == {"NOT": {"mentions": "session:call-2"}}
     assert set(service.users) == {"dana"}
     await memory.aclose()
 
@@ -68,7 +70,7 @@ async def test_every_turn_is_saved_in_order_once_and_memory_never_piles_up() -> 
     service = MemoryService(hits=[LISBON])
     memory, fake = _memory(service), FakeLLM(reply="Noted.")
     async with AgentSession(llm=fake) as session:
-        agent = TwinMemoryAgent(memory, instructions="Be brief.", memory_tools=False)
+        agent = AlexeinMemoryAgent(memory, instructions="Be brief.", memory_tools=False)
         await session.start(agent)
         await _say(session, "I'm flying to Porto on Friday.")
         await _say(session, "Book me a window seat on that flight please.")
@@ -95,7 +97,9 @@ async def test_a_slow_memory_never_holds_up_a_reply() -> None:
     service = MemoryService(hits=[LISBON], delay=3.0)
     memory, fake = _memory(service, recall_timeout=0.2), FakeLLM()
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="Be brief.", memory_tools=False))
+        await session.start(
+            AlexeinMemoryAgent(memory, instructions="Be brief.", memory_tools=False)
+        )
         started = time.monotonic()
         await _say(session, "Where do I live now?")
         took = time.monotonic() - started
@@ -110,7 +114,9 @@ async def test_memory_down_the_call_goes_on_and_its_turns_wait_then_land_once() 
     service = MemoryService(hits=[LISBON], status=503)
     memory, fake = _memory(service), FakeLLM()
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="Be brief.", memory_tools=False))
+        await session.start(
+            AlexeinMemoryAgent(memory, instructions="Be brief.", memory_tools=False)
+        )
         await _say(session, "Where do I live now?")
         assert _memory_shown(fake.calls[-1]) == []
         assert memory.last_recall is not None and memory.last_recall.failed
@@ -126,9 +132,9 @@ async def test_a_wrong_key_loses_the_turns_but_never_a_reply(
 ) -> None:
     service = MemoryService(status=401)
     memory, fake = _memory(service), FakeLLM(reply="Sure.")
-    with caplog.at_level(logging.WARNING, logger="twinmemory.livekit"):
+    with caplog.at_level(logging.WARNING, logger="alexein.livekit"):
         async with AgentSession(llm=fake) as session:
-            await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+            await session.start(AlexeinMemoryAgent(memory, instructions="x", memory_tools=False))
             await _say(session, "What did we decide about the trip?")
             await _say(session, "And what about the hotel booking?")
             assert await memory.flush(2) == 0  # refused, so dropped, not retried forever
@@ -143,9 +149,9 @@ async def test_a_new_user_has_no_memory_yet_and_that_is_not_an_error(
 ) -> None:
     service = MemoryService(new_user=True)
     memory, fake = _memory(service), FakeLLM()
-    with caplog.at_level(logging.WARNING, logger="twinmemory.livekit"):
+    with caplog.at_level(logging.WARNING, logger="alexein.livekit"):
         async with AgentSession(llm=fake) as session:
-            await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+            await session.start(AlexeinMemoryAgent(memory, instructions="x", memory_tools=False))
             await _say(session, "Hi, I'd like to book a table for two.")
             assert await memory.flush(5) == 0
     assert _memory_shown(fake.calls[-1]) == [] and caplog.records == []
@@ -158,9 +164,9 @@ async def test_small_talk_is_not_searched() -> None:
     service = MemoryService(hits=[LISBON])
     memory = _memory(service)
     async with AgentSession(llm=FakeLLM()) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+        await session.start(AlexeinMemoryAgent(memory, instructions="x", memory_tools=False))
         await _say(session, "Thanks!")
-    assert [s for s in service.searches if s.get("scope")] == []
+    assert [s for s in service.searches if s.get("filters")] == []
     await memory.aclose()
 
 
@@ -177,7 +183,7 @@ async def test_a_tools_follow_up_reuses_the_turns_recall() -> None:
     service = MemoryService(hits=[LISBON])
     memory, fake = _memory(service), _tool_then_text("memory_search", '{"query": "home"}')
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="x"))
+        await session.start(AlexeinMemoryAgent(memory, instructions="x"))
         await _say(session, "Where do I live now?")
     assert len(fake.calls) == 2
     assert [len(_memory_shown(call)) for call in fake.calls] == [1, 1]
@@ -191,7 +197,7 @@ async def test_the_memory_tools_answer_in_words_when_memory_is_down() -> None:
     service = MemoryService(status=503)
     memory, fake = _memory(service), _tool_then_text("memory_search", '{"query": "home"}')
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="x"))
+        await session.start(AlexeinMemoryAgent(memory, instructions="x"))
         await _say(session, "Where do I live now?")
     tool_output = next(i for i in session.history.items if i.type == "function_call_output")
     assert tool_output.output == UNAVAILABLE  # pyright: ignore[reportAttributeAccessIssue]
@@ -203,11 +209,11 @@ async def test_a_handoff_and_back_saves_each_turn_once() -> None:
     service = MemoryService()
     memory, fake = _memory(service), FakeLLM(reply="Right.")
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="A", memory_tools=False))
+        await session.start(AlexeinMemoryAgent(memory, instructions="A", memory_tools=False))
         await _say(session, "First question about my booking.")
         await _hand_off(session, Agent(instructions="B"))
         await _say(session, "Second question about my booking.")
-        await _hand_off(session, TwinMemoryAgent(memory, instructions="A", memory_tools=False))
+        await _hand_off(session, AlexeinMemoryAgent(memory, instructions="A", memory_tools=False))
         await _say(session, "Third question about my booking.")
         assert await memory.flush(5) == 0
     users = [text for role, text in service.texts() if role == "user"]
@@ -220,7 +226,7 @@ async def test_turns_before_the_user_is_known_wait_for_them() -> None:
     service = MemoryService(hits=[LISBON])
     memory, fake = _memory(service, user=None), FakeLLM()
     async with AgentSession(llm=fake) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+        await session.start(AlexeinMemoryAgent(memory, instructions="x", memory_tools=False))
         await _say(session, "Where do I live now?")
         assert service.searches == [] and service.added == []
         memory.bind("dana")
@@ -236,7 +242,7 @@ async def test_closing_never_waits_long_for_a_hung_memory() -> None:
     service = MemoryService(delay=60.0)
     memory = _memory(service, recall_timeout=0.1, flush_timeout=0.5)
     async with AgentSession(llm=FakeLLM()) as session:
-        await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+        await session.start(AlexeinMemoryAgent(memory, instructions="x", memory_tools=False))
         await _say(session, "Where do I live now?")
     started = time.monotonic()
     await memory.aclose()
@@ -268,7 +274,7 @@ async def test_a_spoken_turn_keeps_the_preemptive_head_start(
                 replied.set()
 
         session.on("conversation_item_added", on_item)
-        await session.start(TwinMemoryAgent(memory, instructions="x", memory_tools=False))
+        await session.start(AlexeinMemoryAgent(memory, instructions="x", memory_tools=False))
         await stt.user_says("Where do I live now?")
         await asyncio.wait_for(replied.wait(), 5)
         assert await memory.flush(5) == 0
@@ -276,6 +282,6 @@ async def test_a_spoken_turn_keeps_the_preemptive_head_start(
     logged = " ".join(r.getMessage() for r in caplog.records)
     assert "preemptive generation invalidated" not in logged
     assert all(len(_memory_shown(call)) == 1 for call in fake.calls)
-    assert len([s for s in service.searches if s.get("scope")]) == 1
+    assert len([s for s in service.searches if s.get("filters")]) == 1
     assert service.texts() == [("user", "Where do I live now?"), ("assistant", "In Lisbon.")]
     await memory.aclose()

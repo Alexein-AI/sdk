@@ -6,7 +6,7 @@ though it can be:
         python e2e/voice_worker.py start --url ws://localhost:7880 \
         --api-key devkey --api-secret secret
 
-with VOICE_API_KEY (else OPENAI_API_KEY), TWIN_MEMORY_API_KEY and TWIN_MEMORY_BASE_URL set, and
+with VOICE_API_KEY (else OPENAI_API_KEY), ALEXEIN_API_KEY and ALEXEIN_API_URL set, and
 E2E_EVENTS=<file.jsonl> for the events. VOICE_BASE_URL points every model at an OpenAI-compatible
 host (OpenRouter's https://openrouter.ai/api/v1), VOICE_LLM / VOICE_STT / VOICE_TTS name the
 models, and VOICE_TTS=say speaks with macOS `say` instead, which needs no key.
@@ -43,9 +43,9 @@ from livekit.agents import (
 )
 from livekit.plugins import openai, silero
 
-from twinmemory_livekit import TwinMemory, TwinMemoryAgent
+from alexein_livekit import AlexeinMemory, AlexeinMemoryAgent
 
-AGENT_NAME = os.environ.get("E2E_AGENT_NAME", "twinmemory-voice-e2e")
+AGENT_NAME = os.environ.get("E2E_AGENT_NAME", "alexein-voice-e2e")
 EVENTS = os.environ.get("E2E_EVENTS", "")
 DEFAULT_MODE = os.environ.get("VOICE_MODE", "auto")
 LLM_MODEL = os.environ.get("VOICE_LLM", "gpt-4.1-mini")
@@ -83,7 +83,7 @@ def dump(chat_ctx: llm.ChatContext) -> list[list[str]]:
     return out
 
 
-def recall_of(memory: TwinMemory | None) -> dict[str, Any] | None:
+def recall_of(memory: AlexeinMemory | None) -> dict[str, Any] | None:
     r = memory.last_recall if memory is not None else None
     if r is None:
         return None
@@ -149,7 +149,7 @@ class LoggedLLM(openai.LLM):
     def __init__(self, base: dict[str, Any], **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.base = base
-        self.memory: TwinMemory | None = None
+        self.memory: AlexeinMemory | None = None
 
     def chat(self, *, chat_ctx: llm.ChatContext, tools: list[llm.Tool] | None = None, **kw: Any):  # type: ignore[override]
         context = dump(chat_ctx)
@@ -182,10 +182,10 @@ async def entrypoint(ctx: JobContext) -> None:
     mode = meta.get("mode") or DEFAULT_MODE
 
     # ---- the README pattern
-    memory: TwinMemory | None = None
+    memory: AlexeinMemory | None = None
     if mode != "off":
         # mode= only where it is not the default, so "auto" runs on a package without modes too
-        memory = TwinMemory.from_job(ctx, **({} if mode == "auto" else {"mode": mode}))
+        memory = AlexeinMemory.from_job(ctx, **({} if mode == "auto" else {"mode": mode}))
     emit("job_start", **base, mode=mode, metadata=ctx.job.metadata)
     await ctx.connect()
     participant = await ctx.wait_for_participant()
@@ -273,7 +273,7 @@ async def entrypoint(ctx: JobContext) -> None:
     ctx.add_shutdown_callback(_on_shutdown)
 
     agent: Agent = (
-        TwinMemoryAgent(memory, instructions=INSTRUCTIONS)
+        AlexeinMemoryAgent(memory, instructions=INSTRUCTIONS)
         if memory is not None
         else Agent(instructions=INSTRUCTIONS)
     )

@@ -1,6 +1,6 @@
 """Stand-ins for everything a call needs but the code under test: a scripted LLM, a scripted
 speech-to-text with silent audio (so a spoken turn, preemptive generation included, runs with no
-room and no keys), and twin memory as an in-process HTTP service behind the real client.
+room and no keys), and Alexein's memory API as an in-process HTTP service behind the real client.
 
 LiveKit publishes no fake LLM; this one follows the one in livekit/agents' own tests.
 """
@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
+from alexein import AsyncMemory
 from livekit import rtc
 from livekit.agents import (
     DEFAULT_API_CONNECT_OPTIONS,
@@ -42,7 +43,6 @@ from livekit.agents.stt import (
 )
 from livekit.agents.utils.audio import AudioBuffer
 from livekit.agents.voice.io import AudioInput
-from twinmemory import AsyncMemory
 
 # --------------------------------------------------------------------------------- LLM --
 
@@ -169,8 +169,9 @@ class _Heard(RecognizeStream):
 
 @dataclass
 class MemoryService:
-    """twin memory's /v1/memory/search and /add, in process. `hits` and `known` are what every
-    search answers; `delay` holds each answer; `status` answers every call with that error."""
+    """Alexein's /v2/memory/search, latest, open and add, in process. `hits` and `known` are what
+    every search answers; `delay` holds each answer; `status` answers every call with that
+    error."""
 
     hits: list[str] = field(default_factory=list[str])
     known: list[str] = field(default_factory=list[str])
@@ -183,11 +184,12 @@ class MemoryService:
     flaky: str | None = None  # the first add of this item id alone answers 503
     searches: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     latests: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
+    opens: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     added: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     users: list[str] = field(default_factory=list[str])
 
     def client(self) -> AsyncMemory:
-        """A client as `TwinMemory` makes its own: no retries of the client's own."""
+        """A client as `AlexeinMemory` makes its own: no retries of the client's own."""
         http = httpx.AsyncClient(transport=httpx.MockTransport(self._answer))
         return AsyncMemory(
             api_key="tm_test", base_url="http://memory.test", http_client=http, max_retries=0
@@ -196,49 +198,71 @@ class MemoryService:
     def texts(self) -> list[tuple[str, str]]:
         return [(i.get("role", ""), i["text"]) for i in self.added]
 
+    def excerpts(self) -> dict[str, str]:
+        """Every excerpt this memory answers, by ref: `hits` as p0.., `recent` as r0.."""
+        found = {f"p{n}": text for n, text in enumerate(self.hits)}
+        return found | {f"r{n}": text for n, text in enumerate(self.recent)}
+
     async def _answer(self, request: httpx.Request) -> httpx.Response:
         body: dict[str, Any] = json.loads(request.content or b"{}")
-        self.users.append(request.headers.get("X-Twin-Account", ""))
+        self.users.append(request.headers.get("X-Alexein-User", ""))
         route = request.url.path.rsplit("/", 1)[-1]
-        if route == "search":
-            self.searches.append(body)
-        if route == "latest":
-            self.latests.append(body)
+        assert request.url.path == f"/v2/memory/{route}", request.url.path
+        {"search": self.searches, "latest": self.latests, "open": self.opens}.get(route, []).append(
+            body
+        )
         if self.delay:
             await asyncio.sleep(self.delay)
         if self.status is not None:
             return httpx.Response(self.status, json={"detail": f"status {self.status}"})
         if self.garbage:
             return httpx.Response(200, text="<html>Sign in to the guest Wi-Fi</html>")
-        if route == "add" and self.flaky and [i.get("id") for i in body["items"]] == [self.flaky]:
+        if route == "add":
+            return self._add(body)
+        if self.new_user and route != "search":
+            # Search answers an app user nothing was added for empty; the other reads, 404.
+            return httpx.Response(404, json={"detail": "no memory for app user 'dana' yet"})
+        if route == "latest":
+            shown = [_excerpt(f"r{n}", t) for n, t in enumerate(self.recent)]
+            return httpx.Response(200, json={"memories": shown})
+        if route == "open":
+            text = self.excerpts().get(body["ref"])
+            if text is None:
+                return httpx.Response(404, json={"detail": "no memory by that ref"})
+            return httpx.Response(200, json={"memory": _excerpt(body["ref"], text)})
+        # A narrowed search (`filters`, `after`, ...) answers facts and excerpts, no known lines.
+        known = [] if self.new_user or body.get("filters") else self.known
+        hits = [] if self.new_user else self.hits
+        memories = [{"type": "known", "text": k} for k in known]
+        memories += [_excerpt(f"p{n}", text) for n, text in enumerate(hits)]
+        found = {"query": body["query"], "answerable": None, "notes": [], "memories": memories}
+        return httpx.Response(200, json=found)
+
+    def _add(self, body: dict[str, Any]) -> httpx.Response:
+        if self.flaky and [i.get("id") for i in body["items"]] == [self.flaky]:
             self.flaky = None
             return httpx.Response(503, json={"detail": "busy"})
-        if route == "add" and any(_nameless_self(i) for i in body["items"]):
-            # The service's own rule (twin_memory/store/build/content.py `_author`).
+        if any(_nameless_self(i) for i in body["items"]):
+            # The service's own rule: an author that says self needs a name, an id or a role.
             return httpx.Response(422, json={"detail": "an author that says self needs a role"})
-        if route == "add" and self.reject and any(self.reject in i["text"] for i in body["items"]):
+        if self.reject and any(self.reject in i["text"] for i in body["items"]):
             return httpx.Response(422, json={"detail": "an item is too long"})
-        if route == "latest":
-            passages = [
-                {"path": f"passages/memory/r{n}", "id": f"r{n}", "text": t}
-                for n, t in enumerate(self.recent)
-            ]
-            return httpx.Response(200, json={"passages": passages})
-        if route == "add":
-            self.added.extend(body["items"])
-            self.new_user = False
-            ids = [{"id": i.get("id", ""), "event_id": "e"} for i in body["items"]]
-            return httpx.Response(202, json={"items": ids, "queued": len(ids), "pending": 0})
-        if self.new_user:
-            return httpx.Response(404, json={"detail": "no memory for end user yet"})
-        hits = [
-            {"path": f"passages/memory/p{n}", "id": f"p{n}", "text": text}
-            for n, text in enumerate(self.hits)
-        ]
-        # `known` is the brief's; a scoped search is the ranked hop, passages only.
-        known = [] if body.get("scope") else self.known
-        found = {"query": body.get("query", ""), "found": len(hits), "hits": hits, "known": known}
-        return httpx.Response(200, json=found)
+        self.added.extend(body["items"])
+        self.new_user = False
+        ids = [{"id": i.get("id", ""), "status": "queued"} for i in body["items"]]
+        return httpx.Response(200, json={"items": ids, "waiting": len(ids)})
+
+
+def _excerpt(ref: str, text: str) -> dict[str, Any]:
+    return {
+        "type": "excerpt",
+        "ref": ref,
+        "text": text,
+        "date": None,
+        "added_at": None,
+        "session": None,
+        "roles": [],
+    }
 
 
 def _nameless_self(item: dict[str, Any]) -> bool:

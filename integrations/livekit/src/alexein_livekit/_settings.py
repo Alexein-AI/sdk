@@ -1,6 +1,6 @@
 """`Settings`: every choice the package makes for a call, with its default, in one place.
 
-`TwinMemory` takes each as a keyword and keeps them here, read-only, as `memory.settings`. Not
+`AlexeinMemory` takes each as a keyword and keeps them here, read-only, as `memory.settings`. Not
 configuration of LiveKit or of Alexein: only of what this package does between them.
 """
 
@@ -25,7 +25,7 @@ HEADER = (
 
 @dataclass(frozen=True)
 class Settings:
-    """What a call's memory does. Each is a keyword of `TwinMemory`; the README says what each
+    """What a call's memory does. Each is a keyword of `AlexeinMemory`; the README says what each
     changes."""
 
     mode: Mode = "auto"
@@ -45,7 +45,7 @@ class Settings:
     """Show the agent's own earlier words too, marked as its own: they hold what it booked and
     found. False shows only what the caller said."""
     recall_recent: int = 6
-    """How many of the caller's last passages to show after what the search matched - a call
+    """How many of the caller's last excerpts to show after what the search matched - a call
     each in auto mode, a saved fact each in tools mode. 0 shows none."""
     recall_known: bool = True
     """Look up, once a call, what memory holds about the caller (search's `known` lines), to
@@ -65,7 +65,7 @@ class Settings:
     tool_fast: bool = True
     """memory_search skips the relevance check, as with `recall_fast`."""
     tool_timeout: float = 4.0
-    """The longest memory_search and memory_read wait, in seconds."""
+    """The longest memory_search and memory_open wait, in seconds."""
     save_timeout: float = 2.0
     """How long memory_add waits to confirm a save before leaving it to the writer, which retries
     it - so a refused fact is never reported saved."""
@@ -109,6 +109,6 @@ class Settings:
         """What a model given the tools is told, by `tool_guide` or the mode's own."""
         if self.tool_guide is not None:
             return self.tool_guide
-        from twinmemory_livekit._tools import AUTO_GUIDE, GUIDE
+        from alexein_livekit._tools import AUTO_GUIDE, GUIDE
 
         return GUIDE if self.mode == "tools" else AUTO_GUIDE

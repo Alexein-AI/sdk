@@ -9,8 +9,9 @@ early reply, the confirmed one and the model calls after a tool runs, and its ti
 reply's, not each call's: a turn whose lookup is late goes ahead without memory.
 
 What it searches is earlier calls only, unless `search_current_call`: the model already has this
-one, and memory would hand its own turns back. Not a cache of memory: a lookup is reused for
-`recall_reuse_seconds`, one turn. Every choice it makes is a field of `Settings`.
+one, and memory would hand its own turns back, so every lookup leaves out this call's session.
+Not a cache of memory: a lookup is reused for `recall_reuse_seconds`, one turn. Every choice it
+makes is a field of `Settings`.
 """
 
 from __future__ import annotations
@@ -19,15 +20,15 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from typing import Any
 
+from alexein import AlexeinError, AsyncUser, Excerpt, NotFoundError, SearchResult
 from livekit.agents import llm
-from twinmemory import AsyncUser, Hit, NotFoundError, SearchResult, TwinMemoryError
 
-from twinmemory_livekit._lines import SHORT, asks, said, small_talk, words
-from twinmemory_livekit._settings import HEADER, Settings
+from alexein_livekit._lines import SHORT, asks, said, small_talk, words
+from alexein_livekit._settings import HEADER, Settings
 
-log = logging.getLogger("twinmemory.livekit")
+log = logging.getLogger("alexein.livekit")
 
 # A short reply is searched with the agent's words before it (`_lines.SHORT`).
 _ASKED_CHARS = 300
@@ -36,17 +37,14 @@ _QUERY_CHARS = 1000
 # Lookups held at once: one turn's question, and a few preemptive tries at it.
 _REUSED = 8
 
-# The ranked search over messages, which is the one whose `before` keeps time of day: earlier
-# calls of the same day are kept and this call is left out (the brief's `before` is a whole day).
-_EARLIER_CALLS = "passages/memory"
 _ABOUT = "What should I know about this person?"
-# The last passages (`recall_recent`), newest first, are shown after what the search matched: the
+# The last excerpts (`recall_recent`), newest first, are shown after what the search matched: the
 # call before this one often holds what a question needs without naming it, such as the "I'm
 # vegetarian" behind "suggest a dinner", or an appointment that moved. Fetched once a call, so no
 # turn waits.
 
 # The marker on what recall adds to a prompt, so capture never saves it as something said.
-MARK = "twinmemory"
+MARK = "alexein"
 
 
 @dataclass(frozen=True)
@@ -130,10 +128,11 @@ class Recall:
     `recall_timeout` seconds after it started, by every model call of the turn together."""
 
     settings: Settings = field(default_factory=Settings)
-    since: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # The call's session: what is saved under it is this call's, and left out of every lookup.
+    session: str = ""
     last: RecallInfo | None = None
     _known: list[str] = field(default_factory=list[str])
-    _recent: list[Hit] = field(default_factory=list[Hit])
+    _recent: list[Excerpt] = field(default_factory=list[Excerpt])
     _about_task: asyncio.Task[None] | None = None
     _about_for: AsyncUser | None = None
     _lookups: dict[str, tuple[float, asyncio.Task[str | None]]] = field(
@@ -147,7 +146,7 @@ class Recall:
         return self._known
 
     @property
-    def recent(self) -> list[Hit]:
+    def recent(self) -> list[Excerpt]:
         return self._recent
 
     async def ready(self, timeout: float) -> None:
@@ -192,7 +191,7 @@ class Recall:
         user, self._about_for = self._about_for, None
         if user is None or not (self.settings.recall_known or self.settings.recall_recent):
             return
-        task = asyncio.create_task(self._about(user), name="twinmemory.about")
+        task = asyncio.create_task(self._about(user), name="alexein.about")
         self._about_task = task
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
@@ -209,16 +208,16 @@ class Recall:
             del self._lookups[stale]
         while len(self._lookups) >= _REUSED:
             del self._lookups[next(iter(self._lookups))]
-        task = asyncio.create_task(self._search(user, query), name="twinmemory.recall")
+        task = asyncio.create_task(self._search(user, query), name="alexein.recall")
         self._lookups[key] = (now, task)
         return now, task, False
 
-    def where(self) -> dict[str, str]:
-        """Earlier calls only - the ranked search, whose `before` keeps time of day - unless
-        `search_current_call`; for recall and `memory_search` alike."""
-        if self.settings.search_current_call:
+    def where(self) -> dict[str, Any]:
+        """Earlier calls only - everything said outside this call's session - unless
+        `search_current_call`; for recall, the last calls and `memory_search` alike."""
+        if self.settings.search_current_call or not self.session:
             return {}
-        return {"scope": _EARLIER_CALLS, "before": self.since}
+        return {"filters": {"NOT": {"mentions": f"session:{self.session}"}}}
 
     async def _search(self, user: AsyncUser, query: str) -> str | None:
         """What memory holds, or None when it could not be asked."""
@@ -229,7 +228,7 @@ class Recall:
         await self.ready(s.recall_timeout / 2)
         lines = said(
             self._known,
-            [*found.hits, *self._recent],
+            [*found.excerpts, *self._recent],
             query,
             agent=s.recall_agent_turns,
             max_chars=s.recall_max_chars,
@@ -242,15 +241,14 @@ class Recall:
         about = self._ask(user, _ABOUT, fast=self.settings.recall_fast) if known else _nothing()
         found, recent = await asyncio.gather(about, self._latest(user))
         if found is not None:
-            self._known = found.known
+            self._known = [line.text for line in found.known]
         self._recent = recent
 
-    async def _latest(self, user: AsyncUser) -> list[Hit]:
+    async def _latest(self, user: AsyncUser) -> list[Excerpt]:
         if not self.settings.recall_recent:
             return []
-        before = None if self.settings.search_current_call else self.since
         try:
-            return (await user.latest(k=self.settings.recall_recent, before=before)).passages
+            return (await user.latest(k=self.settings.recall_recent, **self.where())).memories
         except NotFoundError:
             return []
         except Exception as error:
@@ -258,12 +256,12 @@ class Recall:
             return []
 
     async def _ask(
-        self, user: AsyncUser, query: str, *, fast: bool, **where: str
+        self, user: AsyncUser, query: str, *, fast: bool, **where: Any
     ) -> SearchResult | None:
         """Never raises: a call goes on however memory fails, a proxy's HTML page included."""
         try:
             found = await user.search(query, fast=fast, **where)
-        except NotFoundError:  # nothing has been saved for this user yet
+        except NotFoundError:  # nothing has been saved for this user yet (an older service)
             return SearchResult.parse({"query": query})
         except Exception as error:
             self._warn(error)
@@ -272,12 +270,12 @@ class Recall:
 
     def _warn(self, error: Exception) -> None:
         # Once per kind of failure: an outage would otherwise log every turn of every call. The
-        # service's own words are left out, since they name the end user.
+        # service's own words are left out, since they name the app user.
         kind = type(error).__name__
         if kind in self._warned:
             return
         self._warned.add(kind)
-        level = logging.ERROR if isinstance(error, TwinMemoryError) and not error.outage else 0
+        level = logging.ERROR if isinstance(error, AlexeinError) and not error.outage else 0
         log.log(level or logging.WARNING, "Alexein recall failed (%s), replies go on", how(error))
 
     def _done(self, started: float, chars: int, **how: bool) -> None:
@@ -299,6 +297,6 @@ async def _nothing() -> None:
 
 def how(error: Exception) -> str:
     """An error as a log line can carry it: its kind, status and request id, never its text."""
-    if isinstance(error, TwinMemoryError):
+    if isinstance(error, AlexeinError):
         return f"{type(error).__name__}, status {error.status}, request {error.request_id}"
     return type(error).__name__

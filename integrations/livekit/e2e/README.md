@@ -1,23 +1,24 @@
 # Real-room end-to-end test
 
-`room.py` runs twinmemory-livekit in a real LiveKit room against the real twin memory API. It is text in and text out, with `tests/fakes.py`'s `FakeLLM` standing in for a model, so no STT, TTS or LLM keys are needed.
+`room.py` runs alexein-livekit in a real LiveKit room against the real Alexein API. It is text in and text out, with `tests/fakes.py`'s `FakeLLM` standing in for a model, so no STT, TTS or LLM keys are needed.
+
+Every timing and result on this page was measured on 2026-10-23, before the package moved to the `alexein` 0.3 client and the API's `/v2` routes; the harness has been ported since, and not yet run again.
 
 ```bash
-cd packages/livekit && uv run python e2e/room.py          # exit 0 = every check held
+cd integrations/livekit && uv run python e2e/room.py          # exit 0 = every check held
 uv run python e2e/room.py --keep-users                    # leave the e2e users in memory to inspect
 ```
 
 ## Needs
 - **LiveKit dev server** on `ws://localhost:7880` with key `devkey` and secret `secret`, for example:
-  `docker run -d --name twin-livekit-dev -p 127.0.0.1:7880:7880 -p 127.0.0.1:7881:7881 -p 127.0.0.1:7882:7882/udp livekit/livekit-server --dev --bind 0.0.0.0 --node-ip 127.0.0.1`
-- **twin memory** at `TWIN_MEMORY_BASE_URL` with a writing key in `TWIN_MEMORY_API_KEY`. They are read from the environment, or else from the KEY=VALUE file at `$E2E_ENV`.
-- **`MEMORY_CONTROL_SECRET`**, read from `$E2E_CONTROL_ENV` (default `../twin-memory-frontend/.env`). It is used to delete the users the test made, through `DELETE /v1/control/accounts?org=livekit-dev&project=dev&user=…`.
-- No extra dependencies: `livekit-api` comes with `livekit-agents`, and `httpx` comes with `twinmemory`.
+  `docker run -d --name livekit-dev -p 127.0.0.1:7880:7880 -p 127.0.0.1:7881:7881 -p 127.0.0.1:7882:7882/udp livekit/livekit-server --dev --bind 0.0.0.0 --node-ip 127.0.0.1`
+- **The Alexein API** at `ALEXEIN_API_URL` (a local stack: `http://localhost:8210`) with a key that writes in `ALEXEIN_API_KEY`. They are read from the environment, or else from the KEY=VALUE file at `$E2E_ENV`. The same key deletes the app users the test made, at the end (`user.delete()`).
+- No extra dependencies: `livekit-api` comes with `livekit-agents`, and `httpx` comes with `alexein`.
 
-The key and the secret are never printed. Logs go to a fresh temp dir, whose path is printed first: `events.jsonl` (one line per agent-side event) and `worker.log`.
+The key is never printed. Logs go to a fresh temp dir, whose path is printed first: `events.jsonl` (one line per agent-side event) and `worker.log`.
 
 ## What it does
-`worker.py` is the README pattern exactly: `TwinMemory.from_job(ctx)`, then `await ctx.connect()`, then `bind(participant=…)` if the metadata named no user, then `AgentSession(llm=FakeLLM(...))` in text mode with `TwinMemoryAgent(memory, memory_tools=False)`. The fake LLM replies `MEMORY-SEEN:yes` or `MEMORY-SEEN:no`. It logs the full context it was given and `memory.last_recall` to `events.jsonl`.
+`worker.py` is the README pattern exactly: `AlexeinMemory.from_job(ctx)`, then `await ctx.connect()`, then `bind(participant=…)` if the metadata named no user, then `AgentSession(llm=FakeLLM(...))` in text mode with `AlexeinMemoryAgent(memory, memory_tools=False)`. The fake LLM replies `MEMORY-SEEN:yes` or `MEMORY-SEEN:no`. It logs the full context it was given and `memory.last_recall` to `events.jsonl`.
 
 There are three calls for one fresh user, `e2e-<hex>`. Each call gets a new room and so a new job:
 
@@ -30,13 +31,13 @@ There are three calls for one fresh user, `e2e-<hex>`. Each call gets a new room
    - `4417` inside the block;
    - none of call 2's own turns inside the block, even though the marker was already in memory;
    - no copy of the fact outside the block.
-3. **Call 3** uses participant `kiosk-<hex>` and dispatch metadata `{"twinmemory_user_id": "e2e-<hex>"}`.
+3. **Call 3** uses participant `kiosk-<hex>` and dispatch metadata `{"alexein_user_id": "e2e-<hex>"}`.
    - The user is bound from the metadata at `from_job`, before connect.
    - Recall shows the fact.
-   - Nothing is saved under the kiosk identity, which still gets a 404 from memory.
+   - Nothing is saved under the kiosk identity, whose `latest` still answers 404.
 
 Afterwards it checks what was saved:
-- 3 threads, one per call;
+- 3 sessions, one per call (each excerpt's `session`, the job's id);
 - the question saved twice, once each by calls 2 and 3;
 - `4417` saved once;
 - no recalled `<memory>` text saved as a turn;
@@ -69,7 +70,7 @@ Every model goes through LiveKit's OpenAI plugin:
 OpenAI is used when both keys are set. OpenRouter has no OpenAI TTS: `openai/gpt-4o-mini-tts` "does not exist", and its Voxtral TTS answered 404 on 2026-10-23. So with OpenRouter the agent speaks with `say`, which is free and needs no key. `VOICE_PROVIDER`, `VOICE_LLM`, `VOICE_STT`, `VOICE_TTS` (or `say`) and `VOICE_JUDGE_STT` override the defaults.
 
 ```bash
-cd packages/livekit
+cd integrations/livekit
 uv run --with "livekit-plugins-openai~=1.8" --with "livekit-plugins-silero~=1.8" python e2e/voice.py
 #   --scenario auto|tools|all (default all)   --no-baseline   --keep-users
 ```
@@ -84,7 +85,7 @@ Exit 0 means every check held. The plugins come in through `uv run --with` only,
 Everything goes to a fresh temp dir, whose path is printed first: `events.jsonl`, `worker.log`, every `say` clip, each answer as `<room>-turn<n>.wav`, and each call's whole agent track as `<room>-agent.wav`, so you can listen to what was checked.
 
 ## How it works
-- **The worker** is `voice_worker.py`, which follows the README pattern: `TwinMemory.from_job(ctx, mode=...)`, `await ctx.connect()`, `bind(participant=...)`, `memory.attach(session)` and `TwinMemoryAgent`.
+- **The worker** is `voice_worker.py`, which follows the README pattern: `AlexeinMemory.from_job(ctx, mode=...)`, `await ctx.connect()`, `bind(participant=...)`, `memory.attach(session)` and `AlexeinMemoryAgent`.
   - The mode comes from the dispatch metadata, `{"mode": "auto" | "tools" | "off"}`. `off` is a plain `Agent` with no memory, the latency baseline.
   - The LLM is OpenAI's, wrapped so that each model call logs the exact context and tools it was given, plus `memory.last_recall`. Recall has already placed its `<memory>` block by then.
   - Tool calls are logged from `function_tools_executed`. The user's STT text, each conversation item with its `metrics`, agent and user state changes, errors and the session's `usage` at shutdown are logged too.
@@ -107,7 +108,7 @@ Everything goes to a fresh temp dir, whose path is printed first: `events.jsonl`
    - Call 2: "What is my favourite colour?"
    - Checked: the model calls `memory_search`, and the spoken answer says teal.
 
-At the end it deletes the users it made through the control route, and prints per-turn latency for each mode, the worker's per-turn `metrics`, the models' usage and an estimated cost at list prices.
+At the end it deletes the app users it made, with the same key, and prints per-turn latency for each mode, the worker's per-turn `metrics`, the models' usage and an estimated cost at list prices.
 
 ## Talking to it yourself
 ```bash
@@ -121,9 +122,9 @@ Then open http://localhost:8765 and press **Start call**.
 - `--port` serves somewhere other than 8765. Ctrl-C stops the page server and the worker.
 - Tested headless with Playwright and Chrome's fake microphone fed a `say` WAV (`--use-fake-ui-for-media-stream --use-file-for-fake-audio-capture=q.wav%noloop`). The page connected in 1.4 s, the agent heard "Hi there, what can you help me with today?" and answered aloud, and both lines showed in the page.
 - Users made this way stay in memory, under `participant_id(<identity>)` (`lk-` and a hash): the
-  page binds the participant. Delete one with the control route above.
+  page binds the participant. Delete one with `AsyncMemory().user(participant_id("dana")).delete()`.
 
-## Results (2026-10-23, OpenRouter, local LiveKit and twin memory)
+## Results (2026-10-23, OpenRouter, local LiveKit and memory API)
 - **4 full runs**, about 3 minutes each.
   - Runs 3 and 4 passed every check, 30 of 30.
   - In runs 1 and 2 every auto check passed, and tools mode failed for reasons since fixed:
@@ -150,15 +151,15 @@ Latency, in seconds: the medians over runs 1–4 of the worker's `e2e_latency`, 
 # Scenarios with a real model
 
 `scenarios.py` is twenty callers who ring back, typed through the same `AgentSession` and
-`TwinMemoryAgent` with a real model (gpt-4.1-mini, through OpenAI or OpenRouter) and the real
-memory API, in both modes. Each is two or three calls by a fresh end user; between calls it waits
+`AlexeinMemoryAgent` with a real model (gpt-4.1-mini, through OpenAI or OpenRouter) and the real
+memory API, in both modes. Each is two or three calls by a fresh app user; between calls it waits
 until memory holds the last one. The checks are on what the agent answered in the last call and
 on what memory holds; a failure prints every call, every reply and every tool the model used.
 
 ```bash
-cd packages/livekit
+cd integrations/livekit
 set -a; . ../../../.livekit-test.env; set +a     # OPENROUTER_API_KEY or OPENAI_API_KEY
-export TWIN_MEMORY_API_KEY=tm_... TWIN_MEMORY_BASE_URL=http://localhost:8210
+export ALEXEIN_API_KEY=tm_... ALEXEIN_API_URL=http://localhost:8210
 uv run --with "livekit-plugins-openai~=1.8" python e2e/scenarios.py   # --mode auto|tools, -k NAME
 ```
 

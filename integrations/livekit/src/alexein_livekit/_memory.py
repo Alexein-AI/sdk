@@ -1,12 +1,12 @@
-"""`TwinMemory`: one call's memory - whose it is, what is recalled for each reply, and every turn
+"""`AlexeinMemory`: one call's memory - whose it is, what is recalled for each reply, and every turn
 saved - attached to the session rather than to an agent, so it survives handoffs.
 
 Two modes, as LangGraph's nodes and tools are two halves. "auto" recalls before every reply and
 saves every turn, and lends the model tools to look further. "tools" does nothing by itself: the
-model has `memory_search`, `memory_read` and `memory_add`, and decides when to use them.
+model has `memory_search`, `memory_open` and `memory_add`, and decides when to use them.
 
-Not an agent. `TwinMemoryAgent` is the agent that uses it; an agent of your own calls `enrich` from
-its `llm_node` and gives its model `tools()`.
+Not an agent. `AlexeinMemoryAgent` is the agent that uses it; an agent of your own calls `enrich`
+from its `llm_node` and gives its model `tools()`.
 """
 
 from __future__ import annotations
@@ -17,36 +17,36 @@ import uuid
 from dataclasses import fields
 from typing import TYPE_CHECKING, Any
 
+from alexein import AsyncMemory, AsyncUser, Excerpt, Item
 from livekit import rtc
 from livekit.agents import llm
-from twinmemory import AsyncMemory, AsyncUser, Hit, Item
 
-from twinmemory_livekit import _identity, _tools
-from twinmemory_livekit._capture import Writer, item
-from twinmemory_livekit._recall import Recall, RecallInfo, how, place, question
-from twinmemory_livekit._settings import Mode, Redact, Settings
+from alexein_livekit import _identity, _tools
+from alexein_livekit._capture import Writer, item
+from alexein_livekit._recall import Recall, RecallInfo, how, place, question
+from alexein_livekit._settings import Mode, Redact, Settings
 
 if TYPE_CHECKING:
     from livekit.agents import AgentSession, JobContext
     from livekit.agents.voice.events import CloseEvent, ConversationItemAddedEvent
 
-log = logging.getLogger("twinmemory.livekit")
+log = logging.getLogger("alexein.livekit")
 
 
-class TwinMemory:
+class AlexeinMemory:
     """Long-term memory for one LiveKit call.
 
     ```python
-    memory = TwinMemory.from_job(ctx)  # mode="tools" to let the model decide
+    memory = AlexeinMemory.from_job(ctx)  # mode="tools" to let the model decide
     await ctx.connect()
     memory.bind(participant=await ctx.wait_for_participant())
     session = AgentSession(...)
     memory.attach(session)
-    await session.start(room=ctx.room, agent=TwinMemoryAgent(memory, instructions="..."))
+    await session.start(room=ctx.room, agent=AlexeinMemoryAgent(memory, instructions="..."))
     ```
 
-    By default the client is made from `api_key` and `base_url`, else TWIN_MEMORY_API_KEY and
-    TWIN_MEMORY_BASE_URL, and closed with the call; `client` is one of your own (make it with
+    By default the client is made from `api_key` and `base_url`, else ALEXEIN_API_KEY and
+    ALEXEIN_API_URL, and closed with the call; `client` is one of your own (make it with
     `max_retries=0`). `session_id` names the call in memory. Every other keyword is a field of
     `Settings`, which says what each does; they are kept, read only, as `memory.settings`.
     """
@@ -86,13 +86,14 @@ class TwinMemory:
         self.settings = Settings(**{f.name: given[f.name] for f in fields(Settings)})
         self._own_client = client is None
         # No retries of the client's own: its back-off would turn a dead host into seconds of
-        # silence on a turn, and capture retries writes itself.
+        # silence on a turn, and capture retries writes itself. Not `fail_open` either: this
+        # package rides out an outage itself, and logs it once a call, never naming the user.
         self.client = client or AsyncMemory(
             api_key, base_url=base_url, integration="livekit", timeout=5.0, max_retries=0
         )
         self.session_id = session_id or uuid.uuid4().hex
         self.room: str | None = None
-        self._recall = Recall(self.settings)
+        self._recall = Recall(self.settings, session=self.session_id)
         self.noted: list[str] = []  # the facts memory_add saved in this call, in order
         self._writer = Writer(max_buffer=capture_buffer)
         self._user: AsyncUser | None = None
@@ -105,11 +106,11 @@ class TwinMemory:
     @classmethod
     def from_job(
         cls, ctx: JobContext, *, metadata_key: str | None = None, **kwargs: Any
-    ) -> TwinMemory:
+    ) -> AlexeinMemory:
         """Memory for the call `ctx` runs, named by the job's id and saved when the job ends.
 
         With `metadata_key`, the user is the one the job's metadata names under it - for a backend
-        that dispatches with `metadata=json.dumps({"twinmemory_user_id": ...})`. Only where your
+        that dispatches with `metadata=json.dumps({"alexein_user_id": ...})`. Only where your
         own server writes that metadata: a token server that copies it from a client's request
         would let the caller choose whose memory they get."""
         kwargs.setdefault("session_id", ctx.job.id)
@@ -143,14 +144,10 @@ class TwinMemory:
         given to it already."""
         return self.settings.guide
 
-    def where(self) -> dict[str, str]:
-        """What a search is narrowed to: earlier calls, unless `search_current_call`."""
+    def where(self) -> dict[str, Any]:
+        """What a search is narrowed to: earlier calls - all but this call's session - unless
+        `search_current_call`."""
         return self._recall.where()
-
-    @property
-    def since(self) -> str:
-        """When this call began: what is saved from then on is this call's, and not searched."""
-        return self._recall.since
 
     @property
     def known(self) -> list[str]:
@@ -159,8 +156,8 @@ class TwinMemory:
         return list(self._recall.known)
 
     @property
-    def recent(self) -> list[Hit]:
-        """The user's last calls' passages, newest first, looked up once when they were bound."""
+    def recent(self) -> list[Excerpt]:
+        """The user's last calls' excerpts, newest first, looked up once when they were bound."""
         return list(self._recall.recent)
 
     def bind(
@@ -234,7 +231,7 @@ class TwinMemory:
             place(chat_ctx, said, text)
 
     def tools(self) -> list[llm.FunctionTool]:
-        """The memory tools for the model: `memory_search` and `memory_read`, and in tools mode
+        """The memory tools for the model: `memory_search` and `memory_open`, and in tools mode
         `memory_add`. They act on the bound user only, and answer in a sentence that can be spoken
         when memory is down."""
         return _tools.tools(self, write=self.mode == "tools")
@@ -278,7 +275,7 @@ class TwinMemory:
 
     def _on_close(self, event: CloseEvent) -> None:
         # The job may outlive its session by the room's departure timeout; save now, not then.
-        task = asyncio.create_task(self.aclose(), name="twinmemory.close")
+        task = asyncio.create_task(self.aclose(), name="alexein.close")
         task.add_done_callback(_reported)
 
 
