@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 - unreleased
+## 0.3.0 - 2026-11-04
 
 - A reply waits for memory up to 1.5 seconds by default (`recall_timeout`), up from 0.5: against
   api.alexein.ai a recall took about a second end to end, so at 0.5 every reply went without it.

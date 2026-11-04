@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 - unreleased
+## 0.3.0 - 2026-11-04
 
 Renamed from `twinmemory-cli`: the package is `alexein-cli` (`uvx alexein-cli ...`), the module
 `alexein_cli`. The version follows the API's, as every Alexein package's does.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 - unreleased
+## 0.3.0 - 2026-11-04
 
 The client is `alexein` now (`pip install alexein`, `import alexein`), at the API's own version, and speaks
 its `/v2` API.

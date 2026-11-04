@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 - unreleased
+## 0.3.0 - 2026-11-04
 
 Renamed from `twinmemory` to `@alexein/sdk`, rebuilt on the API's `/v2` surface, and numbered as
 the API is (`0.3.0`), as the Python client is.

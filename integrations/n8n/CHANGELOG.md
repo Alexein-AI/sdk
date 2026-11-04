@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 - Unreleased
+## 0.3.0 - 2026-11-04
 
 The first release on npm, as `@alexein/n8n-nodes-alexein`, on the Alexein API's `/v2` surface. Renamed from
 `n8n-nodes-twinmemory` 0.1.0, which was never published; nothing made with it carries over.

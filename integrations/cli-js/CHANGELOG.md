@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 - unreleased
+## 0.3.0 - 2026-11-04
 
 Renamed from `twinmemory-cli` to `@alexein/cli`, and `TWIN_MEMORY_API_KEY` / `TWIN_MEMORY_BASE_URL` to `ALEXEIN_API_KEY` / `ALEXEIN_API_URL`.
 
