@@ -1,99 +1,187 @@
 /**
- * Every method against the API's own document, `openapi-memory.json`, pinned in this folder - the
- * same document the Python client is held to. Refresh it from a running service with
- * `scripts/refresh-openapi.sh`; a field the API renames or drops then fails here, before a release.
+ * Every method against the API's own contract, `contract/openapi.json` at the repository's root -
+ * the document the Python client is held to as well. Refresh it with `scripts/refresh-openapi.sh`;
+ * a route or field the API renames or drops then fails here, before a release.
  */
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { memory, ok, type Sent } from "./helpers.js";
 
-type Schema = { properties?: Record<string, unknown>; required?: string[] };
-const DOCUMENT = JSON.parse(
-  readFileSync(new URL("./openapi-memory.json", import.meta.url), "utf8"),
-);
-const SCHEMAS: Record<string, Schema> = DOCUMENT.components.schemas;
+type Schema = {
+  $ref?: string;
+  type?: string | string[];
+  anyOf?: Schema[];
+  properties?: Record<string, Schema>;
+  required?: string[];
+  items?: Schema;
+};
+type Operation = {
+  parameters?: { name: string; in: string; required?: boolean }[];
+  requestBody?: { content: { "application/json": { schema: Schema } } };
+};
 
-async function everyCall(): Promise<Sent[]> {
+const CONTRACT = JSON.parse(
+  readFileSync(new URL("../../contract/openapi.json", import.meta.url), "utf8"),
+);
+const SCHEMAS: Record<string, Schema> = CONTRACT.components.schemas;
+const PATHS: Record<string, Record<string, Operation>> = CONTRACT.paths;
+
+const resolve = (schema: Schema): Schema =>
+  schema.$ref ? resolve(SCHEMAS[schema.$ref.split("/").pop()!]!) : schema;
+
+/** Whether `schema` takes `value`, as far as JSON types go. */
+function takes(schema: Schema, value: unknown): boolean {
+  const s = resolve(schema);
+  if (s.anyOf) return s.anyOf.some((each) => takes(each, value));
+  if (s.type === undefined) return true;
+  const type = Array.isArray(value)
+    ? "array"
+    : value === null
+      ? "null"
+      : Number.isInteger(value)
+        ? "integer"
+        : typeof value;
+  const types = Array.isArray(s.type) ? s.type : [s.type];
+  return types.some((t) => t === type || (t === "number" && type === "integer"));
+}
+
+/** Every method, with every option it has, against a service that answers `{}`. */
+async function everyRequest(): Promise<Sent[]> {
   const { client, sent } = memory(() => ok());
   const dana = client.user("dana");
+  const filters = { metadata: { priority: { gte: 3 } } };
+  const origin = { provider: "github", source: "items", kind: ["issue"] };
   await client.me();
+  await client.users({ limit: 10, cursor: "c" });
   await dana.add(
-    { text: "t", id: "i", at: "2026-10-01", about: ["project:atlas"] },
+    { text: "t", id: "i", at: "2026-10-01", about: ["project:atlas"], expires: null },
     {
       wait: true,
+      redact: true,
       kind: "note",
       session: "s",
       role: "user",
-      author: { name: "Dana", self: true },
+      author: { id: "u1", name: "Dana", email: "d@x", handle: "@d", self: true },
       title: "T",
-      expires: "2027-01-01",
       metadata: { k: 1 },
     },
   );
   await dana.search("q", {
     before: "2026-12-01",
     after: "2026-01-01",
-    scope: "passages/",
+    filters,
     fast: true,
+    ...origin,
   });
-  await dana.grep("p", { scope: "passages/", limit: 5 });
-  await dana.read("a");
-  await dana.ls("a");
-  await dana.around("p", { width: 3 });
+  await dana.grep("p", { limit: 5, ...origin });
+  await dana.latest({
+    k: 3,
+    place: "eng",
+    after: "2026-01-01",
+    before: "2026-12-01",
+    filters,
+    ...origin,
+  });
+  await dana.around("mem_1", { width: 3 });
+  await dana.open("mem_1");
   await dana.history("s", { attribute: "a" });
-  await dana.latest({ k: 3, place: "slack", after: "2026-01-01", before: "2026-12-01" });
-  await dana.overview();
-  await dana.forget({ items: ["i"], sessions: ["s"], threads: ["t"], events: ["e"] });
-  await dana.correct("r", "x");
-  await dana.versions("i");
+  await dana.summary();
+  await dana.facts({ limit: 5, cursor: "c" });
+  await dana.openItems({
+    kind: ["issue"],
+    provider: "github",
+    place: "p",
+    mine: false,
+    withinDays: 7,
+    limit: 5,
+  });
+  await dana.sources();
+  await dana.items({ limit: 5, cursor: "c", filters });
+  await dana.item("i");
   await dana.status(["i"]);
-  await dana.lineage("i");
+  await dana.forget({ items: ["i"], sessions: ["s"], refs: ["mem_1"] });
+  await dana.correct("mem_1", "x");
+  await dana.versions("i");
+  await dana.export({ limit: 5, cursor: "c" });
+  await dana.delete();
   return sent.requests;
 }
 
-function fields(ref: string): [Set<string>, Set<string>] {
-  const schema = SCHEMAS[ref.split("/").pop()!]!;
-  return [new Set(Object.keys(schema.properties ?? {})), new Set(schema.required ?? [])];
+const SENT = await everyRequest();
+
+function operation(request: Sent): Operation {
+  const path = request.url.pathname.replace(/^\/v2/, "");
+  const found = PATHS[path]?.[request.method.toLowerCase()];
+  expect(found, `${request.method} ${path} is in the contract`).toBeTruthy();
+  return found!;
 }
 
-describe("the API's document", () => {
-  it("documents every request's path, method and body", async () => {
-    for (const request of await everyCall()) {
-      const method = request.method.toLowerCase();
-      const operation = DOCUMENT.paths[request.url.pathname]?.[method];
-      expect(operation, `${request.method} ${request.url.pathname}`).toBeTruthy();
-      if (method === "get") continue;
-      const body = request.body as Record<string, unknown>;
-      if (!operation.requestBody) {
-        expect(body, request.url.pathname).toEqual({});
+describe("the API's contract", () => {
+  it("names the API's version the client says it is", async () => {
+    const { VERSION } = await import("../src/index.js");
+    expect(CONTRACT.info.version).toBe(VERSION);
+    expect(CONTRACT.servers[0].url).toBe("https://api.alexein.ai/v2");
+  });
+
+  it("documents every request's path, method and body fields", () => {
+    for (const request of SENT) {
+      const op = operation(request);
+      const where = request.url.pathname;
+      if (request.method === "GET") {
+        expect(request.body, where).toBeUndefined();
         continue;
       }
-      const [known, required] = fields(
-        operation.requestBody.content["application/json"].schema.$ref,
-      );
-      for (const field of Object.keys(body)) expect(known, request.url.pathname).toContain(field);
-      for (const field of required)
-        expect(Object.keys(body), request.url.pathname).toContain(field);
+      const body = request.body as Record<string, unknown>;
+      if (!op.requestBody) {
+        expect(body, where).toEqual({});
+        continue;
+      }
+      const schema = resolve(op.requestBody.content["application/json"].schema);
+      for (const [field, value] of Object.entries(body)) {
+        const property = schema.properties?.[field];
+        expect(property, `${where}: ${field}`).toBeTruthy();
+        expect(takes(property!, value), `${where}: ${field} = ${JSON.stringify(value)}`).toBe(true);
+      }
+      for (const field of schema.required ?? []) expect(Object.keys(body), where).toContain(field);
     }
   });
 
-  it("takes every item field the client sends", async () => {
-    const add = (await everyCall()).find((r) => r.url.pathname === "/v1/memory/add")!;
-    const [known] = fields("Item");
-    for (const item of (add.body as { items: Record<string, unknown>[] }).items) {
-      for (const field of Object.keys(item)) expect(known).toContain(field);
+  it("takes every item and author field the client sends", () => {
+    const add = SENT.find((r) => r.url.pathname === "/v2/memory/add")!;
+    const item = SCHEMAS.Item!;
+    for (const sent of add.body.items as Record<string, unknown>[]) {
+      for (const [field, value] of Object.entries(sent)) {
+        expect(item.properties, field).toHaveProperty(field);
+        expect(takes(item.properties![field]!, value), field).toBe(true);
+      }
+      for (const field of Object.keys(sent.author as object)) {
+        expect(SCHEMAS.Author!.properties).toHaveProperty(field);
+      }
     }
   });
 
-  it("has a method for every route it documents", async () => {
+  it("sends the headers each route documents", () => {
+    for (const request of SENT) {
+      const params = operation(request).parameters ?? [];
+      const headers = params.filter((p) => p.in === "header").map((p) => p.name);
+      const where = request.url.pathname;
+      const user = params.find((p) => p.name === "X-Alexein-User");
+      expect(request.headers["X-Alexein-User"] !== undefined, where).toBe(Boolean(user?.required));
+      if (request.headers["Idempotency-Key"]) expect(headers, where).toContain("Idempotency-Key");
+      for (const name of Object.keys(request.headers)) {
+        if (name.startsWith("X-") || name === "Idempotency-Key")
+          expect(headers, where).toContain(name);
+      }
+    }
+  });
+
+  it("has a method for every route it documents", () => {
     const reached = new Set(
-      (await everyCall()).map((r) => `${r.method.toLowerCase()} ${r.url.pathname}`),
+      SENT.map((r) => `${r.method.toLowerCase()} ${r.url.pathname.slice(3)}`),
     );
-    const documented = new Set(
-      Object.entries(DOCUMENT.paths as Record<string, Record<string, unknown>>).flatMap(
-        ([path, spec]) => Object.keys(spec).map((method) => `${method} ${path}`),
-      ),
+    const documented = Object.entries(PATHS).flatMap(([path, ops]) =>
+      Object.keys(ops).map((method) => `${method} ${path}`),
     );
     expect([...reached].sort()).toEqual([...documented].sort());
   });

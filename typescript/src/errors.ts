@@ -1,114 +1,133 @@
 /**
- * What can go wrong, one class per thing a caller would handle differently.
- *
- * The same classes as the Python client's, so what is true of an error there is true here.
+ * What can go wrong, one class per thing a caller would handle differently: the same classes as
+ * the Python client's, so what is true of an error there is true here.
  */
 
-export class TwinMemoryError extends Error {
-  /** The HTTP status, when there was a response. */
-  readonly status: number | undefined;
-  /** The API's own explanation. */
-  readonly detail: unknown;
-  /** The response's `X-Request-Id`: quote it when you ask for help. */
-  readonly requestId: string | undefined;
+import { type Json, list, object, text } from "./json.js";
 
-  constructor(
-    message: string,
-    options: { status?: number; detail?: unknown; requestId?: string; cause?: unknown } = {},
-  ) {
-    super(message, options.cause === undefined ? undefined : { cause: options.cause });
+/** One field a 422 named, and what it takes. */
+export interface FieldError {
+  /** Where in the body: `query`, `items[0].text`; empty for the body itself. */
+  field: string;
+  message: string;
+}
+
+export interface ErrorFields {
+  status?: number | null;
+  detail?: string;
+  errors?: FieldError[];
+  requestId?: string | null;
+  cause?: unknown;
+}
+
+/** Every error this client throws. */
+export class AlexeinError extends Error {
+  /** The HTTP status, or null when no response came back. */
+  readonly status: number | null;
+  /** The API's own explanation; for a transport failure, what went wrong. */
+  readonly detail: string;
+  /** On a 422: each field the body got wrong. Empty otherwise. */
+  readonly errors: FieldError[];
+  /** The response's `X-Request-Id`: quote it when you ask for help. */
+  readonly requestId: string | null;
+
+  constructor(message: string, fields: ErrorFields = {}) {
+    super(message, fields.cause === undefined ? undefined : { cause: fields.cause });
     this.name = new.target.name;
-    this.status = options.status;
-    this.detail = options.detail;
-    this.requestId = options.requestId;
+    this.status = fields.status ?? null;
+    this.detail = fields.detail ?? message;
+    this.errors = fields.errors ?? [];
+    this.requestId = fields.requestId ?? null;
   }
 
   /**
-   * Whether this means memory is unavailable - unreachable, too slow, busy or failing - rather
-   * than that the request or the key is wrong. A `failOpen` client rides out an outage; a
-   * mistake still throws.
+   * Whether this means memory is unavailable - unreachable, too slow, too busy or failing - rather
+   * than that the request or the key is wrong. A `failOpen` client rides out an outage; a mistake
+   * still throws.
    */
   get outage(): boolean {
-    return this.status !== undefined && (this.status === 429 || this.status >= 500);
+    return this.status !== null && (this.status === 429 || this.status >= 500);
   }
 }
 
 /** 401: no key, or one the service did not issue. */
-export class AuthenticationError extends TwinMemoryError {}
+export class AuthenticationError extends AlexeinError {}
 
 /** 403: the key reads, and the call writes. */
-export class PermissionDeniedError extends TwinMemoryError {}
+export class PermissionDeniedError extends AlexeinError {}
 
 /**
- * 404: nothing was ever written for this end user, or `correct` named a fact this end user does
- * not hold: not yet `read`, mistyped, or already retracted. A `correct` retried after it went
- * through gets this too: the fact is already retracted, so treat that as done.
+ * 404: nothing was ever added for this app user, or memory holds nothing by the ref or id given.
+ * Search answers an empty result instead.
  */
-export class NotFoundError extends TwinMemoryError {}
+export class NotFoundError extends AlexeinError {}
+
+/** 400, 413, 422 and any other 4xx: the request itself is wrong. Retrying will not help. */
+export class InvalidRequestError extends AlexeinError {}
 
 /**
- * 400, 413 or 422: the request itself is wrong - a bad end user id, a body too large, or a field
- * out of bounds. Retrying will not help.
+ * 429, after retries: too many requests in flight, or reads too fast. Retried for you, after
+ * `Retry-After` seconds (when at most 60) or with backoff.
  */
-export class InvalidRequestError extends TwinMemoryError {}
+export class RateLimitError extends AlexeinError {}
 
-/**
- * 429: too many requests in flight, or reads too fast. Retried for you: after `Retry-After`
- * seconds, or with backoff when there is none. A `Retry-After` over 60 seconds is not waited
- * out; this error is thrown instead.
- */
-export class RateLimitError extends TwinMemoryError {}
+/** 5xx, after retries (503 is retried; the rest are not): the service is busy or failing. */
+export class ServiceUnavailableError extends AlexeinError {}
 
-/**
- * 503: the service is busy or briefly unavailable. Retried for you: after `Retry-After` seconds,
- * or with backoff when there is none. A `Retry-After` over 60 seconds is not waited out; this
- * error is thrown instead.
- */
-export class ServiceUnavailableError extends TwinMemoryError {}
-
-/** The service could not be reached. Retried for you. */
-export class APIConnectionError extends TwinMemoryError {
+/** The service could not be reached, after retries. */
+export class APIConnectionError extends AlexeinError {
   override get outage(): boolean {
     return true;
   }
 }
 
-/** The service did not answer in time. Retried for you. */
+/** The service did not answer in time, after retries. */
 export class APITimeoutError extends APIConnectionError {}
 
-const BY_STATUS: Record<number, typeof TwinMemoryError> = {
-  400: InvalidRequestError,
-  401: AuthenticationError,
-  403: PermissionDeniedError,
-  404: NotFoundError,
-  413: InvalidRequestError,
-  422: InvalidRequestError,
-  429: RateLimitError,
-  503: ServiceUnavailableError,
-};
-
-/** The error a response with this status and body is. */
-export function forStatus(
-  status: number,
-  detail: unknown,
-  requestId: string | undefined,
-): TwinMemoryError {
-  const said = describe(detail);
-  const Kind = BY_STATUS[status] ?? TwinMemoryError;
-  return new Kind(said ? `${status}: ${said}` : String(status), { status, detail, requestId });
+function kindOf(status: number): typeof AlexeinError {
+  if (status === 401) return AuthenticationError;
+  if (status === 403) return PermissionDeniedError;
+  if (status === 404) return NotFoundError;
+  if (status === 429) return RateLimitError;
+  if (status >= 500) return ServiceUnavailableError;
+  if (status >= 400) return InvalidRequestError;
+  return AlexeinError;
 }
 
-function describe(detail: unknown): string {
-  if (!Array.isArray(detail)) {
-    return detail === undefined || detail === null ? "" : String(detail);
+/** `[{field, message}]` from a 422's `errors`, or from a validator's `[{loc, msg}]`. */
+function fieldErrors(value: unknown): FieldError[] {
+  return list(value).map((entry) => {
+    const error = object(entry);
+    if (Array.isArray(error.loc)) {
+      const at = error.loc[0] === "body" ? error.loc.slice(1) : error.loc;
+      return { field: at.map(String).join("."), message: text(error.msg) };
+    }
+    return { field: text(error.field), message: text(error.message) };
+  });
+}
+
+/** The error an answer with this status and body is. */
+export function errorFor(status: number, body: Json, requestId: string | null): AlexeinError {
+  const errors = fieldErrors(body.errors ?? (Array.isArray(body.detail) ? body.detail : []));
+  const detail =
+    typeof body.detail === "string"
+      ? body.detail
+      : errors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message)).join("; ");
+  const Kind = kindOf(status);
+  return new Kind(detail ? `${status}: ${detail}` : String(status), {
+    status,
+    detail,
+    errors,
+    requestId,
+  });
+}
+
+/** What a request that got no answer became: a timeout, or a connection that failed. */
+export function unreached(error: unknown): AlexeinError {
+  const name = error instanceof Error ? error.name : "";
+  const said = error instanceof Error ? error.message : String(error);
+  if (name === "TimeoutError" || name === "AbortError") {
+    return new APITimeoutError(`Alexein did not answer in time: ${said}`, { cause: error });
   }
-  // The API's validation errors: one line per field, as
-  // `body.query: String should have at least 1 character`.
-  return detail
-    .filter((error): error is Record<string, unknown> => typeof error === "object" && !!error)
-    .map((error) => {
-      const where = Array.isArray(error.loc) ? error.loc.map(String).join(".") : "";
-      return `${where}: ${String(error.msg ?? "")}`;
-    })
-    .join("; ");
+  return new APIConnectionError(`Alexein could not be reached: ${said}`, { cause: error });
 }

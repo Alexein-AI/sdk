@@ -1,22 +1,25 @@
 # Alexein for JavaScript and TypeScript
 
-Long-term memory for your users and agents. Add what they say; search it later in plain language.
+Long-term memory for your app users and agents. Add what they say; search it later in plain
+language.
 
 ```bash
-npm install twinmemory
+npm install @alexein/sdk
 ```
 
-Node 20 or newer (or any runtime with `fetch`). No dependencies. ESM and CommonJS, with types.
+Node 20 or newer, or any runtime with `fetch`: Bun, Deno, edge runtimes. No dependencies. ESM and
+CommonJS, with types. LangGraph.js and the OpenAI Agents SDK are built in, as their own entry
+points.
 
 The full guide is at [docs.alexein.ai](https://docs.alexein.ai/sdks/typescript).
 
 ## Quickstart
 
 ```ts
-import { Memory } from "twinmemory";
+import { Memory } from "@alexein/sdk";
 
-const memory = new Memory(); // reads TWIN_MEMORY_API_KEY
-const dana = memory.user("dana"); // your own id for one of your end users
+const memory = new Memory(); // reads ALEXEIN_API_KEY
+const dana = memory.user("dana"); // your own id for one of your app users
 
 await dana.add("I moved to Lisbon for the job at Acme.", { role: "user", session: "onboarding" });
 await dana.add(
@@ -28,17 +31,29 @@ const result = await dana.search("Where does Dana live?");
 console.log(result.context()); // ready to paste into a prompt
 ```
 
-Create a key in the console under **API keys**. A key belongs to one project; each end user you name
-with `memory.user(...)` has a memory of their own inside it.
+Make a key in the console, under **API keys**. A key belongs to one project; each app user you name
+with `memory.user(...)` has a memory of their own inside it. An app user id is 1 to 35 letters,
+digits, `.`, `_` and `-`, beginning with a letter or digit; `memory.user()` throws a `RangeError`
+for any other, before a request is made.
 
-| Setting     | Option        | Environment variable   | Default                  |
-| ----------- | ------------- | ---------------------- | ------------------------ |
-| API key     | `apiKey`      | `TWIN_MEMORY_API_KEY`  | required                 |
-| Base URL    | `baseUrl`     | `TWIN_MEMORY_BASE_URL` | `https://api.alexein.ai` |
-| Timeout     | `timeout`     |                        | 60000 ms per attempt     |
-| Retries     | `maxRetries`  |                        | 2                        |
-| Fail open   | `failOpen`    |                        | `false`                  |
-| Integration | `integration` |                        | none                     |
+## Settings
+
+| Setting     | Option        | Environment variable | Default                  |
+| ----------- | ------------- | -------------------- | ------------------------ |
+| API key     | `apiKey`      | `ALEXEIN_API_KEY`    | required                 |
+| Base URL    | `baseUrl`     | `ALEXEIN_API_URL`    | `https://api.alexein.ai` |
+| Timeout     | `timeout`     |                      | 60000 ms per attempt     |
+| Retries     | `maxRetries`  |                      | 2                        |
+| Fail open   | `failOpen`    |                      | `false`                  |
+| Integration | `integration` |                      | none                     |
+| Logger      | `logger`      |                      | `console.warn`           |
+| HTTP        | `fetch`       |                      | the global `fetch`       |
+
+The base URL is the API's host: `http://localhost:8210`, `http://localhost:8210/` and
+`http://localhost:8210/v2` all mean the same. The environment is read where there is a
+`process.env`; elsewhere, pass the options. `integration` adds one lowercase word to the
+`User-Agent` (`alexein-js/0.3.0 langgraph`), so the console's request logs show where requests came
+from.
 
 Run it on your server: a key in a browser bundle can be copied, and it speaks for every user of the
 project.
@@ -58,94 +73,166 @@ await dana.add(
 await dana.add("Moving house on 1 December.", { kind: "note", expires: "2026-12-31" });
 ```
 
-| Item field | Meaning                                                     |
-| ---------- | ----------------------------------------------------------- |
-| `text`     | required                                                    |
-| `kind`     | `message` (default), `note`, or `document`                  |
-| `id`       | your id for it; the same id again is an edit                |
-| `session`  | groups messages into conversations: one per session per day |
-| `role`     | `user`, `assistant`, ...                                    |
-| `author`   | a name, or `{ id, name, email, handle, self }`              |
-| `title`    | a document's title                                          |
-| `about`    | work it names, as `kind:name` (`project:atlas`)             |
-| `at`       | when it was said, ISO date or time                          |
-| `expires`  | when it stops being true; it is erased then                 |
-| `metadata` | your own JSON                                               |
-
-An add is accepted at once and searchable a moment later; `wait: true` returns once it is
-searchable. Arrays longer than 500 items are sent in batches. Every add carries an
-`Idempotency-Key`, so a retried request never saves an item twice.
+The item fields are `text` (required), `kind`, `id`, `session`, `role`, `author`, `title`, `about`,
+`at`, `expires` and `metadata`. The same `id` again is an edit. `wait: true` answers once the items
+are searchable; `redact: true` replaces phone numbers, cards, keys and the like before memory keeps
+them. More than 500 items go as several requests, each with an `Idempotency-Key` its retries send
+again, so a retry never saves an item twice.
 
 ## Searching
 
 ```ts
 const result = await dana.search("What should I avoid cooking for Dana?");
-result.known; // short lines: every value as stated, dated, newest first
-result.facts; // dated facts, each with the passage it came from
-result.hits; // whole passages, with their addresses
-result.held; // false when memory's own check finds it does not hold the answer
-result.context(4000);
+result.memories; // in order: known lines, then facts, then excerpts; facts and excerpts with a ref
+result.known; // result.facts, result.excerpts: the memories of one type
+result.answerable; // false when memory does not seem to hold the answer; null when not checked
+result.notes; // guidance for the model reading the answer
+result.context(4000); // notes, then one memory per line, never longer than 4000 characters
+for (const ref of result.refs) await dana.open(ref); // each memory whole
 ```
 
-`fast: true` skips the relevance check: free and quicker, a little less precise. `before` and
-`after` (ISO dates) and `scope` (a path prefix) narrow a search.
+`fast: true` answers sooner, a little less precisely, and is free. `before` and `after` (ISO dates),
+`filters`, and `provider`, `source` and `kind` narrow a search.
 
 ## Everything else
 
-| Method                                              | What it does                                                                   |
-| --------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `memory.me()`                                       | the key's organisation, project, and whether it writes                         |
-| `user.history(subject, { attribute })`              | every dated value recorded for one subject                                     |
-| `user.latest({ k, place, after, before })`          | the most recent passages, newest first                                         |
-| `user.grep(pattern, { scope, limit })`              | every passage holding an exact phrase                                          |
-| `user.read(path)` / `user.ls(path)`                 | one passage whole, or what is under a path                                     |
-| `user.around(passageId, { width })`                 | the passages either side of one you hold                                       |
-| `user.overview()`                                   | what this memory holds: top directories, counts and a short written guide      |
-| `user.forget({ items, sessions, threads, events })` | erase every copy, for good; returns a receipt                                  |
-| `user.correct(recordId, replacement?)`              | retract one fact, optionally saying what is true instead                       |
-| `user.versions(itemId)`                             | an item's versions, as they were sent                                          |
-| `user.status(ids)`                                  | how far each item has got: `accepted`, `landed`, `read`, `folded` or `unknown` |
-| `user.lineage(id)`                                  | what an item became, or what a fact came from                                  |
+| Method                                                   | Route                 |
+| -------------------------------------------------------- | --------------------- |
+| `memory.me()`                                            | `GET /v2/me`          |
+| `memory.users({ limit, cursor })`, `memory.iterUsers()`  | `users`               |
+| `user.grep(pattern, { limit, provider, source, kind })`  | `grep`                |
+| `user.latest({ k, place, after, before, filters, ... })` | `latest`              |
+| `user.around(ref, { width })`                            | `around`              |
+| `user.open(ref)`                                         | `open`                |
+| `user.history(subject, { attribute })`                   | `history`             |
+| `user.summary()`                                         | `summary`             |
+| `user.facts({ limit, cursor })`, `user.iterFacts()`      | `facts`               |
+| `user.openItems({ kind, provider, place, mine, ... })`   | `open_items`          |
+| `user.sources()`                                         | `sources`             |
+| `user.items({ limit, cursor, filters })`, `iterItems()`  | `items`               |
+| `user.item(itemId)`                                      | `item` (null if none) |
+| `user.status(ids)`                                       | `status`              |
+| `user.forget({ items, sessions, refs })`                 | `forget`              |
+| `user.correct(ref, replacement?)`                        | `correct`             |
+| `user.versions(itemId)`                                  | `versions`            |
+| `user.export({ limit, cursor })`, `user.iterExport()`    | `export`              |
+| `user.delete()`                                          | `users/delete`        |
 
-Typed fields are camelCase; JSON passed through as it came (`assertions`, `history`, `records`,
-`manifest`) keeps the API's names. Every result except `status()`, which is a plain map of phases,
-keeps the whole answer as `.raw`.
+Every route but `me` is `POST /v2/memory/<route>`. Results are plain objects with camelCase fields
+(`addedAt`, `followUps`, `lastWrite`); each keeps the JSON the API sent as `.raw`. The `iter*`
+methods are async iterables that follow `next` from page to page:
+
+```ts
+for await (const fact of dana.iterFacts()) console.log(fact.text);
+```
 
 ## Errors
 
-Every error is a `TwinMemoryError` with `status`, the API's `detail`, `requestId`, and `outage`:
-whether it means memory is unavailable rather than that the request or key is wrong.
+Every error is an `AlexeinError` with `status` (null when no answer came), `detail` (the API's
+words), `errors` (on a 422, each field as `{ field, message }`), `requestId` (the response's
+`X-Request-Id`: quote it when you ask for help) and `outage`.
 
-| Error                     | When                                             |
-| ------------------------- | ------------------------------------------------ |
-| `AuthenticationError`     | 401: no key, or one the service didn't issue     |
-| `PermissionDeniedError`   | 403: the key reads, and the call writes          |
-| `NotFoundError`           | 404: nothing was ever added for this end user    |
-| `InvalidRequestError`     | 400, 413, 422: the request itself is wrong       |
-| `RateLimitError`          | 429, after retries                               |
-| `ServiceUnavailableError` | 503, after retries                               |
-| `APIConnectionError`      | the service couldn't be reached, after retries   |
-| `APITimeoutError`         | the service didn't answer in time, after retries |
+| Error                     | When                                                  |
+| ------------------------- | ----------------------------------------------------- |
+| `AuthenticationError`     | 401: no key, or one the service did not issue         |
+| `PermissionDeniedError`   | 403: the key reads, and the call writes               |
+| `NotFoundError`           | 404: nothing added for this app user, or no such ref  |
+| `InvalidRequestError`     | 400, 413, 422 and any other 4xx: the request is wrong |
+| `RateLimitError`          | 429, after retries                                    |
+| `ServiceUnavailableError` | 5xx, after retries                                    |
+| `APIConnectionError`      | the service could not be reached, after retries       |
+| `APITimeoutError`         | an `APIConnectionError`: no answer in time            |
 
-429 and 503 are retried twice: after `Retry-After` seconds, or with backoff when there is none. A
-`Retry-After` over 60 seconds is not waited out; the error is thrown instead. Connection errors and
-timeouts are retried with backoff.
+429 and 503, a timeout and a failed connection are tried up to `maxRetries` more times: after the
+`Retry-After` header's seconds when it says 60 or fewer (more, and the error is thrown at once),
+else after 0.5 s, 1 s, ... with jitter. Nothing else is retried. A missing key throws an
+`AlexeinError` from `new Memory()`.
 
-### Failing open
+## Failing open
 
-`new Memory({ failOpen: true })` rides out an outage - memory unreachable, timing out, or answering
-429 or 5xx after its retries: `search` answers an empty result with `failed: true`, `add` saves
-nothing and answers `failed: true`, and each logs a warning (`console.warn`, or `logger`). A wrong
-key or a wrong request (401, 403, 400) still throws. Pair it with a short `timeout` where a reply
-cannot wait.
+Memory being down should cost a reply its memory, not the reply. With
+`new Memory({ failOpen: true })`, an outage - memory unreachable, timing out, or answering 429 or
+5xx after its retries - does not throw from `search` or `add`:
 
-`new Memory({ integration: "langgraph" })` adds a word to the `User-Agent`, so the console's
-request logs show where requests came from.
+- `search` answers an empty result with `failed: true`;
+- `add` saves nothing and answers `failed: true`;
+- each logs one warning (`console.warn`, or the `logger` you pass).
+
+A wrong key or a wrong request (401, 403, 400, 422) still throws, and so does every other method.
+Pair it with a short `timeout` where a reply cannot wait.
 
 ## LangGraph.js
 
-`twinmemory-cli` (on npm soon) will write memory into a LangGraph.js project as code you own,
-using this client. See [LangGraph](https://docs.alexein.ai/integrations/langgraph).
+```bash
+npm install @alexein/sdk @langchain/langgraph @langchain/core zod
+```
+
+```ts
+import { AlexeinMemory, MemoryAnnotation, MemoryContext } from "@alexein/sdk/langgraph";
+import { END, START, StateGraph } from "@langchain/langgraph";
+
+const memory = new AlexeinMemory(); // or new AlexeinMemory(client, { fast, maxChars, strict })
+
+const graph = new StateGraph(MemoryAnnotation, MemoryContext)
+  .addNode("recall", memory.recall) // what memory holds for the latest human message
+  .addNode("agent", agent) // yours: put memory.prompt(state) in its system prompt
+  .addNode("remember", memory.remember) // save the turn
+  .addEdge(START, "recall")
+  .addEdge("recall", "agent")
+  .addEdge("agent", "remember")
+  .addEdge("remember", END)
+  .compile();
+
+await graph.invoke(inputs, { context: { user_id: "dana" }, configurable: { thread_id: "t-1" } });
+```
+
+Whose memory is read is decided by your code, never by a model: the run's `context.user_id`, else
+`configurable.user_id`. `remember` saves the latest human message and the last reply that is not a
+tool call, in the thread's session, each under its LangGraph message id (else a stable hash), so
+running a turn again edits rather than duplicates. Tool calls and tool results are not saved.
+
+Tools, for a model that decides when to look: `memory.tools()` is `memory_search` and
+`memory_open`; `memory.tools({ write: true })` adds `memory_add`.
+
+```ts
+import { createAgent } from "langchain";
+
+const agent = createAgent({ model, tools: memory.tools(), contextSchema: MemoryContext });
+await agent.invoke(inputs, { context: { user_id: "dana" } });
+```
+
+Without a client, `AlexeinMemory` makes one on first use (so importing needs no key) that fails
+open, with a 10 s timeout. An outage then costs a turn its memory, and a tool answers the model
+"Memory is unavailable right now; carry on without it." With `strict: true`, it throws instead.
+For the five-line case, `recall`, `remember`, `memoryPrompt` and `memoryTools` are exported too,
+over one default `AlexeinMemory`. `MemoryState` is the same state as a `StateSchema`.
+
+## OpenAI Agents SDK
+
+```bash
+npm install @alexein/sdk @openai/agents zod
+```
+
+```ts
+import { Agent, run } from "@openai/agents";
+import { AlexeinMemory } from "@alexein/sdk/openai-agents";
+
+const memory = new AlexeinMemory();
+const agent = new Agent({ name: "Assistant", tools: memory.tools() });
+
+const result = await run(agent, message, {
+  context: { userId: "dana", sessionId: "conv-7" },
+  callModelInputFilter: memory.recall,
+});
+await memory.remember(result);
+```
+
+`recall` searches once a turn with the user's latest message and adds what it finds to the
+instructions of every model call in that turn, so it never lands in your session or history.
+`remember` saves the user's message and the final output, under the agent's name, in the context's
+`sessionId`; saving the same result again edits rather than copies, and a run paused for an
+approval saves nothing. The tools and the fail-open behaviour are as for LangGraph.js; module-level
+`recall`, `remember` and `memoryTools` use one default `AlexeinMemory`.
 
 ## License
 

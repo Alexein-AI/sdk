@@ -7,7 +7,7 @@ export interface Sent {
   url: URL;
   method: string;
   headers: Record<string, string>;
-  body: unknown;
+  body: any;
 }
 
 export type Answer = (sent: Sent) => Response | Promise<Response>;
@@ -31,8 +31,9 @@ export class Recorded {
     return this.requests[this.requests.length - 1]!;
   }
 
-  body(at = -1): unknown {
-    return this.requests.at(at)!.body;
+  /** The route of each request: `search`, `users/delete`, `me`. */
+  get routes(): string[] {
+    return this.requests.map((r) => r.url.pathname.replace(/^\/v2\/(memory\/)?/, ""));
   }
 }
 
@@ -40,9 +41,9 @@ export function ok(body: unknown = {}, status = 200, headers: Record<string, str
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-export function memory(answer: Answer, options: MemoryOptions = {}) {
+export function memory(answer: Answer = () => ok(), options: MemoryOptions = {}) {
   const sent = new Recorded(answer);
-  const client = new Memory({ apiKey: "tm_test", fetch: sent.fetch, ...options });
+  const client = new Memory({ apiKey: "ak_test", fetch: sent.fetch, ...options });
   return { client, sent };
 }
 
@@ -58,4 +59,14 @@ export function noWaiting(): number[] {
     return 0 as unknown as ReturnType<typeof setTimeout>;
   }) as typeof setTimeout);
   return waited;
+}
+
+/** What a promise rejects with. */
+export async function rejection(promise: Promise<unknown>): Promise<any> {
+  try {
+    await promise;
+  } catch (error) {
+    return error;
+  }
+  throw new Error("expected a rejection");
 }

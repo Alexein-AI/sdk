@@ -1,14 +1,32 @@
 # Changelog
 
-## 0.1.0 - unreleased
+## 0.3.0 - unreleased
 
-First release: the JavaScript and TypeScript counterpart of the Python client, `twinmemory` 0.2.
+Renamed from `twinmemory` to `@alexein/sdk`, rebuilt on the API's `/v2` surface, and numbered as
+the API is (`0.3.0`), as the Python client is.
 
-- `Memory`, with `memory.user(id)` for each of your end users.
-- `add`, `search` (with `fast` and `context()`), `history`, `latest`, `grep`, `read`, `ls`,
-  `around`, `overview`, `forget`, `correct`, `versions`, `status`, `lineage`, and `memory.me()`.
-- Typed results, one error class per failure, retries on 429 and 503 honouring `Retry-After`, a
-  timeout per attempt, and an `Idempotency-Key` on every add.
-- `failOpen`: an outage answers `search` empty and skips `add`, with `failed: true`, instead of
-  throwing. `integration`: a word in the `User-Agent`.
-- No dependencies; ESM and CommonJS.
+- **Renamed.** The package is `@alexein/sdk`; the base error is `AlexeinError`. The key is read from
+  `ALEXEIN_API_KEY` and the host from `ALEXEIN_API_URL`; the User-Agent is `alexein-js/0.3.0`.
+- **`/v2`.** Every request goes to `/v2` and names its app user with `X-Alexein-User`. A base URL
+  given with a trailing `/` or `/v2` means the same host.
+- **Refs, not paths.** Memories come back as known lines, facts and excerpts, told apart by
+  `type`; facts and excerpts carry a `ref`, which `open`, `around`, `forget` and `correct` take.
+  `read`, `ls`, `overview` and `lineage` are gone: `open` and `summary` replace them.
+- **New methods:** `open`, `summary`, `facts`, `openItems`, `sources`, `items`, `item`, `export`,
+  `delete`, `memory.users()`, and `iterFacts`, `iterItems`, `iterExport`, `iterUsers` as async
+  iterables over every page.
+- **Results** are camelCase and keep the API's JSON as `.raw`. `SearchResult.context()` writes the
+  notes, a blank line, then each memory on a line, the same text as the Python client.
+- **Errors:** every 5xx is a `ServiceUnavailableError`; any other 4xx an `InvalidRequestError`;
+  each error has `detail` as a string, `errors` (a 422's fields), `requestId` and `outage`. An app
+  user id is checked before any request (a `RangeError`).
+- **Integrations**, as their own entry points over optional peer dependencies:
+  `@alexein/sdk/langgraph` (LangGraph.js: `AlexeinMemory` with `recall`, `remember`, `prompt` and
+  `tools`, `MemoryAnnotation`, `MemoryContext`) and `@alexein/sdk/openai-agents` (the OpenAI Agents
+  SDK: `recall` as a `callModelInputFilter`, `remember`, `tools`). The main entry imports no
+  framework.
+- Still no runtime dependencies; ESM and CommonJS with types, Node 20 or newer, edge runtimes.
+
+## 0.1.0
+
+First release, over the API's earlier routes, under the old package name.
