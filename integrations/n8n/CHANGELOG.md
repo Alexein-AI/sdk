@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 - 2026-11-04
+
+- Published through npm's trusted publishing from GitHub Actions, with no token, so the npm provenance n8n
+  checks before it verifies a community node is GitHub's alone. The node is the same as 0.3.0.
+
 ## 0.3.0 - 2026-11-04
 
 The first release on npm, as `@alexein/n8n-nodes-alexein`, on the Alexein API's `/v2` surface. Renamed from
