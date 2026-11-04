@@ -1,0 +1,3560 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Alexein",
+  "version": "0.3.0"
+ },
+ "paths": {
+  "/memory/search": {
+   "post": {
+    "summary": "Search",
+    "description": "What memory holds for a question: `memories`, in order - known lines, then facts, then\nexcerpts of what was said or delivered, each dated and with a ref - and `notes` for the model\nthat reads them. `answerable` is false when memory does not seem to hold the answer, and null\nwhen it was not checked. With `after`, `filters`, `provider`, `source` or `kind` it returns\nthe facts and excerpts that match. Up to one paid model call.",
+    "operationId": "memory_search",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Search"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Search Memory Search Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/grep": {
+   "post": {
+    "summary": "Grep",
+    "description": "Excerpts holding an exact phrase, ignoring case: for a quoted phrase, an id or an error code\nthat a search would blur. Each is a fragment with its ref; `memory_open` reads it whole.",
+    "operationId": "memory_grep",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Grep"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Grep Memory Grep Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/latest": {
+   "post": {
+    "summary": "Latest",
+    "description": "The most recent excerpts, newest first: what just happened, everywhere or in one `place` (a\nconnected app, a channel or a repository), or everything between `after` and `before`.",
+    "operationId": "memory_latest",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Latest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Latest Memory Latest Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/around": {
+   "post": {
+    "summary": "Around",
+    "description": "The excerpts just before and after one, from the same conversation, in order.",
+    "operationId": "memory_around",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Around"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Around Memory Around Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/open": {
+   "post": {
+    "summary": "Open Ref",
+    "description": "One memory by its ref, whole: an excerpt in full, or a fact with the excerpts it was\nlearned from. Free.",
+    "operationId": "memory_open",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Opened"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Open Ref Memory Open Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/history": {
+   "post": {
+    "summary": "History",
+    "description": "Every value a subject was stated to have, by attribute, oldest first, with when each was\nsaid: what was true, and what changed. `suggestions` names subjects close to one memory does\nnot know. Free.",
+    "operationId": "memory_history",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/History"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response History Memory History Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/summary": {
+   "post": {
+    "summary": "Summary",
+    "description": "What this memory holds, in brief: how many items, the span they cover, the connected\nsources, and the known lines - what memory takes to be true now. Free.",
+    "operationId": "memory_summary",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Summary Memory Summary Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/facts": {
+   "post": {
+    "summary": "Facts",
+    "description": "The facts memory learned, newest first, a page at a time: each in words, dated, with a ref\nand the ref of the excerpt it came from. `next` is the cursor of the page after. Free.",
+    "operationId": "memory_facts",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Facts"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Facts Memory Facts Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/open_items": {
+   "post": {
+    "summary": "Open Items",
+    "description": "The issues and pull requests still open, newest first - by default the person's own: what\nthey wrote, are assigned or review - and `follow_ups`, open asks nobody answered. Free.",
+    "operationId": "memory_open_items",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OpenItems"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Open Items Memory Open Items Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/sources": {
+   "post": {
+    "summary": "Sources",
+    "description": "What each connected app delivered to this memory: per source and connection, how many\nitems, how many of them ended, and the newest. Free.",
+    "operationId": "memory_sources",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Sources Memory Sources Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/items": {
+   "post": {
+    "summary": "Items",
+    "description": "The items added to this memory, newest first, as they were given, a page at a time; each\nsays whether it is searchable yet. `next` is the cursor of the page after. Free.",
+    "operationId": "memory_items",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Items"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Items Memory Items Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/item": {
+   "post": {
+    "summary": "Item",
+    "description": "One added item by its id, whole; `found` is false for an id memory does not hold. Free.",
+    "operationId": "memory_item",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ItemId"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Item Memory Item Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/add": {
+   "post": {
+    "summary": "Add",
+    "description": "Items into this memory: messages, documents and notes. Each is `stored` - searchable - or\n`queued`, searchable in a moment (202); `wait` waits for that, briefly. An item sent again\nwith its `id` is an edit. Free.",
+    "operationId": "memory_add",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Add"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Add Memory Add Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "This key reads; the route takes a key that writes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     },
+     {
+      "name": "Idempotency-Key",
+      "in": "header",
+      "required": false,
+      "description": "Names the request: an item sent without an id is named by this key and its place in the batch, so a retried request is the same items again.",
+      "schema": {
+       "type": "string",
+       "maxLength": 200
+      }
+     }
+    ]
+   }
+  },
+  "/memory/status": {
+   "post": {
+    "summary": "Status",
+    "description": "How far each item has got: `queued`, `stored` (searchable), `processed` (facts learned from\nit) or `unknown`; and `reason`, null unless something holds it back. Free.",
+    "operationId": "memory_status",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Status"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Status Memory Status Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/forget": {
+   "post": {
+    "summary": "Forget",
+    "description": "These items, sessions and memories erased from this memory with every copy and everything\nlearned from them. `erased` counts what went; `relearning`, the facts of other items that stay,\ntaken to be learned again from what is left and back once they are. `complete` is false when\nsome copies on their way in could not be checked - ask again. Free.",
+    "operationId": "memory_forget",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Forget"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Forget Memory Forget Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "This key reads; the route takes a key that writes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/correct": {
+   "post": {
+    "summary": "Correct",
+    "description": "One fact retracted for good, by its ref; a `replacement` is kept as a note memory reads like\nanything else. The message it came from stays. Free.",
+    "operationId": "memory_correct",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Correct"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Correct Memory Correct Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "This key reads; the route takes a key that writes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/versions": {
+   "post": {
+    "summary": "Versions",
+    "description": "Every version of one added item, oldest first, and when and why it went: `state` is live,\nexpired, forgotten, or unknown for an id memory never took. Takes a key that writes. Free.",
+    "operationId": "memory_versions",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Versions"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Versions Memory Versions Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "This key reads; the route takes a key that writes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/export": {
+   "post": {
+    "summary": "Export",
+    "description": "Everything memory holds for this app user, a page at a time, for a person who asks for\ntheirs: items as added, what connected apps delivered, the facts learned, and - on a key that\nwrites - the versions an edit replaced (`withheld` says what a read key went without). `next`\nis the cursor of the page after. Free.",
+    "operationId": "memory_export",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Export"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Export Memory Export Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/users": {
+   "post": {
+    "summary": "Users Page",
+    "description": "Every app user of this key's project with memory, a page at a time in id order: each with\nhow many items and facts it holds and when memory last took something for it (`last_write`,\nnull when unknown). Takes no `X-Alexein-User`. `next` is the cursor of the page after, null on\nthe last. Free.",
+    "operationId": "memory_users",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Users"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Users Page Memory Users Post"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/users/delete": {
+   "post": {
+    "summary": "Users Delete",
+    "description": "The app user `X-Alexein-User` names erased whole: every item, fact and version, what waits\nto be stored for them, and the backup's copy. Not undone; their next add starts a new memory.\nTakes a key that writes. Free.",
+    "operationId": "memory_users_delete",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Users Delete Memory Users Delete Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "This key reads; the route takes a key that writes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/me": {
+   "get": {
+    "summary": "Me",
+    "description": "What this bearer is: a customer's key - its organisation and project, their names, its\nlabel, who made it (an email, null when unknown) - or this service's own secret; and whether\nit writes. Of this key alone, and names no app user, so a client can check a key first. Free.",
+    "operationId": "memory_me",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Me Me Get"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Add": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/Item"
+      },
+      "type": "array",
+      "maxItems": 500,
+      "minItems": 1,
+      "title": "Items"
+     },
+     "wait": {
+      "type": "boolean",
+      "title": "Wait",
+      "default": false
+     },
+     "redact": {
+      "type": "boolean",
+      "title": "Redact",
+      "description": "Replace phone numbers, payment cards, IBANs, US social security numbers (dashed), public IP addresses, API keys and tokens known by their prefix, and passwords, keys and tokens after a name like password= or api_key=, in each item's text, title and metadata (keys and values) with their kind ([PHONE], [CARD], ...) before memory keeps any copy, and in the earlier versions of an item sent again. Email addresses, names, places and street addresses are kept, and so are author (its handle and email too), id, session and about: send opaque ones where those are phone numbers. Each item's answer counts the placeholders its words hold, under `redacted`, absent when none. An item with no id is given a random one, so a retry sends an id or an Idempotency-Key. What memory already holds from an add that did not ask is not redacted: forget it.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "items"
+    ],
+    "title": "Add"
+   },
+   "Around": {
+    "properties": {
+     "ref": {
+      "type": "string",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Ref"
+     },
+     "width": {
+      "type": "integer",
+      "maximum": 5.0,
+      "minimum": 1.0,
+      "title": "Width",
+      "default": 2
+     }
+    },
+    "type": "object",
+    "required": [
+     "ref"
+    ],
+    "title": "Around"
+   },
+   "Author": {
+    "properties": {
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "email": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Email"
+     },
+     "handle": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Handle"
+     },
+     "self": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Self"
+     }
+    },
+    "type": "object",
+    "title": "Author",
+    "description": "Who said it. `id` is the caller's stable id for the person, the strongest thing memory can\nbe told; `email` and `handle` join them to the same person on a connector."
+   },
+   "Correct": {
+    "properties": {
+     "ref": {
+      "type": "string",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Ref"
+     },
+     "replacement": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 4000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Replacement",
+      "description": "What is true instead, kept as a note in this memory."
+     }
+    },
+    "type": "object",
+    "required": [
+     "ref"
+    ],
+    "title": "Correct"
+   },
+   "Export": {
+    "properties": {
+     "cursor": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cursor"
+     },
+     "limit": {
+      "type": "integer",
+      "maximum": 500.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 200
+     }
+    },
+    "type": "object",
+    "title": "Export"
+   },
+   "Facts": {
+    "properties": {
+     "limit": {
+      "type": "integer",
+      "maximum": 100.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 20
+     },
+     "cursor": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cursor"
+     }
+    },
+    "type": "object",
+    "title": "Facts"
+   },
+   "Forget": {
+    "properties": {
+     "items": {
+      "items": {
+       "type": "string",
+       "maxLength": 512
+      },
+      "type": "array",
+      "maxItems": 500,
+      "title": "Items",
+      "description": "Item ids, as they were added."
+     },
+     "sessions": {
+      "items": {
+       "type": "string",
+       "maxLength": 512
+      },
+      "type": "array",
+      "maxItems": 500,
+      "title": "Sessions",
+      "description": "Sessions, as items named them."
+     },
+     "refs": {
+      "items": {
+       "type": "string",
+       "maxLength": 512
+      },
+      "type": "array",
+      "maxItems": 500,
+      "title": "Refs",
+      "description": "Refs of facts - the messages each came from, and all learned from them - or of excerpts - the whole conversation each is part of."
+     }
+    },
+    "type": "object",
+    "title": "Forget"
+   },
+   "Grep": {
+    "properties": {
+     "pattern": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Pattern"
+     },
+     "limit": {
+      "type": "integer",
+      "maximum": 50.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 50
+     },
+     "provider": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Provider",
+      "default": ""
+     },
+     "source": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Source",
+      "default": ""
+     },
+     "kind": {
+      "items": {
+       "type": "string",
+       "maxLength": 64
+      },
+      "type": "array",
+      "maxItems": 8,
+      "title": "Kind",
+      "description": "e.g. issue, pull_request, message, note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "pattern"
+    ],
+    "title": "Grep"
+   },
+   "History": {
+    "properties": {
+     "subject": {
+      "type": "string",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Subject"
+     },
+     "attribute": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attribute"
+     }
+    },
+    "type": "object",
+    "required": [
+     "subject"
+    ],
+    "title": "History"
+   },
+   "Item": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Text"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "message",
+       "document",
+       "note"
+      ],
+      "title": "Kind",
+      "default": "message"
+     },
+     "id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "At"
+     },
+     "author": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "$ref": "#/components/schemas/Author"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Author"
+     },
+     "role": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Role"
+     },
+     "session": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Session"
+     },
+     "title": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title"
+     },
+     "about": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string",
+         "maxLength": 512
+        },
+        "type": "array",
+        "maxItems": 20
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "About"
+     },
+     "expires": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expires",
+      "description": "When this item is forgotten: from then no read returns it or anything learned from it, and every copy and every version is erased, as `/memory/forget` erases. Send the item again with the same `id` to move it, or with `expires: null` to lift it."
+     },
+     "metadata": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Metadata"
+     }
+    },
+    "type": "object",
+    "required": [
+     "text"
+    ],
+    "title": "Item"
+   },
+   "ItemId": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id"
+    ],
+    "title": "ItemId"
+   },
+   "Items": {
+    "properties": {
+     "limit": {
+      "type": "integer",
+      "maximum": 200.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 50
+     },
+     "cursor": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cursor"
+     },
+     "filters": {
+      "anyOf": [
+       {
+        "properties": {
+         "AND": {
+          "items": {
+           "type": "object"
+          },
+          "type": "array",
+          "minItems": 1
+         },
+         "OR": {
+          "items": {
+           "type": "object"
+          },
+          "type": "array",
+          "minItems": 1
+         },
+         "NOT": {
+          "type": "object"
+         },
+         "author": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "object",
+            "maxProperties": 1,
+            "minProperties": 1
+           }
+          ]
+         },
+         "mentions": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "object",
+            "maxProperties": 1,
+            "minProperties": 1
+           }
+          ]
+         },
+         "metadata": {
+          "additionalProperties": {
+           "anyOf": [
+            {
+             "type": [
+              "string",
+              "number",
+              "boolean"
+             ]
+            },
+            {
+             "type": "object",
+             "maxProperties": 1,
+             "minProperties": 1
+            }
+           ]
+          },
+          "type": "object",
+          "minProperties": 1
+         }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "minProperties": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filters",
+      "description": "Only items that match: `author` (as sent: id, name, email or handle), `mentions` (`kind:name`, as `about` takes it, or `session:<id>`) and `metadata` keys, as {field: value} or {field: {op: value}}, in AND, OR and NOT; e.g. {\"metadata\": {\"priority\": {\"gte\": 3}}}. Metadata: eq ne in nin gt gte lt lte contains icontains, \"*\" for set. A filtered search returns facts and excerpts."
+     }
+    },
+    "type": "object",
+    "title": "Items"
+   },
+   "Latest": {
+    "properties": {
+     "k": {
+      "type": "integer",
+      "maximum": 50.0,
+      "minimum": 1.0,
+      "title": "K",
+      "default": 10
+     },
+     "place": {
+      "type": "string",
+      "maxLength": 512,
+      "title": "Place",
+      "default": ""
+     },
+     "after": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "After"
+     },
+     "before": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Before"
+     },
+     "filters": {
+      "anyOf": [
+       {
+        "properties": {
+         "AND": {
+          "items": {
+           "type": "object"
+          },
+          "type": "array",
+          "minItems": 1
+         },
+         "OR": {
+          "items": {
+           "type": "object"
+          },
+          "type": "array",
+          "minItems": 1
+         },
+         "NOT": {
+          "type": "object"
+         },
+         "author": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "object",
+            "maxProperties": 1,
+            "minProperties": 1
+           }
+          ]
+         },
+         "mentions": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "object",
+            "maxProperties": 1,
+            "minProperties": 1
+           }
+          ]
+         },
+         "metadata": {
+          "additionalProperties": {
+           "anyOf": [
+            {
+             "type": [
+              "string",
+              "number",
+              "boolean"
+             ]
+            },
+            {
+             "type": "object",
+             "maxProperties": 1,
+             "minProperties": 1
+            }
+           ]
+          },
+          "type": "object",
+          "minProperties": 1
+         }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "minProperties": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filters",
+      "description": "Only items that match: `author` (as sent: id, name, email or handle), `mentions` (`kind:name`, as `about` takes it, or `session:<id>`) and `metadata` keys, as {field: value} or {field: {op: value}}, in AND, OR and NOT; e.g. {\"metadata\": {\"priority\": {\"gte\": 3}}}. Metadata: eq ne in nin gt gte lt lte contains icontains, \"*\" for set. A filtered search returns facts and excerpts."
+     },
+     "provider": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Provider",
+      "default": ""
+     },
+     "source": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Source",
+      "default": ""
+     },
+     "kind": {
+      "items": {
+       "type": "string",
+       "maxLength": 64
+      },
+      "type": "array",
+      "maxItems": 8,
+      "title": "Kind",
+      "description": "e.g. issue, pull_request, message, note"
+     }
+    },
+    "type": "object",
+    "title": "Latest"
+   },
+   "OpenItems": {
+    "properties": {
+     "kind": {
+      "items": {
+       "type": "string",
+       "maxLength": 64
+      },
+      "type": "array",
+      "maxItems": 8,
+      "title": "Kind"
+     },
+     "provider": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Provider",
+      "default": ""
+     },
+     "place": {
+      "type": "string",
+      "maxLength": 512,
+      "title": "Place",
+      "default": ""
+     },
+     "mine": {
+      "type": "boolean",
+      "title": "Mine",
+      "default": true
+     },
+     "within_days": {
+      "type": "integer",
+      "maximum": 3650.0,
+      "minimum": 0.0,
+      "title": "Within Days",
+      "default": 0
+     },
+     "limit": {
+      "type": "integer",
+      "maximum": 50.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 20
+     }
+    },
+    "type": "object",
+    "title": "OpenItems"
+   },
+   "Opened": {
+    "properties": {
+     "ref": {
+      "type": "string",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Ref"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ref"
+    ],
+    "title": "Opened"
+   },
+   "Search": {
+    "properties": {
+     "query": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Query"
+     },
+     "before": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Before"
+     },
+     "after": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "After"
+     },
+     "filters": {
+      "anyOf": [
+       {
+        "properties": {
+         "AND": {
+          "items": {
+           "type": "object"
+          },
+          "type": "array",
+          "minItems": 1
+         },
+         "OR": {
+          "items": {
+           "type": "object"
+          },
+          "type": "array",
+          "minItems": 1
+         },
+         "NOT": {
+          "type": "object"
+         },
+         "author": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "object",
+            "maxProperties": 1,
+            "minProperties": 1
+           }
+          ]
+         },
+         "mentions": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "object",
+            "maxProperties": 1,
+            "minProperties": 1
+           }
+          ]
+         },
+         "metadata": {
+          "additionalProperties": {
+           "anyOf": [
+            {
+             "type": [
+              "string",
+              "number",
+              "boolean"
+             ]
+            },
+            {
+             "type": "object",
+             "maxProperties": 1,
+             "minProperties": 1
+            }
+           ]
+          },
+          "type": "object",
+          "minProperties": 1
+         }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "minProperties": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filters",
+      "description": "Only items that match: `author` (as sent: id, name, email or handle), `mentions` (`kind:name`, as `about` takes it, or `session:<id>`) and `metadata` keys, as {field: value} or {field: {op: value}}, in AND, OR and NOT; e.g. {\"metadata\": {\"priority\": {\"gte\": 3}}}. Metadata: eq ne in nin gt gte lt lte contains icontains, \"*\" for set. A filtered search returns facts and excerpts."
+     },
+     "provider": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Provider",
+      "default": ""
+     },
+     "source": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Source",
+      "default": ""
+     },
+     "kind": {
+      "items": {
+       "type": "string",
+       "maxLength": 64
+      },
+      "type": "array",
+      "maxItems": 8,
+      "title": "Kind",
+      "description": "e.g. issue, pull_request, message, note"
+     },
+     "fast": {
+      "type": "boolean",
+      "title": "Fast",
+      "description": "Answer sooner, a little less precisely. Free.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "query"
+    ],
+    "title": "Search"
+   },
+   "Status": {
+    "properties": {
+     "items": {
+      "items": {
+       "type": "string",
+       "maxLength": 512
+      },
+      "type": "array",
+      "maxItems": 500,
+      "minItems": 1,
+      "title": "Items"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items"
+    ],
+    "title": "Status"
+   },
+   "Users": {
+    "properties": {
+     "cursor": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 512
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cursor"
+     },
+     "limit": {
+      "type": "integer",
+      "maximum": 500.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 50
+     }
+    },
+    "type": "object",
+    "title": "Users"
+   },
+   "Versions": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id"
+    ],
+    "title": "Versions"
+   },
+   "Error": {
+    "type": "object",
+    "properties": {
+     "detail": {
+      "type": "string"
+     },
+     "errors": {
+      "type": "array",
+      "description": "On a 422 alone: each field the body got wrong.",
+      "items": {
+       "type": "object",
+       "properties": {
+        "loc": {
+         "type": "array",
+         "items": {
+          "type": [
+           "string",
+           "integer"
+          ]
+         }
+        },
+        "type": {
+         "type": "string"
+        },
+        "msg": {
+         "type": "string"
+        }
+       }
+      }
+     }
+    },
+    "required": [
+     "detail"
+    ]
+   }
+  },
+  "securitySchemes": {
+   "key": {
+    "type": "http",
+    "scheme": "bearer"
+   }
+  }
+ },
+ "servers": [
+  {
+   "url": "https://api.alexein.ai/v2"
+  }
+ ],
+ "security": [
+  {
+   "key": []
+  }
+ ]
+}
