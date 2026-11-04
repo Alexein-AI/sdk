@@ -1,0 +1,47 @@
+# Publishes @alexein/cli (integrations/cli-js/) to npm when a tag like cli-js-v0.3.0 is pushed, with
+# provenance. Needs an NPM_TOKEN secret on the `npm` environment for the first publish (then a
+# trusted publisher: npm package settings, repository Alexein-AI/sdk, workflow cli-js-release.yml).
+# Release @alexein/sdk (typescript-v*) first and depend on it by version: `prepublishOnly` refuses a
+# `file:` dependency. A manual run (workflow_dispatch) checks and packs, and publishes nothing.
+name: cli-js-release
+
+on:
+  push:
+    tags: ["cli-js-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: integrations/cli-js
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+          cache-dependency-path: integrations/cli-js/package-lock.json
+      - name: the tag is the package's version
+        if: github.event_name == 'push'
+        run: test "cli-js-v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - name: '@alexein/sdk comes from npm, by version'
+        run: node -e "if (/^file:/.test(require('./package.json').dependencies['@alexein/sdk'])) { console.error('depend on @alexein/sdk by version before releasing'); process.exit(1) }"
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - run: npm pack --dry-run
+      - if: github.event_name == 'push'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

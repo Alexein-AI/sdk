@@ -1,16 +1,26 @@
-# twinmemory-cli for Python (packages/python). The twinmemory client comes from vendor/ until it is
-# on PyPI, so this needs nothing from any other repository.
-name: python
+# alexein-cli for Python (integrations/cli-python). It is tested against the alexein client in
+# python/ (a path source in its pyproject.toml), and that client against the API contract in
+# contract/, so a change to any of the three runs it. A release is tagged cli-python-v<version>
+# (a release workflow is cli-python-release.yml's to add), after the alexein it needs is on PyPI.
+name: cli-python
 
 on:
   pull_request:
-    paths: ["packages/python/**", "vendor/**", ".github/workflows/python-*.yml"]
+    paths:
+      - "integrations/cli-python/**"
+      - "python/**"
+      - "contract/**"
+      - ".github/workflows/cli-python-*.yml"
   push:
     branches: [main]
-    paths: ["packages/python/**", "vendor/**", ".github/workflows/python-*.yml"]
+    paths:
+      - "integrations/cli-python/**"
+      - "python/**"
+      - "contract/**"
+      - ".github/workflows/cli-python-*.yml"
 
 concurrency:
-  group: python-${{ github.ref }}
+  group: cli-python-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -18,7 +28,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: packages/python
+    working-directory: integrations/cli-python
 
 jobs:
   check:
