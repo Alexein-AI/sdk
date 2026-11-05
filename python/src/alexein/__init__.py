@@ -23,6 +23,7 @@ from alexein._errors import (
     InvalidRequestError,
     NotFoundError,
     PermissionDeniedError,
+    QuotaExceededError,
     RateLimitError,
     ServiceUnavailableError,
 )
@@ -95,6 +96,7 @@ __all__ = [
     "OpenItems",
     "Opened",
     "PermissionDeniedError",
+    "QuotaExceededError",
     "RateLimitError",
     "SearchResult",
     "ServiceUnavailableError",

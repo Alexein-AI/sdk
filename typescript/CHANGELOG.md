@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `QuotaExceededError`: a 402, when the organisation has used this month's events or retrievals.
+  Never retried, and not an outage, so a `failOpen` client throws it too. Carries `limit`, `used`,
+  `included`, `resetsAt` and `upgrade`. A 403 is also an organisation that is closed.
+
 ## 0.3.1 - 2026-11-04
 
 - Published through npm's trusted publishing from GitHub Actions, with no token: the provenance on npm is

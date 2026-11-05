@@ -3,7 +3,7 @@
  * the Python client's, so what is true of an error there is true here.
  */
 
-import { type Json, list, object, text } from "./json.js";
+import { type Json, list, maybe, maybeCount, object, text } from "./json.js";
 
 /** One field a 422 named, and what it takes. */
 export interface FieldError {
@@ -56,7 +56,7 @@ export class AlexeinError extends Error {
 /** 401: no key, or one the service did not issue. */
 export class AuthenticationError extends AlexeinError {}
 
-/** 403: the key reads, and the call writes. */
+/** 403: the key reads, and the call writes; or the key's organisation is closed. */
 export class PermissionDeniedError extends AlexeinError {}
 
 /**
@@ -67,6 +67,29 @@ export class NotFoundError extends AlexeinError {}
 
 /** 400, 413, 422 and any other 4xx: the request itself is wrong. Retrying will not help. */
 export class InvalidRequestError extends AlexeinError {}
+
+/**
+ * 402: the organisation has used this month's events or retrievals. Never retried, and not an
+ * outage, so a `failOpen` client throws it too: it lasts until `resetsAt`, the 1st of next month,
+ * or until the plan is upgraded. `limit` is which one ("events" or "retrievals"), `used` and
+ * `included` its figures, `upgrade` where to raise it.
+ */
+export class QuotaExceededError extends AlexeinError {
+  readonly limit: string | null;
+  readonly used: number | null;
+  readonly included: number | null;
+  readonly resetsAt: string | null;
+  readonly upgrade: string | null;
+
+  constructor(message: string, fields: ErrorFields = {}, body: Json = {}) {
+    super(message, fields);
+    this.limit = maybe(body.limit);
+    this.used = maybeCount(body.used);
+    this.included = maybeCount(body.included);
+    this.resetsAt = maybe(body.resets_at);
+    this.upgrade = maybe(body.upgrade);
+  }
+}
 
 /**
  * 429, after retries: too many requests in flight, or reads too fast. Retried for you, after
@@ -87,8 +110,11 @@ export class APIConnectionError extends AlexeinError {
 /** The service did not answer in time, after retries. */
 export class APITimeoutError extends APIConnectionError {}
 
-function kindOf(status: number): typeof AlexeinError {
+function kindOf(
+  status: number,
+): new (message: string, fields: ErrorFields, body: Json) => AlexeinError {
   if (status === 401) return AuthenticationError;
+  if (status === 402) return QuotaExceededError;
   if (status === 403) return PermissionDeniedError;
   if (status === 404) return NotFoundError;
   if (status === 429) return RateLimitError;
@@ -117,12 +143,11 @@ export function errorFor(status: number, body: Json, requestId: string | null): 
       ? body.detail
       : errors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message)).join("; ");
   const Kind = kindOf(status);
-  return new Kind(detail ? `${status}: ${detail}` : String(status), {
-    status,
-    detail,
-    errors,
-    requestId,
-  });
+  return new Kind(
+    detail ? `${status}: ${detail}` : String(status),
+    { status, detail, errors, requestId },
+    body,
+  );
 }
 
 /** What a request that got no answer became: a timeout, or a connection that failed. */
