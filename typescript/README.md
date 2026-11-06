@@ -132,17 +132,17 @@ Every error is an `AlexeinError` with `status` (null when no answer came), `deta
 words), `errors` (on a 422, each field as `{ field, message }`), `requestId` (the response's
 `X-Request-Id`: quote it when you ask for help) and `outage`.
 
-| Error                     | When                                                                                               |
-| ------------------------- | -------------------------------------------------------------------------------------------------- |
-| `AuthenticationError`     | 401: no key, or one the service did not issue                                                      |
-| `QuotaExceededError`      | 402: the month's events or retrievals are used; `limit`, `used`, `included`, `resetsAt`, `upgrade` |
-| `PermissionDeniedError`   | 403: the key reads, and the call writes; or the organisation is closed                             |
-| `NotFoundError`           | 404: nothing added for this app user, or no such ref                                               |
-| `InvalidRequestError`     | 400, 413, 422 and any other 4xx: the request is wrong                                              |
-| `RateLimitError`          | 429, after retries                                                                                 |
-| `ServiceUnavailableError` | 5xx, after retries                                                                                 |
-| `APIConnectionError`      | the service could not be reached, after retries                                                    |
-| `APITimeoutError`         | an `APIConnectionError`: no answer in time                                                         |
+| Error                     | When                                                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `AuthenticationError`     | 401: no key, or one the service did not issue                                                                                |
+| `QuotaExceededError`      | 402: the month's events (on an add) or retrievals (on a search) are used; `limit`, `used`, `included`, `resetsAt`, `upgrade` |
+| `PermissionDeniedError`   | 403: the key reads, and the call writes; or the organisation is closed                                                       |
+| `NotFoundError`           | 404: nothing added for this app user, or no such ref                                                                         |
+| `InvalidRequestError`     | 400, 413, 422 and any other 4xx: the request is wrong                                                                        |
+| `RateLimitError`          | 429, after retries                                                                                                           |
+| `ServiceUnavailableError` | 5xx, after retries                                                                                                           |
+| `APIConnectionError`      | the service could not be reached, after retries                                                                              |
+| `APITimeoutError`         | an `APIConnectionError`: no answer in time                                                                                   |
 
 429 and 503, a timeout and a failed connection are tried up to `maxRetries` more times: after the
 `Retry-After` header's seconds when it says 60 or fewer (more, and the error is thrown at once),
