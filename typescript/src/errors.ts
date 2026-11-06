@@ -69,7 +69,8 @@ export class NotFoundError extends AlexeinError {}
 export class InvalidRequestError extends AlexeinError {}
 
 /**
- * 402: the organisation has used this month's events or retrievals. Never retried, and not an
+ * 402: the organisation has used this month's events or retrievals. Only an add (events) and a
+ * search (retrievals) throw it; every other read is free and never refused. Never retried, and not an
  * outage, so a `failOpen` client throws it too: it lasts until `resetsAt`, the 1st of next month,
  * or until the plan is upgraded. `limit` is which one ("events" or "retrievals"), `used` and
  * `included` its figures, `upgrade` where to raise it.

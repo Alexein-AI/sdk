@@ -74,7 +74,7 @@ and every 5xx). Subclasses:
 | Class                     | When                                                                     |
 | ------------------------- | ------------------------------------------------------------------------ |
 | `AuthenticationError`     | 401                                                                      |
-| `QuotaExceededError`      | 402: the month's events or retrievals used; never retried, not an outage |
+| `QuotaExceededError`      | 402: the month's events (an add) or retrievals (a search) used; never retried, not an outage |
 | `PermissionDeniedError`   | 403                                                                      |
 | `NotFoundError`           | 404                                                                      |
 | `InvalidRequestError`     | 400, 413, 422 (and any other 4xx)                                        |

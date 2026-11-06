@@ -50,7 +50,8 @@ class AuthenticationError(AlexeinError):
 
 
 class QuotaExceededError(AlexeinError):
-    """402: the organisation has used this month's events or retrievals. Never retried, and not
+    """402: the organisation has used this month's events or retrievals. Only an add (events) and a
+    search (retrievals) raise it; every other read is free and never refused. Never retried, and not
     an outage, so a `fail_open` client raises it too: it lasts until `resets_at`, the 1st of next
     month, or until the plan is upgraded. `limit` is which one ("events" or "retrievals"), `used`
     and `included` its figures, `upgrade` where to raise it; each None when the answer left it
