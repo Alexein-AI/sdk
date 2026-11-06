@@ -150,7 +150,8 @@ unavailable rather than the request or the key being wrong.
 | Error                     | When                                                                   |
 | ------------------------- | ---------------------------------------------------------------------- |
 | `AuthenticationError`     | 401: no key, or one the service did not issue                          |
-| `PermissionDeniedError`   | 403: the key reads, and the call writes                                |
+| `QuotaExceededError`      | 402: the month's events or retrievals are used; `limit`, `used`, `included`, `resets_at`, `upgrade` |
+| `PermissionDeniedError`   | 403: the key reads, and the call writes; or the organisation is closed |
 | `NotFoundError`           | 404: nothing added for this app user yet, or a ref memory did not give |
 | `InvalidRequestError`     | 400, 413, 422 and any other 4xx                                        |
 | `RateLimitError`          | 429, after retries                                                     |

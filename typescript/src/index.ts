@@ -38,6 +38,7 @@ export {
   InvalidRequestError,
   NotFoundError,
   PermissionDeniedError,
+  QuotaExceededError,
   RateLimitError,
   ServiceUnavailableError,
 } from "./errors.js";

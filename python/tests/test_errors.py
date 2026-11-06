@@ -17,6 +17,7 @@ from alexein import (
     InvalidRequestError,
     NotFoundError,
     PermissionDeniedError,
+    QuotaExceededError,
     RateLimitError,
     ServiceUnavailableError,
 )
@@ -80,7 +81,7 @@ def test_no_retries_with_max_retries_zero():
     assert len(recorded.requests) == 1
 
 
-@pytest.mark.parametrize("status", [400, 401, 403, 404, 413, 422, 500, 502])
+@pytest.mark.parametrize("status", [400, 401, 402, 403, 404, 413, 422, 500, 502])
 def test_nothing_else_is_retried(status: int):
     client, recorded = memory(lambda r: ok({"detail": "no"}, status))
     with pytest.raises(AlexeinError):
@@ -114,6 +115,7 @@ def test_a_connection_failure_then_an_answer_is_an_answer():
     [
         (400, InvalidRequestError, False),
         (401, AuthenticationError, False),
+        (402, QuotaExceededError, False),
         (403, PermissionDeniedError, False),
         (404, NotFoundError, False),
         (409, InvalidRequestError, False),
@@ -189,3 +191,38 @@ def test_an_error_carries_the_request_id_even_when_the_answer_has_none(no_waitin
     with pytest.raises(AuthenticationError) as refused:
         client.me()
     assert refused.value.request_id == "theirs"
+
+
+QUOTA = {
+    "detail": "This organisation has used its 5,000 retrievals for November.",
+    "error": "quota_exceeded",
+    "limit": "retrievals",
+    "used": 5000,
+    "included": 5000,
+    "resets_at": "2026-12-01T00:00:00Z",
+    "upgrade": "https://console.alexein.ai/console/billing",
+}
+
+
+def test_a_402_carries_the_plans_figures(no_waiting: list[float]):
+    client, recorded = memory(lambda r: ok(QUOTA, 402))
+    with pytest.raises(QuotaExceededError) as raised:
+        client.user("dana").search("x")
+    error = raised.value
+    assert (error.limit, error.used, error.included) == ("retrievals", 5000, 5000)
+    assert (error.resets_at, error.upgrade) == (QUOTA["resets_at"], QUOTA["upgrade"])
+    assert error.outage is False and "5,000 retrievals" in str(error)
+    assert len(recorded.requests) == 1 and no_waiting == []
+
+
+def test_a_fail_open_client_raises_a_402_too():
+    client, _ = memory(lambda r: ok(QUOTA, 402), fail_open=True)
+    with pytest.raises(QuotaExceededError):
+        client.user("dana").search("x")
+
+
+def test_a_figure_the_402_leaves_out_is_none():
+    client, _ = memory(lambda r: ok({"detail": "over", "used": "many"}, 402))
+    with pytest.raises(QuotaExceededError) as raised:
+        client.user("dana").summary()
+    assert (raised.value.limit, raised.value.used, raised.value.resets_at) == (None, None, None)

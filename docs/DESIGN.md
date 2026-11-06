@@ -14,17 +14,17 @@ own behaviour wins, then the docs, then this file - and this file is fixed.
 
 ## Names
 
-| What                       | Python                                  | TypeScript / npm                        |
-| -------------------------- | --------------------------------------- | --------------------------------------- |
-| Client                     | `alexein` (`import alexein`)            | `@alexein/sdk`                          |
-| LangGraph                  | `alexein.langgraph`, extra `[langgraph]` | `@alexein/sdk/langgraph` (peer deps)    |
-| OpenAI Agents SDK          | `alexein.openai_agents`, extra `[openai-agents]` | `@alexein/sdk/openai-agents` (peer deps) |
-| CrewAI                     | `alexein.crewai`, extra `[crewai]`      | -                                       |
-| Scaffolding CLI            | `alexein-cli` (`uvx alexein-cli init langgraph`) | `@alexein/cli` (`npx @alexein/cli init langgraph`) |
-| LiveKit                    | `alexein-livekit` (`import alexein_livekit`) | -                                   |
-| n8n                        | -                                       | `@alexein/n8n-nodes-alexein`, node "Alexein", credential `alexeinApi` |
-| User-Agent                 | `alexein-python/<version>[ <integration>]` | `alexein-js/<version>[ <integration>]` |
-| Logger                     | `logging.getLogger("alexein")`          | `console.warn` or the `logger` option   |
+| What              | Python                                           | TypeScript / npm                                                      |
+| ----------------- | ------------------------------------------------ | --------------------------------------------------------------------- |
+| Client            | `alexein` (`import alexein`)                     | `@alexein/sdk`                                                        |
+| LangGraph         | `alexein.langgraph`, extra `[langgraph]`         | `@alexein/sdk/langgraph` (peer deps)                                  |
+| OpenAI Agents SDK | `alexein.openai_agents`, extra `[openai-agents]` | `@alexein/sdk/openai-agents` (peer deps)                              |
+| CrewAI            | `alexein.crewai`, extra `[crewai]`               | -                                                                     |
+| Scaffolding CLI   | `alexein-cli` (`uvx alexein-cli init langgraph`) | `@alexein/cli` (`npx @alexein/cli init langgraph`)                    |
+| LiveKit           | `alexein-livekit` (`import alexein_livekit`)     | -                                                                     |
+| n8n               | -                                                | `@alexein/n8n-nodes-alexein`, node "Alexein", credential `alexeinApi` |
+| User-Agent        | `alexein-python/<version>[ <integration>]`       | `alexein-js/<version>[ <integration>]`                                |
+| Logger            | `logging.getLogger("alexein")`                   | `console.warn` or the `logger` option                                 |
 
 Versions: every package started at `0.3.0` (the API's `info.version`). A client's major and minor are the
 API's it speaks (`0.3.x` speaks API 0.3, checked by both contract tests); a patch is the package's own. Nothing named `twin`, `twinmemory` or "twin memory" survives in code,
@@ -33,15 +33,15 @@ customer's app is an "app user".
 
 ## Settings
 
-| Setting     | Python         | TypeScript    | Environment       | Default                  |
-| ----------- | -------------- | ------------- | ----------------- | ------------------------ |
-| API key     | `api_key`      | `apiKey`      | `ALEXEIN_API_KEY` | required; a clear error naming the variable and the console's API keys page |
-| Base URL    | `base_url`     | `baseUrl`     | `ALEXEIN_API_URL` | `https://api.alexein.ai` |
-| Timeout     | `timeout` (s)  | `timeout` (ms)|                   | 60 s per attempt         |
-| Retries     | `max_retries`  | `maxRetries`  |                   | 2                        |
-| Fail open   | `fail_open`    | `failOpen`    |                   | false                    |
-| Integration | `integration`  | `integration` |                   | none: one lowercase token `[a-z0-9][a-z0-9._-]{0,31}` appended to the User-Agent |
-| HTTP        | `http_client` (httpx) | `fetch`  |                   | a client of its own      |
+| Setting     | Python                | TypeScript     | Environment       | Default                                                                          |
+| ----------- | --------------------- | -------------- | ----------------- | -------------------------------------------------------------------------------- |
+| API key     | `api_key`             | `apiKey`       | `ALEXEIN_API_KEY` | required; a clear error naming the variable and the console's API keys page      |
+| Base URL    | `base_url`            | `baseUrl`      | `ALEXEIN_API_URL` | `https://api.alexein.ai`                                                         |
+| Timeout     | `timeout` (s)         | `timeout` (ms) |                   | 60 s per attempt                                                                 |
+| Retries     | `max_retries`         | `maxRetries`   |                   | 2                                                                                |
+| Fail open   | `fail_open`           | `failOpen`     |                   | false                                                                            |
+| Integration | `integration`         | `integration`  |                   | none: one lowercase token `[a-z0-9][a-z0-9._-]{0,31}` appended to the User-Agent |
+| HTTP        | `http_client` (httpx) | `fetch`        |                   | a client of its own                                                              |
 
 The base URL is the host; the client adds `/v2`. A base URL given with a trailing `/` or a
 trailing `/v2` means the same host (`http://localhost:8210/v2/` -> `http://localhost:8210`).
@@ -71,16 +71,17 @@ API's string), `errors` (on a 422: `[{field, message}]`, else empty), `request_i
 `requestId` (the response's `X-Request-Id`) and `outage` (true for connection, timeout, 429,
 and every 5xx). Subclasses:
 
-| Class                     | When |
-| ------------------------- | ---- |
-| `AuthenticationError`     | 401 |
-| `PermissionDeniedError`   | 403 |
-| `NotFoundError`           | 404 |
-| `InvalidRequestError`     | 400, 413, 422 (and any other 4xx) |
-| `RateLimitError`          | 429 after retries |
-| `ServiceUnavailableError` | 5xx after retries (503 and the rest) |
-| `APIConnectionError`      | unreachable after retries |
-| `APITimeoutError`         | subclass of `APIConnectionError`: no answer in time |
+| Class                     | When                                                                     |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `AuthenticationError`     | 401                                                                      |
+| `QuotaExceededError`      | 402: the month's events or retrievals used; never retried, not an outage |
+| `PermissionDeniedError`   | 403                                                                      |
+| `NotFoundError`           | 404                                                                      |
+| `InvalidRequestError`     | 400, 413, 422 (and any other 4xx)                                        |
+| `RateLimitError`          | 429 after retries                                                        |
+| `ServiceUnavailableError` | 5xx after retries (503 and the rest)                                     |
+| `APIConnectionError`      | unreachable after retries                                                |
+| `APITimeoutError`         | subclass of `APIConnectionError`: no answer in time                      |
 
 A missing key raises `AlexeinError` (Python) / `AlexeinError` (TS) at construction.
 
@@ -104,27 +105,27 @@ memory.close(); context manager / `using`-free in TS
 
 `User` (and `AsyncUser`):
 
-| Method | Route | Body |
-| ------ | ----- | ---- |
-| `add(items, *, wait, redact, kind, session, role, author, title, about, expires, at, metadata)` | add | `{items, wait?, redact?}` |
-| `search(query, *, before, after, filters, provider, source, kind, fast)` | search | as given |
-| `grep(pattern, *, limit, provider, source, kind)` | grep | |
-| `latest(*, k, place, after, before, filters, provider, source, kind)` | latest | |
-| `around(ref, *, width)` | around | `{ref, width?}` |
-| `open(ref)` | open | `{ref}` |
-| `history(subject, *, attribute)` | history | |
-| `summary()` | summary | `{}` |
-| `facts(*, limit, cursor)` / `iter_facts(*, limit)` | facts | |
-| `open_items(*, kind, provider, place, mine, within_days, limit)` | open_items | |
-| `sources()` | sources | `{}` |
-| `items(*, limit, cursor, filters)` / `iter_items(*, limit, filters)` | items | |
-| `item(item_id)` | item | `{id}` |
-| `status(ids)` | status | `{items: ids}` |
-| `forget(*, items, sessions, refs)` | forget | at least one non-empty, else `ValueError` before sending |
-| `correct(ref, replacement=None)` | correct | |
-| `versions(item_id)` | versions | `{id}` |
-| `export(*, limit, cursor)` / `iter_export(*, limit)` | export | |
-| `delete()` | users/delete | `{}` - erases this app user whole |
+| Method                                                                                          | Route        | Body                                                     |
+| ----------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------- |
+| `add(items, *, wait, redact, kind, session, role, author, title, about, expires, at, metadata)` | add          | `{items, wait?, redact?}`                                |
+| `search(query, *, before, after, filters, provider, source, kind, fast)`                        | search       | as given                                                 |
+| `grep(pattern, *, limit, provider, source, kind)`                                               | grep         |                                                          |
+| `latest(*, k, place, after, before, filters, provider, source, kind)`                           | latest       |                                                          |
+| `around(ref, *, width)`                                                                         | around       | `{ref, width?}`                                          |
+| `open(ref)`                                                                                     | open         | `{ref}`                                                  |
+| `history(subject, *, attribute)`                                                                | history      |                                                          |
+| `summary()`                                                                                     | summary      | `{}`                                                     |
+| `facts(*, limit, cursor)` / `iter_facts(*, limit)`                                              | facts        |                                                          |
+| `open_items(*, kind, provider, place, mine, within_days, limit)`                                | open_items   |                                                          |
+| `sources()`                                                                                     | sources      | `{}`                                                     |
+| `items(*, limit, cursor, filters)` / `iter_items(*, limit, filters)`                            | items        |                                                          |
+| `item(item_id)`                                                                                 | item         | `{id}`                                                   |
+| `status(ids)`                                                                                   | status       | `{items: ids}`                                           |
+| `forget(*, items, sessions, refs)`                                                              | forget       | at least one non-empty, else `ValueError` before sending |
+| `correct(ref, replacement=None)`                                                                | correct      |                                                          |
+| `versions(item_id)`                                                                             | versions     | `{id}`                                                   |
+| `export(*, limit, cursor)` / `iter_export(*, limit)`                                            | export       |                                                          |
+| `delete()`                                                                                      | users/delete | `{}` - erases this app user whole                        |
 
 `iter_*` are generators (async generators on `AsyncUser`; `AsyncIterable` in TS) that yield each
 entry across pages, following `next` until it is null.
@@ -209,11 +210,12 @@ graph.invoke(inputs, config={"configurable": {"thread_id": "t-1"}}, context={"us
 `recall`/`remember` work as sync and async nodes (`arecall`/`aremember`, or one callable that
 LangGraph runs either way), in LangGraph's typed `(state, *, runtime)` shape. User id from
 `runtime.context["user_id"]` (dict or attribute) - a tool also reads `config["configurable"]["user_id"]`
+
 - else a `ValueError` saying how to pass it; the thread from `runtime.execution_info.thread_id`. Each saved message
-keeps its LangGraph message id as the item id (else a stable hash of thread|role|text), so re-running
-a turn edits rather than duplicates; the thread id is the `session`. Tool calls and tool results are
-not saved. Module-level `recall`, `remember`, `memory_prompt`, `memory_tools(write=False)` use a
-default `AlexeinMemory()` for the five-line case.
+  keeps its LangGraph message id as the item id (else a stable hash of thread|role|text), so re-running
+  a turn edits rather than duplicates; the thread id is the `session`. Tool calls and tool results are
+  not saved. Module-level `recall`, `remember`, `memory_prompt`, `memory_tools(write=False)` use a
+  default `AlexeinMemory()` for the five-line case.
 
 The TypeScript module is the same over LangGraph.js (`@langchain/langgraph`, `@langchain/core`
 as optional peer dependencies): `new AlexeinMemory()`, `MemoryAnnotation` for state, `.recall`,

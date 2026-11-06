@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `QuotaExceededError`: a 402, when the organisation has used this month's events or retrievals. Never
+  retried, and not an outage, so a `fail_open` client raises it too. Carries `limit`, `used`, `included`,
+  `resets_at` and `upgrade`. A 403 is also an organisation that is closed.
+
 ## 0.3.0 - 2026-11-04
 
 The client is `alexein` now (`pip install alexein`, `import alexein`), at the API's own version, and speaks

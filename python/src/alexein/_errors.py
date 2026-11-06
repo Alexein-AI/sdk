@@ -49,8 +49,34 @@ class AuthenticationError(AlexeinError):
     """401: no key, or one the service did not issue."""
 
 
+class QuotaExceededError(AlexeinError):
+    """402: the organisation has used this month's events or retrievals. Never retried, and not
+    an outage, so a `fail_open` client raises it too: it lasts until `resets_at`, the 1st of next
+    month, or until the plan is upgraded. `limit` is which one ("events" or "retrievals"), `used`
+    and `included` its figures, `upgrade` where to raise it; each None when the answer left it
+    out."""
+
+    def __init__(self, message: str, *, body: dict[str, Any] | None = None, **fields: Any) -> None:
+        super().__init__(message, **fields)
+        given = body or {}
+
+        def text(name: str) -> str | None:
+            value = given.get(name)
+            return value if isinstance(value, str) else None
+
+        def count(name: str) -> int | None:
+            value = given.get(name)
+            return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+        self.limit = text("limit")
+        self.used = count("used")
+        self.included = count("included")
+        self.resets_at = text("resets_at")
+        self.upgrade = text("upgrade")
+
+
 class PermissionDeniedError(AlexeinError):
-    """403: the key reads, and the call writes."""
+    """403: the key reads, and the call writes; or the key's organisation is closed."""
 
 
 class NotFoundError(AlexeinError):
@@ -104,6 +130,10 @@ def for_status(status: int, body: object, request_id: str | None) -> AlexeinErro
     if kind is None:
         kind = ServiceUnavailableError if status >= 500 else InvalidRequestError
     message = f"{status}: {said}" if said else f"{status}"
+    if status == 402:
+        return QuotaExceededError(
+            message, body=fields, status=status, detail=said, errors=errors, request_id=request_id
+        )
     return kind(message, status=status, detail=said, errors=errors, request_id=request_id)
 
 
