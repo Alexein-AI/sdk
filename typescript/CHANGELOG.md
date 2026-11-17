@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.3.2 - 2026-11-17
 
 - `QuotaExceededError`: a 402, when the organisation has used this month's events (on an add) or retrievals
   (on a search; every other read is free). Never retried, and not an outage, so a `failOpen` client throws
   it too. Carries `limit`, `used`, `included`, `resetsAt` and `upgrade`. A 403 is also an organisation that is closed.
+- A list line from `grep` or `latest` with no `type` is an excerpt, and one with no `roles` is `["other"]`:
+  the API sends `roles` only when the person or an assistant spoke. Before, such a line was skipped, so
+  both reads could come back empty.
 
 ## 0.3.1 - 2026-11-04
 
