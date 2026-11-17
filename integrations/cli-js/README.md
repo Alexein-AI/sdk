@@ -10,12 +10,44 @@ npx @alexein/cli init langgraph                 # a LangGraph.js project you hav
 npx @alexein/cli init openai-agents             # ... or an OpenAI Agents SDK one
 npx @alexein/cli create langgraph my-agent      # a new one, with memory wired in
 npx @alexein/cli doctor                         # is it all set up?
+npx @alexein/cli connect                        # Alexein AI in Claude Code, Cursor, VS Code, ...
 ```
 
 Node 20 or newer; LangGraph.js 1.0 or newer, or `@openai/agents` 0.21 or newer. For Python, see the
 [docs](https://docs.alexein.ai/integrations/langgraph). The OpenAI Agents SDK has its own section,
 [below](#the-openai-agents-sdk); everything up to it is LangGraph's, and what the two share - the
 key, the presets, `doctor` - works the same for both.
+
+## `connect`
+
+Alexein AI in the AI tools you already use, in one command:
+
+```bash
+npx @alexein/cli connect
+```
+
+It finds Claude Code, Cursor, VS Code, GitHub Copilot CLI, Codex, Gemini CLI, Antigravity and Devin
+Desktop on this computer, says which have Alexein already, and asks before adding it to the rest.
+Each tool is told through its own command where it has one (`claude mcp add`, `code --add-mcp`,
+`codex mcp add`, ...), so it writes its own settings. Cursor's `~/.cursor/mcp.json`, and Devin
+Desktop's file when its CLI is not installed, get the `alexein` entry alone, everything else kept,
+and a copy of the file beside it (`.bak`). Claude Code, Copilot CLI and Antigravity get Alexein AI's
+plugin, which adds the same server and tells the agent when to search and save.
+
+Then you sign in to Alexein from each tool, and keep **Read and save** so it can save: `connect`
+says where, and starts the sign-in itself where a tool can from the terminal (Codex, Claude Code).
+No key is written anywhere. claude.ai, Claude Desktop and ChatGPT are added from the app: see the
+[docs](https://docs.alexein.ai/mcp).
+
+| Flag             | What it does                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| `--only <tools>` | just these: `claude-code`, `cursor`, `vscode`, `copilot`, `codex`, `gemini`, `antigravity`, `devin` |
+| `--no-plugin`    | the server alone, not the plugin                                                                    |
+| `--list`         | which tools are here and which have Alexein; change nothing                                         |
+| `--key <key>`    | send this key in a header instead of signing in, for CI; no plugins                                 |
+| `--force`        | add it again where Alexein is already                                                               |
+| `--dry-run`      | say what it would run or write, change nothing                                                      |
+| `--yes`          | ask nothing                                                                                         |
 
 ## `init`
 
