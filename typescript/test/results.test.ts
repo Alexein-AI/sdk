@@ -26,6 +26,20 @@ describe("reads", () => {
     expect(found.raw).toEqual(F.GREP);
   });
 
+  it("latest: a line with no type is an excerpt, and no roles is someone else", async () => {
+    const line = { ref: "mem_1", date: "2026-11-17T05:39:00Z", text: "email · Invite · Join" };
+    const said = { ...line, ref: "mem_2", roles: ["user"] };
+    const found = await answering({ memories: [line, said] }).latest();
+    expect(found.memories.map((m) => [m.type, m.type === "known" ? null : m.ref])).toEqual([
+      ["excerpt", "mem_1"],
+      ["excerpt", "mem_2"],
+    ]);
+    expect(found.memories.map((m) => (m.type === "excerpt" ? m.roles : null))).toEqual([
+      ["other"],
+      ["user"],
+    ]);
+  });
+
   it("latest: the places there are when a place matched nothing", async () => {
     const found = await answering(F.LATEST_NOWHERE).latest({ place: "nowhere" });
     expect(found.memories).toEqual([]);

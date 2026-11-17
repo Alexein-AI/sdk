@@ -112,6 +112,16 @@ def test_grep_latest_around_are_iterable_memories(dana):
     assert next(iter(dana.around("mem_e1"))).session == "onboarding"
 
 
+def test_a_list_line_with_no_type_is_an_excerpt_and_no_roles_is_someone_else():
+    line = {"ref": "mem_1", "date": "2026-11-17T05:39:00Z", "text": "email · Invite · Join"}
+    client, _ = memory(
+        lambda r: ok({"memories": [line, line | {"ref": "mem_2", "roles": ["user"]}]})
+    )
+    found = client.user("dana").latest()
+    assert [type(m).__name__ for m in found] == ["Excerpt", "Excerpt"]
+    assert [m.roles for m in found.memories] == [["other"], ["user"]]
+
+
 def test_open_a_fact_and_an_excerpt():
     client, _ = memory(answer)
     opened = client.user("dana").open("mem_f1")

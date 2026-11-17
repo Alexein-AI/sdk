@@ -35,7 +35,11 @@ export interface Excerpt {
   /** When memory took it. */
   readonly addedAt: string | null;
   readonly session: string | null;
-  /** The roles of who spoke in it: `user`, `assistant`. */
+  /**
+   * The roles of who spoke in it: `user`, `assistant`, `other` for someone else. A line from
+   * grep or latest carries roles only when the person or an assistant spoke, so one without is
+   * read as `["other"]`.
+   */
   readonly roles: string[];
   readonly raw: Json;
 }
@@ -64,7 +68,7 @@ export function parseExcerpt(value: unknown): Excerpt {
     date: maybe(raw.date),
     addedAt: maybe(raw.added_at),
     session: maybe(raw.session),
-    roles: strings(raw.roles),
+    roles: raw.roles === undefined ? ["other"] : strings(raw.roles),
     raw,
   };
 }
@@ -74,7 +78,8 @@ export function parseMemory(value: unknown): MemoryEntry | undefined {
   const raw = object(value);
   if (raw.type === "known") return { type: "known", text: text(raw.text), raw };
   if (raw.type === "fact") return parseFact(raw);
-  if (raw.type === "excerpt") return parseExcerpt(raw);
+  // A line from grep or latest carries no `type`: everything such a list holds is an excerpt.
+  if (raw.type === "excerpt" || raw.type === undefined) return parseExcerpt(raw);
   return undefined;
 }
 
