@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0 - 2026-11-17
+
+- `connect` adds Alexein AI's memory server to the AI tools on this computer: Claude Code, Cursor,
+  VS Code, GitHub Copilot CLI, Codex, Gemini CLI, Antigravity and Devin Desktop. Each is told
+  through its own command where it has one (`claude mcp add`, `code --add-mcp`, ...); Cursor's
+  `mcp.json`, and Devin Desktop's file when its CLI is not installed, get the `alexein` entry alone,
+  with a copy of the file kept. Claude Code, Copilot CLI and Antigravity get Alexein AI's plugin,
+  which carries the guidance on when to search and save (`--no-plugin` for the server alone).
+- The tools sign in to Alexein themselves, so no key is written. `--key` sends one in a header
+  instead, for CI. `--only`, `--list`, `--dry-run` and `--force` as their names say; a tool that
+  has Alexein already is left as it is.
+
 ## 0.3.1 - 2026-11-04
 
 - Published through npm's trusted publishing from GitHub Actions, with no token: the provenance on npm is

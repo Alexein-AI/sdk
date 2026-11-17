@@ -7,6 +7,7 @@
  *     npx @alexein/cli init openai-agents      ... or an OpenAI Agents SDK one
  *     npx @alexein/cli create <framework> X    a new project with memory wired in
  *     npx @alexein/cli doctor                  whether a project is set up for memory
+ *     npx @alexein/cli connect                 Alexein AI in the AI tools on this computer
  *
  * Node's standard library and `@alexein/sdk` only. Never an installer of anything but the
  * packages the written files import, and never a writer of a key it was not given.
@@ -14,6 +15,7 @@
 
 import { parseArgs } from "node:util";
 
+import { connect } from "./connect.js";
 import { create, DEFAULT_MODEL } from "./create.js";
 import { doctor } from "./doctor.js";
 import { init, MINIMUMS, options, PARTS, type Part } from "./scaffold.js";
@@ -27,8 +29,19 @@ Usage:
   npx @alexein/cli init <framework> [options]          write memory.ts into this project
   npx @alexein/cli create <framework> <name> [options] a new project with memory wired in
   npx @alexein/cli doctor                              check this project is set up for memory
+  npx @alexein/cli connect [options]                   add Alexein AI to Claude Code, Cursor,
+                                                       VS Code, Copilot CLI, Codex, Gemini CLI,
+                                                       Antigravity and Devin Desktop
 
   <framework> is langgraph or openai-agents.
+
+connect only:
+  --only <tools>        just these, comma-separated: claude-code, cursor, vscode, copilot,
+                        codex, gemini, antigravity, devin
+  --no-plugin           add the server alone, not Alexein AI's plugin where a tool has one
+  --list                say which tools are here and which have Alexein; change nothing
+  --key <key>           send this key in a header instead of signing in (for CI), no plugins
+  --force               add it again where Alexein is already
 
 What the wiring uses:
   --nodes-only          recall and remember, no tools
@@ -72,6 +85,9 @@ const FLAGS = {
   yes: { type: "boolean", short: "y" },
   "no-install": { type: "boolean" },
   "dry-run": { type: "boolean" },
+  only: { type: "string" },
+  "no-plugin": { type: "boolean" },
+  list: { type: "boolean" },
   sdk: { type: "string" },
   version: { type: "boolean" },
   help: { type: "boolean", short: "h" },
@@ -98,6 +114,23 @@ export async function main(argv: string[], given?: Console): Promise<number> {
   const cwd = process.cwd();
   if (command === "doctor") return doctor(cwd, given ?? Console.forTerminal(true));
   const console = given ?? Console.forTerminal(Boolean(v.yes));
+  if (command === "connect") {
+    const only = v.only
+      ?.split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    return connect(
+      {
+        only,
+        key: v.key,
+        plugins: !v["no-plugin"],
+        force: Boolean(v.force),
+        list: Boolean(v.list),
+        dryRun: Boolean(v["dry-run"]),
+      },
+      console,
+    );
+  }
   if (v["nodes-only"] && v["tools-only"]) {
     console.fail("--nodes-only and --tools-only: pick one");
     return 2;
@@ -134,6 +167,6 @@ export async function main(argv: string[], given?: Console): Promise<number> {
     const model = v.model ?? (framework === "langgraph" ? DEFAULT_MODEL : "");
     return create(name, cwd, model, o, console);
   }
-  console.fail(`no command ${JSON.stringify(command)}: init, create or doctor`);
+  console.fail(`no command ${JSON.stringify(command)}: init, create, doctor or connect`);
   return 2;
 }
