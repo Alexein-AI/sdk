@@ -43,7 +43,8 @@ class Fact:
 @dataclass(frozen=True)
 class Excerpt:
     """Part of what was said or delivered: `date` is when it happened, `added_at` when memory
-    took it, `roles` who spoke in it."""
+    took it, `roles` who spoke in it - `other` for someone else. A line from `grep` or `latest`
+    carries roles only when the person or an assistant spoke, so one without is `["other"]`."""
 
     ref: str
     text: str
@@ -61,7 +62,7 @@ class Excerpt:
             date=raw.get("date"),
             added_at=raw.get("added_at"),
             session=raw.get("session"),
-            roles=listed(raw, "roles"),
+            roles=listed(raw, "roles") if "roles" in raw else ["other"],
         )
 
 
