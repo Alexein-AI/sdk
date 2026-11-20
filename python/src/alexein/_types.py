@@ -8,6 +8,8 @@ from typing import Any, Literal, TypeAlias, TypedDict, cast
 Json = dict[str, Any]
 # A connector's kinds to narrow to: one, or several.
 Kinds: TypeAlias = "str | Sequence[str]"
+# How a search went, for `feedback`: wrong, the answer missing from it, or fine.
+Verdict: TypeAlias = Literal["wrong", "missing", "ok"]
 
 
 class Author(TypedDict, total=False):

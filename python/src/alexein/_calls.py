@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Generic, TypeVar, cast
 
@@ -22,12 +22,15 @@ from alexein._results import (
     Summary,
     UsersPage,
 )
+from alexein._subjects import Lessons, Related, Subject, Ways
 from alexein._types import Item, Json
 from alexein._writes import (
     AddResult,
     Correction,
     Deleted,
+    Feedback,
     Forgotten,
+    Refreshed,
     Statuses,
     Versions,
 )
@@ -94,8 +97,13 @@ def add(
     defaults: Json,
 ) -> list[Call[AddResult]]:
     """One call per batch of `BATCH` items, each with an `Idempotency-Key` of one uuid4 for the
-    whole add and the batch's index, so a retried batch is the same items again."""
-    given: Iterable[str | Item] = [items] if isinstance(items, (str, dict)) else items
+    whole add and the batch's index, so a retried batch is the same items again. An `id` among
+    the defaults names one item, so it is refused with more than one."""
+    given: Sequence[str | Item] = [items] if isinstance(items, (str, dict)) else list(items)
+    if defaults.get("id") is not None and len(given) > 1:
+        raise ValueError(
+            "id= names one item, and this add has several: give each item its own id instead"
+        )
     shaped = [_item(i, _set(**defaults)) for i in given]
     key = str(uuid.uuid4())
     options = _set(wait=wait or None, redact=redact or None)
@@ -136,6 +144,22 @@ def around(ref: str, *, width: int | None) -> Call[Memories]:
 
 def open(ref: str) -> Call[Opened]:
     return _post("open", Opened.parse, {"ref": ref})
+
+
+def subject(name: str, *, limit: int | None) -> Call[Subject]:
+    return _post("subject", Subject.parse, _set(name=name, limit=limit))
+
+
+def related(ref: str) -> Call[Related]:
+    return _post("related", Related.parse, {"ref": ref})
+
+
+def how_they_work(*, who: str | None, surface: str | None) -> Call[Ways]:
+    return _post("how_they_work", Ways.parse, _set(who=who, surface=surface))
+
+
+def lessons(task: str) -> Call[Lessons]:
+    return _post("lessons", Lessons.parse, {"task": task})
 
 
 def history(subject: str, *, attribute: str | None) -> Call[History]:
@@ -186,6 +210,16 @@ def forget(
 
 def correct(ref: str, replacement: str | None) -> Call[Correction]:
     return _post("correct", Correction.parse, _set(ref=ref, replacement=replacement))
+
+
+def feedback(search_id: str, verdict: str, *, note: str | None) -> Call[Feedback]:
+    if not search_id:
+        raise ValueError("feedback needs the search_id a search answered with")
+    return _post("feedback", Feedback.parse, _set(search_id=search_id, verdict=verdict, note=note))
+
+
+def refresh() -> Call[Refreshed]:
+    return _post("refresh", Refreshed.parse)
 
 
 def versions(item_id: str) -> Call[Versions]:

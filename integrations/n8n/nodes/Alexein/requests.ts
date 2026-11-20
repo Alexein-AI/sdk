@@ -217,10 +217,14 @@ export function merged(operation: string, pages: IDataObject[]): IDataObject {
 	return { ...pages[0], [key]: all, next: null };
 }
 
+// A line break and the spaces around it: an excerpt's text is its header, a blank line, then what
+// was said, often over several lines, and in a prompt each memory is one line.
+const BREAK = /\s*[\r\n]\s*/g;
+
 // A block to paste into a prompt, the same text as the SDKs' `SearchResult.context()`: the notes,
-// a line each, a blank line, then each memory as `- ` and its text as stored, an excerpt's prefixed
-// with its date when known. Whole memories only, at most `maxChars` long; empty when memory found
-// nothing, or when not even the first memory fits.
+// a line each, a blank line, then each memory as `- ` and its text on one line (its line breaks
+// made spaces), an excerpt's prefixed with its date when known. Whole memories only, at most
+// `maxChars` long; empty when memory found nothing, or when not even the first memory fits.
 export function context(answer: IDataObject, maxChars: number): string {
 	const memories = Array.isArray(answer.memories) ? (answer.memories as IDataObject[]) : [];
 	const notes = Array.isArray(answer.notes) ? answer.notes.map(String) : [];
@@ -228,7 +232,10 @@ export function context(answer: IDataObject, maxChars: number): string {
 	let out = '';
 	for (const memory of memories) {
 		const date = memory.type === 'excerpt' && memory.date ? String(memory.date).slice(0, 10) : '';
-		const line = `- ${date ? `${date}: ` : ''}${String(memory.text ?? '')}`;
+		const text = String(memory.text ?? '')
+			.trim()
+			.replace(BREAK, ' ');
+		const line = `- ${date ? `${date}: ` : ''}${text}`;
 		const grown = `${out || head}${out ? '\n' : ''}${line}`;
 		if (grown.length > maxChars) break;
 		out = grown;

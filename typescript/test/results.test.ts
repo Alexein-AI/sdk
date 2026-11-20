@@ -208,6 +208,92 @@ describe("writes", () => {
   });
 });
 
+describe("people and things", () => {
+  it("subject: the story, and suggestions for a name memory does not hold", async () => {
+    const found = await answering(F.SUBJECT).subject("Acme billing migration");
+    expect([found.name, found.facts]).toEqual(["Acme billing migration", 23]);
+    expect(found.about.map((a) => [a.text, a.refs])).toEqual([
+      ["Alice has led it since August", ["mem_f6", "mem_f3"]],
+    ]);
+    expect(found.values[0]).toMatchObject({ attribute: "cutover", since: "2026-10-14" });
+    expect(found.timeline[0]).toMatchObject({ type: "fact", ref: "mem_f6", source: "mem_e1" });
+    expect(found.timeline[0]!.date).toBe("2026-08-04");
+    expect(found.conversations[0]).toMatchObject({ refs: ["mem_e1"], date: "2026-08-04" });
+    expect(found.links[0]).toMatchObject({ ref: "mem_f6", source: null });
+    expect(found.suggestions).toBeNull();
+    const unknown = await answering(F.SUBJECT_UNKNOWN).subject("billing");
+    expect([unknown.facts, unknown.timeline, unknown.suggestions]).toEqual([
+      0,
+      [],
+      ["acme billing migration"],
+    ]);
+  });
+
+  it("related: links, iterable", async () => {
+    const found = await answering(F.RELATED).related("mem_f1");
+    expect([...found].map((l) => [l.link, l.ref, l.source])).toEqual([
+      ["Alice works at Acme", "mem_f2", "mem_e9"],
+    ]);
+  });
+
+  it("howTheyWork: cards with their counts in raw", async () => {
+    const found = await answering(F.WAYS).howTheyWork();
+    expect(found.who).toBe("Alice Chen");
+    expect(found.cards.map((c) => [c.kind, c.surface, c.refs])).toEqual([
+      ["routine", null, ["mem_f8"]],
+      ["style", "slack", []],
+    ]);
+    expect(found.cards[0]!.raw.procedures).toEqual([{ anchor: "merged", occurrences: 41 }]);
+    expect([found.procedures, found.voice]).toEqual([["merged: ran 38/41"], "slack: 412 messages"]);
+  });
+
+  it("lessons: the person's cards, then what earlier attempts taught", async () => {
+    const found = await answering(F.LESSONS).lessons("Draft a reply to Ada");
+    expect(found.task).toBe("Draft a reply to Ada");
+    expect(found.cards[0]).toMatchObject({
+      kind: "lesson",
+      from: ["correction"],
+      refs: ["mem_f3"],
+    });
+    expect(found.lessons.map((l) => [l.kind, l.text])).toEqual([
+      ["strategy", "Lead with the decision."],
+    ]);
+  });
+});
+
+describe("feedback and refresh", () => {
+  it("feedback: takes a search result or its id, and answers the note's status", async () => {
+    const { client, sent } = memory((request) =>
+      ok(request.url.pathname.endsWith("/search") ? F.SEARCH : F.FEEDBACK),
+    );
+    const alice = client.user("alice");
+    const given = await alice.feedback(await alice.search("q"), "wrong", { note: "Porto" });
+    expect(sent.last.body).toEqual({
+      search_id: "srch_7Hq2mN4xKd9",
+      verdict: "wrong",
+      note: "Porto",
+    });
+    expect([given.searchId, given.verdict, given.status]).toEqual([
+      "srch_7Hq2mN4xKd9",
+      "wrong",
+      "queued",
+    ]);
+  });
+
+  it("feedback: refuses a search that failed open before sending", async () => {
+    const { client, sent } = memory();
+    const { SearchResult } = await import("../src/index.js");
+    await expect(
+      client.user("alice").feedback(SearchResult.unavailable("q"), "missing"),
+    ).rejects.toThrow(RangeError);
+    expect(sent.requests).toHaveLength(0);
+  });
+
+  it("refresh: queued", async () => {
+    expect((await answering(F.REFRESHED).refresh()).status).toBe("queued");
+  });
+});
+
 describe("a field the API adds later", () => {
   it("is in raw, and a memory of a type this version does not know is skipped", async () => {
     const body = { ...F.SEARCH, memories: [...F.SEARCH.memories, { type: "hunch" }], extra: 1 };

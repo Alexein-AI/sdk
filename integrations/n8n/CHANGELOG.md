@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 - 2026-11-20
+
+- Search's `context` keeps each memory on one line, as the SDKs' `context()` does: an excerpt's line breaks
+  are made spaces.
+
 ## 0.3.1 - 2026-11-04
 
 - Published through npm's trusted publishing from GitHub Actions, with no token, so the npm provenance n8n

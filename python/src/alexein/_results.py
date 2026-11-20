@@ -207,13 +207,15 @@ class ItemsPage:
 
 @dataclass(frozen=True)
 class AppUser:
-    """One app user with memory: how many items and facts it holds, and when memory last took
-    something for it (None when unknown)."""
+    """One app user with memory: `user` is your id for them (what `memory.user(id)` takes), how
+    many items and facts it holds, and when memory last took something for it (None when
+    unknown)."""
 
     user: str
     items: int = 0
     facts: int = 0
     last_write: str | None = None
+    raw: Json = field(default_factory=dict[str, Any], repr=False, compare=False)
 
 
 @dataclass(frozen=True)
@@ -232,6 +234,7 @@ class UsersPage:
                 items=int(u.get("items") or 0),
                 facts=int(u.get("facts") or 0),
                 last_write=u.get("last_write"),
+                raw=u,
             )
             for u in listed(raw, "users")
         ]

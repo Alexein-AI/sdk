@@ -53,6 +53,11 @@ export interface ItemDefaults {
 
 /** Options `add` takes besides the items. */
 export interface AddOptions extends ItemDefaults {
+  /**
+   * The id of the one item added, so the same id again edits it. With several items, give each
+   * its own `id`: here it is a RangeError, since one id would make them edits of one another.
+   */
+  id?: string;
   /** Answer once the items are searchable (briefly waited for). */
   wait?: boolean;
   /** Replace phone numbers, cards, keys and the like with their kind before memory keeps them. */
@@ -87,6 +92,11 @@ export function batches(items: Adding, options: AddOptions): Batch[] {
   const defaults = compact(fields as Json);
   const given: readonly (string | Item)[] =
     typeof items === "string" || !Array.isArray(items) ? [items as string | Item] : items;
+  if (fields.id !== undefined && fields.id !== null && given.length > 1) {
+    throw new RangeError(
+      "id names one item, and this add has several: give each item its own id instead",
+    );
+  }
   const shaped = given.map((item) => shape(item, defaults));
   if (!shaped.length) return [];
   const call = crypto.randomUUID();

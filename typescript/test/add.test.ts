@@ -82,6 +82,20 @@ describe("add", () => {
     expect([added.items, added.waiting, added.failed]).toEqual([[], 0, false]);
   });
 
+  it("takes the id of the one item added as an option", async () => {
+    const { client, sent } = memory(() => ok(ADDED, 202));
+    await client.user("dana").add("Vegetarian.", { id: "diet", kind: "note" });
+    expect(sent.last.body).toEqual({ items: [{ id: "diet", kind: "note", text: "Vegetarian." }] });
+    await client.user("dana").add([{ text: "Vegan.", id: "own" }], { id: "diet" });
+    expect(sent.last.body).toEqual({ items: [{ id: "own", text: "Vegan." }] });
+  });
+
+  it("refuses an id option for several items before sending", async () => {
+    const { client, sent } = memory();
+    await expect(client.user("dana").add(["a", "b"], { id: "diet" })).rejects.toThrow(RangeError);
+    expect(sent.requests).toHaveLength(0);
+  });
+
   it("refuses an item without text before sending", async () => {
     const { client, sent } = memory();
     await expect(client.user("dana").add(["ok", { id: "x" } as never])).rejects.toThrow(/text/);

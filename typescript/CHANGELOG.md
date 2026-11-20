@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.3 - 2026-11-20
+
+The same version as `alexein` on PyPI, which has the same changes.
+
+- `add(text, { id: "diet" })` is typed now, and names the one item added. With several items it is a
+  `RangeError`: before, every item was sent with the same id, so they were edits of one another.
+- `SearchResult.searchId`, and `user.feedback(resultOrSearchId, "wrong" | "missing" | "ok", { note })` to
+  say how a search went.
+- The API's other routes: `user.subject(name, { limit })`, `user.related(ref)`,
+  `user.howTheyWork({ who, surface })`, `user.lessons(task)` and `user.refresh()`, answering `Subject`,
+  `Related`, `Ways`, `Lessons` and `Refreshed`.
+- `context()` keeps each memory on one line: an excerpt's text is its header, a blank line, then what was
+  said, so its line breaks are made spaces. The memory itself keeps them.
+
 ## 0.3.2 - 2026-11-17
 
 - `QuotaExceededError`: a 402, when the organisation has used this month's events (on an add) or retrievals

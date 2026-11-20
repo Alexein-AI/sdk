@@ -107,12 +107,16 @@ memory.close(); context manager / `using`-free in TS
 
 | Method                                                                                          | Route        | Body                                                     |
 | ----------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------- |
-| `add(items, *, wait, redact, kind, session, role, author, title, about, expires, at, metadata)` | add          | `{items, wait?, redact?}`                                |
+| `add(items, *, wait, redact, kind, session, role, author, title, about, expires, at, metadata, id)` | add       | `{items, wait?, redact?}`                                |
 | `search(query, *, before, after, filters, provider, source, kind, fast)`                        | search       | as given                                                 |
 | `grep(pattern, *, limit, provider, source, kind)`                                               | grep         |                                                          |
 | `latest(*, k, place, after, before, filters, provider, source, kind)`                           | latest       |                                                          |
 | `around(ref, *, width)`                                                                         | around       | `{ref, width?}`                                          |
 | `open(ref)`                                                                                     | open         | `{ref}`                                                  |
+| `subject(name, *, limit)`                                                                       | subject      |                                                          |
+| `related(ref)`                                                                                  | related      | `{ref}`                                                  |
+| `how_they_work(*, who, surface)` / `howTheyWork({who, surface})`                                | how_they_work |                                                         |
+| `lessons(task)`                                                                                 | lessons      | `{task}`                                                 |
 | `history(subject, *, attribute)`                                                                | history      |                                                          |
 | `summary()`                                                                                     | summary      | `{}`                                                     |
 | `facts(*, limit, cursor)` / `iter_facts(*, limit)`                                              | facts        |                                                          |
@@ -123,6 +127,8 @@ memory.close(); context manager / `using`-free in TS
 | `status(ids)`                                                                                   | status       | `{items: ids}`                                           |
 | `forget(*, items, sessions, refs)`                                                              | forget       | at least one non-empty, else `ValueError` before sending |
 | `correct(ref, replacement=None)`                                                                | correct      |                                                          |
+| `feedback(search, verdict, *, note)`                                                            | feedback     | `{search_id, verdict, note?}`; `search` is a `SearchResult` or its id; none is a `ValueError` / `RangeError` before sending |
+| `refresh()`                                                                                     | refresh      | `{}`                                                     |
 | `versions(item_id)`                                                                             | versions     | `{id}`                                                   |
 | `export(*, limit, cursor)` / `iter_export(*, limit)`                                            | export       |                                                          |
 | `delete()`                                                                                      | users/delete | `{}` - erases this app user whole                        |
@@ -136,7 +142,8 @@ entry across pages, following `next` until it is null.
 of either. A string is `{"text": s}`. The keyword fields fill each item that does not set its own.
 Item fields: `text` (required), `kind`, `id`, `session`, `role`, `author` (string or
 `{id, name, email, handle, self}`), `title`, `about` (list of `kind:name`), `at`, `expires`,
-`metadata`. More than 500 items go as several requests of 500; each request carries
+`metadata`. The keyword `id` names one item: with more than one item it is a `ValueError` / `RangeError`
+before sending, since one id would make them edits of one another. More than 500 items go as several requests of 500; each request carries
 `Idempotency-Key: <one uuid4 for the call>-<batch index>`. The results merge into one `AddResult`.
 An empty list sends nothing and answers an empty `AddResult`.
 
@@ -154,19 +161,21 @@ Memories (search, grep, latest, around, open), discriminated by `type`:
 
 Results:
 
-- `SearchResult(query, answerable: bool|None, notes: list[str], memories: list[Memory], sources: list|None, failed: bool)`
+- `SearchResult(query, answerable: bool|None, notes: list[str], memories: list[Memory], sources: list|None, failed: bool, search_id: str|None)`
   with `.known`, `.facts`, `.excerpts` (the memories of that type), `.refs` (every ref, in order),
   and `.context(max_chars=4000)` / `context(maxChars?)`: the text to paste into a prompt, exactly:
   each note on its own line, then one blank line (only when there are notes and memories), then
   each memory on its own line as `- <text>`, an excerpt with a date as `- <YYYY-MM-DD>: <text>`
-  (the date's first 10 characters). Cut at a whole memory so it never exceeds `max_chars`; ""
+  (the date's first 10 characters). A memory's text is put on one line: each line break, with the
+  spaces around it, becomes one space (an excerpt's text is its `Context: ...` header, a blank line, then
+  what was said). Cut at a whole memory so it never exceeds `max_chars`; ""
   when there are no memories. The n8n node writes the same text.
   `SearchResult.unavailable(query)` for fail-open.
 - `Memories(memories, pattern?, total?, places?)` for grep / latest / around, iterable.
 - `Opened(memory: Fact|Excerpt, sources: list[Excerpt])`.
 - `History(subject, values: [Value(attribute, value, since, negated)], suggestions: list|None)`.
 - `Summary(items, first, last, sources, known)`.
-- `FactsPage(facts, next)`, `ItemsPage(items: [StoredItem], next)`, `UsersPage(users: [AppUser(user, items, facts, last_write)], next)`, `ExportPage(user, exported_at, records, next, withheld)`.
+- `FactsPage(facts, next)`, `ItemsPage(items: [StoredItem], next)`, `UsersPage(users: [AppUser(user, items, facts, last_write, raw)], next)`, `ExportPage(user, exported_at, records, next, withheld)`.
 - `OpenItems(items: [OpenItem(ref, text, date, added_at, age_days)], follow_ups: [FollowUp(title, who, date, age_days)])`.
 - `StoredItem` - an item as it was added, plus `status` (`queued`|`stored`); `item(id)` answers it, or `None` when `found` is false.
 - `AddResult(items: [AddedItem(id, status, redacted)], waiting, failed)`; `.ids`.
@@ -174,6 +183,11 @@ Results:
 - `Forgotten(erased: Erased(items, facts, versions, waiting, relearning), complete)`.
 - `Correction(retracted, text, replacement)`.
 - `Versions` - whatever `/memory/versions` answers, typed as far as its documented fields go.
+- `Subject(name, facts, about: [Line(text, refs)], values: [Value], timeline: [Fact], conversations: [Line(text, refs, date)], links: [Link(link, ref, date, source)], suggestions)`.
+- `Related(links: [Link])`, iterable.
+- `Ways(who, cards: [Card], procedures: list[str], voice)` and `Lessons(task, cards: [Card], lessons: [Card])`;
+  `Card(kind, text, refs, surface, from_ / from, raw)`, the counts it rests on in `raw`.
+- `Feedback(search_id, verdict, status)`, `Refreshed(status)`.
 - `Me` - the key: `org`, `project`, `key_id`, `writes`, `label`, `created_by`, `org_name`, `project_name`, `space`, and `raw` for the rest. Read `twin-memory/src/twin_memory/api/tools.py` for its exact fields.
 
 ## Integrations

@@ -102,6 +102,7 @@ FACT = {
 }
 SEARCHED = {
     "query": "Where does Dana live?",
+    "search_id": "srch_7Hq2mN4xKd9",
     "answerable": True,
     "notes": ["Prefer the newest of two values."],
     "memories": [{"type": "known", "text": "Dana lives in Lisbon."}, FACT, EXCERPT],
@@ -221,6 +222,58 @@ ME = {
     "space": "project",
 }
 DELETED = {"user": "dana", "deleted": True}
+SUBJECT = {
+    "name": "Acme billing migration",
+    "facts": 23,
+    "about": [{"text": "Alice has led it since August", "refs": ["mem_f6", "mem_f3"]}],
+    "values": [{"attribute": "cutover", "value": "2026-11-23", "since": "2026-10-14"}],
+    "timeline": [
+        {
+            "date": "2026-08-04",
+            "text": "(said 2026-08-04) Alice will lead the Acme billing migration",
+            "ref": "mem_f6",
+            "source": "mem_e1",
+        }
+    ],
+    "conversations": [{"date": "2026-08-04", "text": "Planning it", "ref": "mem_e1"}],
+    "links": [
+        {"link": "Acme billing migration led by Alice", "date": "2026-08-04", "ref": "mem_f6"}
+    ],
+}
+SUBJECT_UNKNOWN = {"name": "billing", "facts": 0, "suggestions": ["acme billing migration"]}
+RELATED = {
+    "links": [
+        {"link": "Alice works at Acme", "date": "2026-10-01", "ref": "mem_f2", "source": "mem_e9"}
+    ]
+}
+WAYS = {
+    "who": "Alice Chen",
+    "cards": [
+        {
+            "kind": "routine",
+            "text": "Before merging a pull request: runs the checks",
+            "procedures": [{"anchor": "merged", "occurrences": 41}],
+            "refs": ["mem_f8"],
+        },
+        {"kind": "style", "text": "Short lowercase one-liners", "surface": "slack", "refs": []},
+    ],
+    "procedures": ["merged: ran 38/41"],
+    "voice": "slack: 412 messages",
+}
+LESSONS = {
+    "task": "Draft a reply to Ada",
+    "cards": [
+        {
+            "kind": "lesson",
+            "text": "Keep drafts for Ada under 100 words",
+            "from": ["correction"],
+            "refs": ["mem_f3"],
+        }
+    ],
+    "lessons": [{"kind": "strategy", "text": "Lead with the decision."}],
+}
+FEEDBACK = {"search_id": "srch_7Hq2mN4xKd9", "verdict": "wrong", "status": "queued"}
+REFRESHED = {"status": "queued"}
 
 BY_ROUTE: dict[str, Any] = {
     "me": ME,
@@ -244,11 +297,17 @@ BY_ROUTE: dict[str, Any] = {
     "versions": VERSIONS,
     "export": EXPORT_PAGE,
     "add": ADDED,
+    "subject": SUBJECT,
+    "related": RELATED,
+    "how_they_work": WAYS,
+    "lessons": LESSONS,
+    "feedback": FEEDBACK,
+    "refresh": REFRESHED,
 }
 
 
 def answer(request: httpx.Request) -> httpx.Response:
     """Each route's answer, as the v2 API gives it."""
     name = route(request)
-    status = 202 if name == "add" else 200
+    status = 202 if name in ("add", "refresh") else 200
     return ok(BY_ROUTE[name], status=status)

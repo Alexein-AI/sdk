@@ -1,6 +1,6 @@
 {
   "name": "@alexein/cli",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Alexein memory from the command line: npx @alexein/cli connect adds Alexein AI to Claude Code, Cursor, VS Code, Copilot, Codex and Gemini CLI; npx @alexein/cli init langgraph writes a short memory.ts you own, on @alexein/sdk.",
   "license": "MIT",
   "author": "Alexein AI",

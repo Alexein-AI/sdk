@@ -52,7 +52,7 @@ for any other, before a request is made.
 The base URL is the API's host: `http://localhost:8210`, `http://localhost:8210/` and
 `http://localhost:8210/v2` all mean the same. The environment is read where there is a
 `process.env`; elsewhere, pass the options. `integration` adds one lowercase word to the
-`User-Agent` (`alexein-js/0.3.0 langgraph`), so the console's request logs show where requests came
+`User-Agent` (`alexein-js/0.3.3 langgraph`), so the console's request logs show where requests came
 from.
 
 Run it on your server: a key in a browser bundle can be copied, and it speaks for every user of the
@@ -71,10 +71,12 @@ await dana.add(
   { session: "trip-may" },
 );
 await dana.add("Moving house on 1 December.", { kind: "note", expires: "2026-12-31" });
+await dana.add("Vegetarian, allergic to peanuts.", { id: "diet", kind: "note" }); // the one item's id
 ```
 
 The item fields are `text` (required), `kind`, `id`, `session`, `role`, `author`, `title`, `about`,
-`at`, `expires` and `metadata`. The same `id` again is an edit. `wait: true` answers once the items
+`at`, `expires` and `metadata`. The same `id` again is an edit; as an option, `id` names the one item
+added, and with several items it is a `RangeError`. `wait: true` answers once the items
 are searchable; `redact: true` replaces phone numbers, cards, keys and the like before memory keeps
 them. More than 500 items go as several requests, each with an `Idempotency-Key` its retries send
 again, so a retry never saves an item twice.
@@ -91,6 +93,12 @@ result.context(4000); // notes, then one memory per line, never longer than 4000
 for (const ref of result.refs) await dana.open(ref); // each memory whole
 ```
 
+`context()` puts each memory on one line: a memory's own line breaks become spaces.
+
+When an answer from memory turns out wrong or incomplete, say so with `dana.feedback(result, "wrong",
+{ note: "Dana moved to Porto in October." })` (or `"missing"`, `"ok"`): memory answers questions like it
+better. It takes the result or its `result.searchId`, and needs a key that writes.
+
 `fast: true` answers sooner, a little less precisely, and is free. `before` and `after` (ISO dates),
 `filters`, and `provider`, `source` and `kind` narrow a search.
 
@@ -104,6 +112,10 @@ for (const ref of result.refs) await dana.open(ref); // each memory whole
 | `user.latest({ k, place, after, before, filters, ... })` | `latest`              |
 | `user.around(ref, { width })`                            | `around`              |
 | `user.open(ref)`                                         | `open`                |
+| `user.subject(name, { limit })`                          | `subject`             |
+| `user.related(ref)`                                      | `related`             |
+| `user.howTheyWork({ who, surface })`                     | `how_they_work`       |
+| `user.lessons(task)`                                     | `lessons`             |
 | `user.history(subject, { attribute })`                   | `history`             |
 | `user.summary()`                                         | `summary`             |
 | `user.facts({ limit, cursor })`, `user.iterFacts()`      | `facts`               |
@@ -114,12 +126,16 @@ for (const ref of result.refs) await dana.open(ref); // each memory whole
 | `user.status(ids)`                                       | `status`              |
 | `user.forget({ items, sessions, refs })`                 | `forget`              |
 | `user.correct(ref, replacement?)`                        | `correct`             |
+| `user.feedback(search, verdict, { note })`               | `feedback`            |
+| `user.refresh()`                                         | `refresh`             |
 | `user.versions(itemId)`                                  | `versions`            |
 | `user.export({ limit, cursor })`, `user.iterExport()`    | `export`              |
 | `user.delete()`                                          | `users/delete`        |
 
 Every route but `me` is `POST /v2/memory/<route>`. Results are plain objects with camelCase fields
-(`addedAt`, `followUps`, `lastWrite`); each keeps the JSON the API sent as `.raw`. The `iter*`
+(`addedAt`, `followUps`, `lastWrite`); each keeps the JSON the API sent as `.raw`. A read of an app
+user nothing was ever added for throws `NotFoundError`, `item()` included; `item()` answers null for
+an id an app user's memory does not hold. The `iter*`
 methods are async iterables that follow `next` from page to page:
 
 ```ts
