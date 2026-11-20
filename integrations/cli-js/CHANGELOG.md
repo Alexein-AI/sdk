@@ -5,6 +5,10 @@
 - The key check names the key as the console does, by its organisation's and project's names (their ids
   when it has none), the same line `alexein-cli` prints. A personal key says it is one, and that each user
   id names a collection in one person's memory, not an app user.
+- `connect` signs Claude Code in to the plugin's server, `plugin:alexein:alexein`. It ran
+  `claude mcp login alexein`, which only names the server `--no-plugin` adds, so after the plugin
+  went in, the sign-in failed with `No MCP server named "alexein"`.
+- Antigravity's sign-in line says what agy itself says: `/plugin`, expand alexein-ai, Sign in.
 
 ## 0.4.0 - 2026-11-17
 

@@ -24,6 +24,8 @@ import { VERSION } from "./version.js";
 export const URL = "https://api.alexein.ai/v1/mcp";
 /** The server's name in every tool. A plugin's server is named by the plugin. */
 export const NAME = "alexein";
+/** What Claude Code calls the plugin's server: `plugin:<plugin>:<server>`. */
+const CLAUDE_PLUGIN_SERVER = `plugin:alexein:${NAME}`;
 const DOCS = "https://docs.alexein.ai/mcp";
 
 /** What `connect` needs of the computer: a test hands in one over a scratch home. */
@@ -91,7 +93,7 @@ interface Client {
   /** Edits a settings file instead of running a command. */
   write?(host: Host, o: ConnectOptions): string;
   /** A sign-in run from the terminal, when the tool has one. */
-  login?: [string, string[]];
+  login?(o: ConnectOptions): [string, string[]];
   /** Where the person signs in otherwise. */
   signIn: string;
 }
@@ -191,7 +193,7 @@ export const CLIENTS: Client[] = [
               ],
             ],
           },
-    login: ["claude", ["mcp", "login", NAME]],
+    login: (o) => ["claude", ["mcp", "login", o.plugins && !o.key ? CLAUDE_PLUGIN_SERVER : NAME]],
     signIn: "run /mcp in Claude Code and sign in",
   },
   {
@@ -273,7 +275,7 @@ export const CLIENTS: Client[] = [
       o.key
         ? undefined
         : { how: "codex mcp add", steps: [["codex", ["mcp", "add", NAME, "--url", URL]]] },
-    login: ["codex", ["mcp", "login", NAME]],
+    login: () => ["codex", ["mcp", "login", NAME]],
     signIn: "run codex mcp login alexein",
   },
   {
@@ -323,7 +325,7 @@ export const CLIENTS: Client[] = [
               ["agy", ["mcp", "add", ...(o.key ? headerFlags("--header", o.key) : []), NAME, URL]],
             ],
           },
-    signIn: "start an Antigravity agent; it opens the sign-in",
+    signIn: "open /plugin in Antigravity, expand alexein-ai and choose Sign in",
   },
   {
     id: "devin",
@@ -433,7 +435,7 @@ export async function connect(
     console.line("  Sign in to Alexein from each, and keep Read and save so it can save:");
     for (const c of signIns) {
       if (c.login && console.interactive && (await console.confirm(`Sign in to ${c.name} now?`))) {
-        if (host.attach(...c.login) === 0) {
+        if (host.attach(...c.login(o)) === 0) {
           console.step("signed in", c.name);
           continue;
         }
