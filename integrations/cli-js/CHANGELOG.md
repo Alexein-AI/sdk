@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- `connect` signs Claude Code in to the plugin's server, `plugin:alexein:alexein`. It ran
+  `claude mcp login alexein`, which only names the server `--no-plugin` adds, so after the plugin
+  went in, the sign-in failed with `No MCP server named "alexein"`.
+- Antigravity's sign-in line says what agy itself says: `/plugin`, expand alexein-ai, Sign in.
+
 ## 0.4.0 - 2026-11-17
 
 - `connect` adds Alexein AI's memory server to the AI tools on this computer: Claude Code, Cursor,
