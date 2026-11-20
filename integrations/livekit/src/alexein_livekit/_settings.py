@@ -34,9 +34,8 @@ class Settings:
     # -- recall, before each reply (auto mode)
     recall_fast: bool = True
     """Searches skip the relevance check: free and quicker. False runs it on each recall: more
-    precise, counted against your daily budget, and slower, though a reply still waits no longer
-    than `recall_timeout`; raise `recall_timeout` with it, or a slower recall is left out of the
-    reply."""
+    precise and slower, though a reply still waits no longer than `recall_timeout`; raise
+    `recall_timeout` with it, or a slower recall is left out of the reply."""
     # 1.5 s: on api.alexein.ai a fast search for a caller with history took about 0.7 s at the
     # service and about 1 s end to end (2026-11-04), so 0.5 s left every reply without memory.
     recall_timeout: float = 1.5
