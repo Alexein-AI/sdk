@@ -209,6 +209,16 @@ describe("connect", () => {
     expect(said).toContain("Nothing changed.");
   });
 
+  it("signs Claude Code in to the plugin's server, which the plugin names, not to alexein", async () => {
+    const computer = new Computer(["claude"]);
+    await run(computer, {}, ["y", "y"]);
+    expect(computer.attached).toEqual(["claude mcp login plugin:alexein:alexein"]);
+
+    const bare = new Computer(["claude"]);
+    await run(bare, { plugins: false }, ["y", "y"]);
+    expect(bare.attached).toEqual([`claude mcp login ${NAME}`]);
+  });
+
   it("finds nothing on a bare computer and points at the chat apps", async () => {
     const { code, said } = await run(new Computer([]));
     expect(code).toBe(0);
