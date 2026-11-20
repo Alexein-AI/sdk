@@ -8,7 +8,7 @@
   "/memory/search": {
    "post": {
     "summary": "Search",
-    "description": "What memory holds for a question: `memories`, in order - known lines, then facts, then\nexcerpts of what was said or delivered, each dated and with a ref - and `notes` for the model\nthat reads them. `answerable` is false when memory does not seem to hold the answer, and null\nwhen it was not checked. With `after`, `filters`, `provider`, `source` or `kind` it returns\nthe facts and excerpts that match. Up to one paid model call.",
+    "description": "What memory holds for a question: `memories` - known lines, facts, then excerpts of what was\nsaid or delivered, each dated, with a ref (over MCP a fact learned from an excerpt shown is one\nof its `points`), best matches first; when not checked, the known lines that bear on the\nquestion lead and the other known lines come last - and `notes` for the model that reads them.\n`answerable` is false when memory does not seem to hold the answer, null (over MCP, absent)\nwhen not checked. For a summary,\norder, list or count question, `conversations`: what each conversation most like it was about,\noldest first, with refs. With `after`, `filters`, `provider`, `source` or `kind`, the facts and\nexcerpts that match. `mode` says how fully it was searched: `full`; `unchecked` when what came\nback was not checked against the question - asked `fast`, past the day's allowance, or the\ncheck failed - and `keyword` when it was found by its words alone, its meaning not searched\nthis time. Up to one paid model call. One retrieval, found or not.",
     "operationId": "memory_search",
     "requestBody": {
      "content": {
@@ -53,6 +53,26 @@
        }
       }
      },
+     "402": {
+      "description": "The organisation has used what its plan includes this month: `limit` says which, events or retrievals, `used` and `included` the figures, `resets_at` when they reset and `upgrade` where its owner changes the plan - or, for a personal memory seat, where its seats are. Not worth retrying before then.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -84,7 +104,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -132,7 +152,7 @@
   "/memory/grep": {
    "post": {
     "summary": "Grep",
-    "description": "Excerpts holding an exact phrase, ignoring case: for a quoted phrase, an id or an error code\nthat a search would blur. Each is a fragment with its ref; `memory_open` reads it whole.",
+    "description": "Excerpts holding an exact phrase, ignoring case: for a quoted phrase, an id or an error code\nthat a search would blur. Each is one line - its kind, subject and opening words - with its\nref and `roles` when the person spoke in it; `memory_open` reads it whole. Free.",
     "operationId": "memory_grep",
     "requestBody": {
      "content": {
@@ -177,6 +197,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -208,7 +238,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -256,7 +286,7 @@
   "/memory/latest": {
    "post": {
     "summary": "Latest",
-    "description": "The most recent excerpts, newest first: what just happened, everywhere or in one `place` (a\nconnected app, a channel or a repository), or everything between `after` and `before`.",
+    "description": "The most recent excerpts up to now, newest first: what just happened, everywhere or in one\n`place` (a connected app, a channel or a repository), or everything between `after` and\n`before` - a `before` past today for what is coming up. One line a message - kind, subject,\nopening words, `parts` when long - with its ref and `roles`; `memory_open` reads it. Free.",
     "operationId": "memory_latest",
     "requestBody": {
      "content": {
@@ -301,6 +331,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -332,7 +372,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -380,7 +420,7 @@
   "/memory/around": {
    "post": {
     "summary": "Around",
-    "description": "The excerpts just before and after one, from the same conversation, in order.",
+    "description": "The excerpts just before and after one, from the same conversation, in order. Free.",
     "operationId": "memory_around",
     "requestBody": {
      "content": {
@@ -425,6 +465,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -456,7 +506,275 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/subject": {
+   "post": {
+    "summary": "Subject",
+    "description": "One person or thing memory holds, by name: `about`, a few lines on how it went with the\nrefs of the facts they rest on; `values`, each property's newest value and since when;\n`timeline`, its facts in the order they were said, spread over the whole span when there are\nmore than `limit`; `conversations`, what each conversation about it was about, oldest first,\neach with the ref of an excerpt; and `links`, how it relates to other people and things, each\nwith its fact's ref. With nothing by that name, `facts` is 0 and `suggestions` names the\nnearest. `memory_summary` lists the main ones. Free.",
+    "operationId": "memory_subject",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Subject"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Subject Memory Subject Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/related": {
+   "post": {
+    "summary": "Related",
+    "description": "What one fact or excerpt, by its ref, links to: how the people and things it names relate\nto others memory holds, each link in words with the ref of the fact that says it and of the\nexcerpt that fact came from. For going on from what a search returned. Free.",
+    "operationId": "memory_related",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Opened"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Related Memory Related Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -549,6 +867,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -580,7 +908,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -673,6 +1001,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -704,7 +1042,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -752,8 +1090,17 @@
   "/memory/summary": {
    "post": {
     "summary": "Summary",
-    "description": "What this memory holds, in brief: how many items, the span they cover, the connected\nsources, and the known lines - what memory takes to be true now. Free.",
+    "description": "What this memory holds, in brief: how many items, the span they cover, the connected\nsources, and the known lines - what memory takes to be true now - and `about`: those lines\nby section, the standing instructions, what is current, preferences and what is coming up.\n`lines` are the same lines, each with its section, who said it (`from`: \"user\", \"other\" for\nsomeone else, \"assistant\", or null when not known) and the ref of the fact it came from,\nnull for a line made of several. `person` is what memory has gathered of how the person\nworks and what they prefer, each line with the refs it rests on and whether two sources\nsaid it (`stated`); `fields` and `answers` are what the project asked memory to keep for\neach user, each with its refs; `check` lists facts memory asks the person to confirm;\n`subjects` are the people and things memory holds most about, each with how many facts and\nthe span they cover, to open whole with `memory_subject`; `topics`, for the main ones, a few\nlines on how each went, with the refs they rest on. Free.",
     "operationId": "memory_summary",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Summary"
+       }
+      }
+     }
+    },
     "responses": {
      "200": {
       "description": "Successful Response",
@@ -779,6 +1126,16 @@
      },
      "401": {
       "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "The organisation has no access to memory.",
       "content": {
        "application/json": {
         "schema": {
@@ -818,7 +1175,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -911,6 +1268,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -942,7 +1309,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -1035,6 +1402,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -1066,7 +1443,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -1149,6 +1526,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -1180,7 +1567,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -1273,6 +1660,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -1304,7 +1701,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -1397,6 +1794,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -1428,7 +1835,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -1521,6 +1928,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "404": {
       "description": "No memory for this app user yet, or nothing by this ref.",
       "content": {
@@ -1552,7 +1969,275 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/how_they_work": {
+   "post": {
+    "summary": "How They Work",
+    "description": "How the person works: `cards`, plain lines on the routines they follow before an action\nand on how they write on each surface, each with the counts it rests on and the refs of the\nfacts it cites; then `procedures`, those routines' counts in full, and `voice`, how they\nwrite on `surface`, or where they write most. `who` names someone else in this memory. Free.",
+    "operationId": "memory_how_they_work",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Ways"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response How They Work Memory How They Work Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/lessons": {
+   "post": {
+    "summary": "Lessons",
+    "description": "What an assistant should know for a task like this one: `cards`, lessons from the person\n- how they corrected an assistant, and the notes they left on answers - the most like `task`\nfirst, each with the refs of the facts it cites; then `lessons`, what earlier attempts at\nsimilar tasks taught. Free.",
+    "operationId": "memory_lessons",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Task"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Lessons Memory Lessons Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -1600,7 +2285,7 @@
   "/memory/add": {
    "post": {
     "summary": "Add",
-    "description": "Items into this memory: messages, documents and notes. Each is `stored` - searchable - or\n`queued`, searchable in a moment (202); `wait` waits for that, briefly. An item sent again\nwith its `id` is an edit. Free.",
+    "description": "Items into this memory: messages, documents and notes. Each is `stored` - searchable - or\n`queued`, searchable in a moment (202); `wait` waits for that, briefly. A stored item is\nfound by its words at once, and by what it means a second or so after. An item sent again\nwith its `id` is an edit. Each item new to this memory counts as one of the month's events,\nand an add that would go past them is refused whole.",
     "operationId": "memory_add",
     "requestBody": {
      "content": {
@@ -1645,8 +2330,18 @@
        }
       }
      },
+     "402": {
+      "description": "The organisation has used what its plan includes this month: `limit` says which, events or retrievals, `used` and `included` the figures, `resets_at` when they reset and `upgrade` where its owner changes the plan - or, for a personal memory seat, where its seats are. Not worth retrying before then.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "403": {
-      "description": "This key reads; the route takes a key that writes.",
+      "description": "This key reads; the route takes a key that writes. Or: the organisation has no access to memory.",
       "content": {
        "application/json": {
         "schema": {
@@ -1686,7 +2381,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -1820,7 +2515,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -1868,7 +2563,7 @@
   "/memory/forget": {
    "post": {
     "summary": "Forget",
-    "description": "These items, sessions and memories erased from this memory with every copy and everything\nlearned from them. `erased` counts what went; `relearning`, the facts of other items that stay,\ntaken to be learned again from what is left and back once they are. `complete` is false when\nsome copies on their way in could not be checked - ask again. Free.",
+    "description": "These items, sessions and memories erased from this memory with every copy and everything\nlearned from them. `erased` counts what went; `relearning`, the facts of other items that stay,\ntaken to be learned again from what is left and back once they are. `complete` is false when\nsome copies on their way in could not be checked - ask again. One event, and never refused\nfor the month's limit.",
     "operationId": "memory_forget",
     "requestBody": {
      "content": {
@@ -1954,7 +2649,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -2002,7 +2697,7 @@
   "/memory/correct": {
    "post": {
     "summary": "Correct",
-    "description": "One fact retracted for good, by its ref; a `replacement` is kept as a note memory reads like\nanything else. The message it came from stays. Free.",
+    "description": "One fact retracted for good, by its ref; a `replacement` is kept as a note memory reads like\nanything else. The message it came from stays. One event, and never refused for the month's\nlimit.",
     "operationId": "memory_correct",
     "requestBody": {
      "content": {
@@ -2088,7 +2783,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -2182,7 +2877,7 @@
       }
      },
      "403": {
-      "description": "This key reads; the route takes a key that writes.",
+      "description": "This key reads; the route takes a key that writes. Or: the organisation has no access to memory.",
       "content": {
        "application/json": {
         "schema": {
@@ -2222,7 +2917,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -2346,7 +3041,275 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/feedback": {
+   "post": {
+    "summary": "Feedback",
+    "description": "How one search went, named by the `search_id` it answered with: `wrong` when what came\nback was wrong, `missing` when the answer was not in it, `ok` when it served. A `note` says\nwhat was true instead, and memory reads it like any other note. Kept as an item of this\nmemory - listed, exported and forgotten as one - and sent again for the same search, it\nreplaces the first. Takes a key that writes. One event, counted as an add's items are.",
+    "operationId": "memory_feedback",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Feedback"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Feedback Memory Feedback Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "402": {
+      "description": "The organisation has used what its plan includes this month: `limit` says which, events or retrievals, `used` and `included` the figures, `resets_at` when they reset and `upgrade` where its owner changes the plan - or, for a personal memory seat, where its seats are. Not worth retrying before then.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "This key reads; the route takes a key that writes. Or: the organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Briefly unavailable: retry after the Retry-After header's seconds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "X-Alexein-User",
+      "in": "header",
+      "required": true,
+      "description": "The app user whose memory this is: your own id for them. Letters, digits, '.', '_' and '-', beginning with a letter or digit, and at most 35 characters.",
+      "schema": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 64
+      }
+     },
+     {
+      "name": "X-Request-Id",
+      "in": "header",
+      "required": false,
+      "description": "Your id for this request, returned on the response and kept in the log.",
+      "schema": {
+       "type": "string",
+       "maxLength": 128
+      }
+     }
+    ]
+   }
+  },
+  "/memory/refresh": {
+   "post": {
+    "summary": "Refresh",
+    "description": "Asks for this app user's memory to be brought up to date soon - after an import, say -\nrather than at its own pace: `queued` (202), or `already_queued` while one waits or is under\nway. One an hour per app user: sooner is a 429, with Retry-After. Takes a key that writes.\nCounts against neither the month's events nor its retrievals.",
+    "operationId": "memory_refresh",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Refresh Memory Refresh Post"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "X-Alexein-User is missing, or is not a usable app user id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "No bearer, or one this service did not issue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "This key reads; the route takes a key that writes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No memory for this app user yet, or nothing by this ref.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "The body is over a megabyte.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "The body is not what the route takes: `detail` says what was expected and links the route's page; `errors` names each field and what it takes.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -2429,6 +3392,16 @@
        }
       }
      },
+     "403": {
+      "description": "The organisation has no access to memory.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        }
+       }
+      }
+     },
      "413": {
       "description": "The body is over a megabyte.",
       "content": {
@@ -2450,7 +3423,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -2487,7 +3460,7 @@
   "/memory/users/delete": {
    "post": {
     "summary": "Users Delete",
-    "description": "The app user `X-Alexein-User` names erased whole: every item, fact and version, what waits\nto be stored for them, and the backup's copy. Not undone; their next add starts a new memory.\nTakes a key that writes. Free.",
+    "description": "The app user `X-Alexein-User` names erased whole: every item, fact and version, what waits\nto be stored for them, and the backup's copy. Not undone; their next add starts a new memory.\nTakes a key that writes. One event, and never refused for the month's limit.",
     "operationId": "memory_users_delete",
     "responses": {
      "200": {
@@ -2563,7 +3536,7 @@
       }
      },
      "429": {
-      "description": "Too many requests at once: retry after the Retry-After header's seconds.",
+      "description": "Too many requests at once or in a minute: retry after the Retry-After header's seconds. X-RateLimit-Scope says whose limit: `org`, the organisation's plan's, or `user`, the app user's.",
       "content": {
        "application/json": {
         "schema": {
@@ -2850,6 +3823,45 @@
     },
     "type": "object",
     "title": "Facts"
+   },
+   "Feedback": {
+    "properties": {
+     "search_id": {
+      "type": "string",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Search Id"
+     },
+     "verdict": {
+      "type": "string",
+      "enum": [
+       "wrong",
+       "missing",
+       "ok"
+      ],
+      "title": "Verdict"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 4000,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note",
+      "description": "What was true, or what was missing: kept as a note memory reads."
+     }
+    },
+    "type": "object",
+    "required": [
+     "search_id",
+     "verdict"
+    ],
+    "title": "Feedback"
    },
    "Forget": {
     "properties": {
@@ -3607,6 +4619,62 @@
     ],
     "title": "Status"
    },
+   "Subject": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "limit": {
+      "type": "integer",
+      "maximum": 60.0,
+      "minimum": 1.0,
+      "title": "Limit",
+      "default": 60
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "Subject"
+   },
+   "Summary": {
+    "properties": {
+     "date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date",
+      "description": "The person's own date today, YYYY-MM-DD: what is coming up is from it."
+     }
+    },
+    "type": "object",
+    "title": "Summary"
+   },
+   "Task": {
+    "properties": {
+     "task": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Task"
+     }
+    },
+    "type": "object",
+    "required": [
+     "task"
+    ],
+    "title": "Task"
+   },
    "Users": {
     "properties": {
      "cursor": {
@@ -3647,11 +4715,56 @@
     ],
     "title": "Versions"
    },
+   "Ways": {
+    "properties": {
+     "who": {
+      "type": "string",
+      "maxLength": 512,
+      "title": "Who",
+      "description": "Someone in this memory, by name; absent, the person.",
+      "default": ""
+     },
+     "surface": {
+      "type": "string",
+      "maxLength": 512,
+      "title": "Surface",
+      "description": "Where it is for - a channel, a repository; absent, where they write most.",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "title": "Ways"
+   },
    "Error": {
     "type": "object",
     "properties": {
      "detail": {
       "type": "string"
+     },
+     "error": {
+      "type": "string",
+      "description": "On a 402: `quota_exceeded`."
+     },
+     "limit": {
+      "type": "string",
+      "enum": [
+       "events",
+       "retrievals"
+      ]
+     },
+     "used": {
+      "type": "integer"
+     },
+     "included": {
+      "type": "integer"
+     },
+     "resets_at": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "upgrade": {
+      "type": "string",
+      "format": "uri"
      },
      "errors": {
       "type": "array",

@@ -12,7 +12,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from alexein import AlexeinError, AuthenticationError, Memory, NotFoundError
+from alexein import AlexeinError, AuthenticationError, Me, Memory, NotFoundError
 
 KEY = "ALEXEIN_API_KEY"
 BASE_URL = "ALEXEIN_API_URL"
@@ -91,11 +91,25 @@ def check(key: str, base_url: str | None, timeout: float = 10.0) -> Check:
         return Check(False, None, "the service does not know this key")
     except AlexeinError as error:
         return Check(False, None, f"could not check it: {error}")
+    return Check(True, me.writes, described(me))
+
+
+# What a personal key's app user ids are, said where its check is: they look like a project's.
+PERSONAL = (
+    "a personal key (one person's memory: each user id names a collection in it, not an app user)"
+)
+
+
+def described(me: Me) -> str:
+    """The key as the console names it - its organisation and project by name, else by id -
+    whether it is a personal key, and whether it writes. The TypeScript CLI says the same."""
     org = me.org_name or me.org
+    access = "reads and writes" if me.writes else "reads only"
+    if me.space == "personal":
+        return f"{org or 'this key'}, {PERSONAL}, {access}"
     project = me.project_name or me.project
     where = f"{org}/{project}" if org and project else (org or "this key")
-    access = "reads and writes" if me.writes else "reads only"
-    return Check(True, me.writes, f"{where}, {access}")
+    return f"{where}, {access}"
 
 
 def _probe(memory: Memory) -> Check:

@@ -8,7 +8,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { AlexeinError, AuthenticationError, Memory } from "@alexein/sdk";
+import { AlexeinError, AuthenticationError, type Me, Memory } from "@alexein/sdk";
 
 export const KEY = "ALEXEIN_API_KEY";
 export const BASE_URL = "ALEXEIN_API_URL";
@@ -79,6 +79,23 @@ export interface Check {
 
 export type Checker = (key: string, baseUrl: string | undefined) => Promise<Check>;
 
+/** What a personal key's app user ids are, said where its check is: they look like a project's. */
+export const PERSONAL =
+  "a personal key (one person's memory: each user id names a collection in it, not an app user)";
+
+/**
+ * The key as the console names it - its organisation and project by name, else by id - whether
+ * it is a personal key, and whether it writes. The Python CLI says the same.
+ */
+export function described(me: Me): string {
+  const org = me.orgName ?? me.org;
+  const access = me.writes ? "reads and writes" : "reads only";
+  if (me.space === "personal") return `${org ?? "this key"}, ${PERSONAL}, ${access}`;
+  const project = me.projectName ?? me.project;
+  const where = org && project ? `${org}/${project}` : (org ?? "this key");
+  return `${where}, ${access}`;
+}
+
 /**
  * Try a key with `memory.me()`: one free request, `GET /v2/me`, which says what the key is and
  * whether it writes. No retries, and ten seconds at most: a check should answer, not wait.
@@ -93,12 +110,7 @@ export const check: Checker = async (key, baseUrl) => {
       integration: "cli",
     });
     const me = await memory.me();
-    const where = me.org && me.project ? `${me.org}/${me.project}` : (me.org ?? "this key");
-    return {
-      ok: true,
-      writes: me.writes,
-      detail: `${where}, ${me.writes ? "reads and writes" : "reads only"}`,
-    };
+    return { ok: true, writes: me.writes, detail: described(me) };
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return { ok: false, writes: undefined, detail: "the service does not know this key" };

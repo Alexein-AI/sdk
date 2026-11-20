@@ -14,12 +14,15 @@ import {
 import type { Fact } from "./memories.js";
 import type { History, Memories, OpenItems, Opened, Sources, Summary } from "./reads.js";
 import { SearchResult } from "./search.js";
+import type { Lessons, Related, Subject, Ways } from "./subjects.js";
 import type { Call, Transport } from "./transport.js";
 import {
   type AddResult,
   type Correction,
   type Deleted,
+  type Feedback,
   type Forgotten,
+  type Refreshed,
   type Statuses,
   type Versions,
   mergedAdd,
@@ -86,6 +89,35 @@ export class User {
     return this.send(calls.open(ref));
   }
 
+  /**
+   * One person or thing by name, whole: how it went, its values now, its facts in the order they
+   * were said, the conversations about it, and how it relates to others.
+   */
+  subject(name: string, options: { limit?: number } = {}): Promise<Subject> {
+    return this.send(calls.subject(name, options.limit));
+  }
+
+  /** What the people and things one fact or excerpt names link to, by its ref. */
+  related(ref: string): Promise<Related> {
+    return this.send(calls.related(ref));
+  }
+
+  /**
+   * How the person works - their routines before an action and how they write on each `surface` -
+   * for an agent about to act or write for them. `who` names someone else.
+   */
+  howTheyWork(options: calls.HowTheyWorkOptions = {}): Promise<Ways> {
+    return this.send(calls.howTheyWork(options));
+  }
+
+  /**
+   * What an assistant should know before `task`: how the person corrected assistants and the notes
+   * they left on answers, most like it first.
+   */
+  lessons(task: string): Promise<Lessons> {
+    return this.send(calls.lessons(task));
+  }
+
   /** Every value a subject was stated to have, by attribute, oldest first. */
   history(subject: string, options: { attribute?: string } = {}): Promise<History> {
     return this.send(calls.history(subject, options.attribute));
@@ -150,6 +182,28 @@ export class User {
   /** Retract one fact for good, by its ref; a `replacement` is kept as a note. */
   correct(ref: string, replacement?: string): Promise<Correction> {
     return this.send(calls.correct(ref, replacement));
+  }
+
+  /**
+   * Say how a search went - `wrong`, `missing` or `ok` - by its result or its `searchId`, and
+   * optionally what was true, so memory answers questions like it better. Kept as a note of this
+   * memory. Takes a key that writes.
+   */
+  async feedback(
+    search: SearchResult | string,
+    verdict: calls.Verdict,
+    options: { note?: string } = {},
+  ): Promise<Feedback> {
+    const searchId = typeof search === "string" ? search : search.searchId;
+    return this.send(calls.feedback(searchId, verdict, options.note));
+  }
+
+  /**
+   * Ask memory to bring what it has gathered of this app user up to date soon - after a large
+   * import, say. Once an hour per app user. Takes a key that writes.
+   */
+  refresh(): Promise<Refreshed> {
+    return this.send(calls.refresh());
   }
 
   /** Every version of one added item, oldest first. Takes a key that writes. */

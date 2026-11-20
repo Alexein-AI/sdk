@@ -8,6 +8,7 @@ import { type Memories, parseMemoriesResult } from "./reads.js";
 import * as reads from "./reads.js";
 import * as pages from "./pages.js";
 import { SearchResult } from "./search.js";
+import * as subjects from "./subjects.js";
 import type { Call } from "./transport.js";
 import * as writes from "./writes.js";
 
@@ -66,6 +67,16 @@ export interface PageOptions {
 export interface ItemsOptions extends PageOptions {
   filters?: Filters;
 }
+
+export interface HowTheyWorkOptions {
+  /** Someone in this memory, by name; absent, the person. */
+  who?: string;
+  /** Where the writing is for, such as a channel or a repository; absent, where they write most. */
+  surface?: string;
+}
+
+/** How a search went: wrong, the answer missing from it, or fine. */
+export type Verdict = "wrong" | "missing" | "ok";
 
 export interface ForgetOptions {
   items?: string[];
@@ -134,6 +145,18 @@ export const around = (ref: string, width: number | undefined): Call<Memories> =
 
 export const open = (ref: string): Call<reads.Opened> => post("open", reads.parseOpened, { ref });
 
+export const subject = (name: string, limit: number | undefined): Call<subjects.Subject> =>
+  post("subject", subjects.parseSubject, { name, limit });
+
+export const related = (ref: string): Call<subjects.Related> =>
+  post("related", subjects.parseRelated, { ref });
+
+export const howTheyWork = (o: HowTheyWorkOptions): Call<subjects.Ways> =>
+  post("how_they_work", subjects.parseWays, { who: o.who, surface: o.surface });
+
+export const lessons = (task: string): Call<subjects.Lessons> =>
+  post("lessons", subjects.parseLessons, { task });
+
 export const history = (subject: string, attribute: string | undefined): Call<reads.History> =>
   post("history", reads.parseHistory, { subject, attribute });
 
@@ -178,6 +201,18 @@ export function forget(named: ForgetOptions): Call<writes.Forgotten> {
 
 export const correct = (ref: string, replacement: string | undefined): Call<writes.Correction> =>
   post("correct", writes.parseCorrection, { ref, replacement });
+
+/** Feedback with no search id is a RangeError before sending: a search that failed open has none. */
+export function feedback(
+  searchId: string | null,
+  verdict: Verdict,
+  note: string | undefined,
+): Call<writes.Feedback> {
+  if (!searchId) throw new RangeError("feedback needs the searchId a search answered with");
+  return post("feedback", writes.parseFeedback, { search_id: searchId, verdict, note });
+}
+
+export const refresh = (): Call<writes.Refreshed> => post("refresh", writes.parseRefreshed);
 
 export const versions = (id: string): Call<writes.Versions> =>
   post("versions", writes.parseVersions, { id });

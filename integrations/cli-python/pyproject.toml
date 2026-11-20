@@ -1,6 +1,6 @@
 [project]
 name = "alexein-cli"
-version = "0.3.0"
+version = "0.3.1"
 description = "Add memory from Alexein to a LangGraph project, a CrewAI crew or an OpenAI Agents SDK agent, as a short file you own: uvx alexein-cli init langgraph | crewai | openai-agents."
 readme = "README.md"
 license = "MIT"

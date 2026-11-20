@@ -257,7 +257,7 @@ test('context is the notes, a blank line, then each memory on a line, excerpts d
 		'Values are listed  newest first.\n\n' +
 			'- Alice Chen · home city: Lisbon (said 2026-10-01)\n' +
 			'- (said 2026-10-01) Alice lives in Lisbon\n' +
-			'- 2026-10-01: I just moved to Lisbon\nfrom Berlin.\n' +
+			'- 2026-10-01: I just moved to Lisbon from Berlin.\n' +
 			'- Undated.',
 	);
 	assert.equal(

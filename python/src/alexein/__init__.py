@@ -45,7 +45,8 @@ from alexein._results import (
     UsersPage,
     Value,
 )
-from alexein._types import Author, Item
+from alexein._subjects import Card, Lessons, Line, Link, Related, Subject, Ways
+from alexein._types import Author, Item, Verdict
 from alexein._user import User
 from alexein._version import __version__
 from alexein._writes import (
@@ -54,8 +55,10 @@ from alexein._writes import (
     Correction,
     Deleted,
     Erased,
+    Feedback,
     Forgotten,
     ItemStatus,
+    Refreshed,
     Statuses,
     Versions,
 )
@@ -72,6 +75,7 @@ __all__ = [
     "AsyncUser",
     "AuthenticationError",
     "Author",
+    "Card",
     "Correction",
     "Deleted",
     "Erased",
@@ -79,6 +83,7 @@ __all__ = [
     "ExportPage",
     "Fact",
     "FactsPage",
+    "Feedback",
     "FieldError",
     "FollowUp",
     "Forgotten",
@@ -88,6 +93,9 @@ __all__ = [
     "ItemStatus",
     "ItemsPage",
     "Known",
+    "Lessons",
+    "Line",
+    "Link",
     "Me",
     "Memories",
     "Memory",
@@ -98,16 +106,21 @@ __all__ = [
     "PermissionDeniedError",
     "QuotaExceededError",
     "RateLimitError",
+    "Refreshed",
+    "Related",
     "SearchResult",
     "ServiceUnavailableError",
     "Source",
     "Sources",
     "Statuses",
     "StoredItem",
+    "Subject",
     "Summary",
     "User",
     "UsersPage",
     "Value",
+    "Verdict",
     "Versions",
+    "Ways",
     "__version__",
 ]

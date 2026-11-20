@@ -48,7 +48,7 @@ describe("check", () => {
     expect(await env.check("tm_x", BASE)).toEqual({
       ok: true,
       writes: false,
-      detail: "scratch/demo, reads only",
+      detail: "Scratch/Demo, reads only",
     });
     expect(asked.map((a) => a.route)).toEqual([`GET ${BASE}/v2/me`]);
     expect(asked[0]!.headers.get("Authorization")).toBe("Bearer tm_x");
@@ -59,8 +59,23 @@ describe("check", () => {
   it("goes to the default address when the project sets none", async () => {
     vi.stubEnv(env.BASE_URL, "");
     const asked = service(() => Response.json({ ...ME, writes: true }));
-    expect((await env.check("tm_x", undefined)).detail).toBe("scratch/demo, reads and writes");
+    expect((await env.check("tm_x", undefined)).detail).toBe("Scratch/Demo, reads and writes");
     expect(asked[0]!.route).toBe("GET https://api.alexein.ai/v2/me");
+  });
+
+  it("names the key by its console names, else its ids, as the Python CLI does", async () => {
+    service(() => Response.json({ ...ME, org_name: null, project_name: null }));
+    expect((await env.check("tm_x", BASE)).detail).toBe("scratch/demo, reads only");
+  });
+
+  it("says when the key is a personal key", async () => {
+    service(() =>
+      Response.json({ ...ME, project: "_a1b2c3d4e5", space: "personal", writes: true }),
+    );
+    expect((await env.check("tm_x", BASE)).detail).toBe(
+      "Scratch, a personal key (one person's memory: each user id names a collection in it, " +
+        "not an app user), reads and writes",
+    );
   });
 
   it("fails a key the API does not know", async () => {

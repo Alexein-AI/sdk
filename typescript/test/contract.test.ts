@@ -85,6 +85,10 @@ async function everyRequest(): Promise<Sent[]> {
   });
   await dana.around("mem_1", { width: 3 });
   await dana.open("mem_1");
+  await dana.subject("Acme", { limit: 10 });
+  await dana.related("mem_1");
+  await dana.howTheyWork({ who: "Ada", surface: "slack" });
+  await dana.lessons("Draft a reply");
   await dana.history("s", { attribute: "a" });
   await dana.summary();
   await dana.facts({ limit: 5, cursor: "c" });
@@ -102,6 +106,8 @@ async function everyRequest(): Promise<Sent[]> {
   await dana.status(["i"]);
   await dana.forget({ items: ["i"], sessions: ["s"], refs: ["mem_1"] });
   await dana.correct("mem_1", "x");
+  await dana.feedback("srch_1", "wrong", { note: "She moved to Porto." });
+  await dana.refresh();
   await dana.versions("i");
   await dana.export({ limit: 5, cursor: "c" });
   await dana.delete();

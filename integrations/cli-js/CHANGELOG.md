@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-11-20
+
+- The key check names the key as the console does, by its organisation's and project's names (their ids
+  when it has none), the same line `alexein-cli` prints. A personal key says it is one, and that each user
+  id names a collection in one person's memory, not an app user.
+
 ## 0.4.0 - 2026-11-17
 
 - `connect` adds Alexein AI's memory server to the AI tools on this computer: Claude Code, Cursor,

@@ -82,6 +82,12 @@ def test_every_route_has_a_method_on_both():
         "export",
         "iter_export",
         "delete",
+        "subject",
+        "related",
+        "how_they_work",
+        "lessons",
+        "feedback",
+        "refresh",
     }
     assert names <= set(vars(User)) and names <= set(vars(AsyncUser))
     assert {"me", "user", "users", "iter_users", "close"} <= set(vars(Memory))

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 - 2026-11-20
+
+- The key check says when the key is a personal key, and that each user id names a collection in one
+  person's memory, not an app user - the same line `@alexein/cli` prints.
+
 ## 0.3.0 - 2026-11-04
 
 Renamed from `twinmemory-cli`: the package is `alexein-cli` (`uvx alexein-cli ...`), the module

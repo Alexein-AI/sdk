@@ -77,6 +77,16 @@ CASES: list[tuple[Any, str, Any]] = [
     (lambda u: u.around("mem_e1"), "around", {"ref": "mem_e1"}),
     (lambda u: u.around("mem_e1", width=4), "around", {"ref": "mem_e1", "width": 4}),
     (lambda u: u.open("mem_f1"), "open", {"ref": "mem_f1"}),
+    (lambda u: u.subject("Acme"), "subject", {"name": "Acme"}),
+    (lambda u: u.subject("Acme", limit=10), "subject", {"name": "Acme", "limit": 10}),
+    (lambda u: u.related("mem_f1"), "related", {"ref": "mem_f1"}),
+    (lambda u: u.how_they_work(), "how_they_work", {}),
+    (
+        lambda u: u.how_they_work(who="Ada", surface="slack"),
+        "how_they_work",
+        {"who": "Ada", "surface": "slack"},
+    ),
+    (lambda u: u.lessons("Draft a reply"), "lessons", {"task": "Draft a reply"}),
     (lambda u: u.history("Dana"), "history", {"subject": "Dana"}),
     (
         lambda u: u.history("Dana", attribute="city"),
@@ -118,6 +128,17 @@ CASES: list[tuple[Any, str, Any]] = [
     ),
     (lambda u: u.correct("mem_f1"), "correct", {"ref": "mem_f1"}),
     (lambda u: u.correct("mem_f1", "Porto"), "correct", {"ref": "mem_f1", "replacement": "Porto"}),
+    (
+        lambda u: u.feedback("srch_1", "missing"),
+        "feedback",
+        {"search_id": "srch_1", "verdict": "missing"},
+    ),
+    (
+        lambda u: u.feedback("srch_1", "wrong", note="Porto"),
+        "feedback",
+        {"search_id": "srch_1", "verdict": "wrong", "note": "Porto"},
+    ),
+    (lambda u: u.refresh(), "refresh", {}),
     (lambda u: u.versions("diet"), "versions", {"id": "diet"}),
     (lambda u: u.export(), "export", {}),
     (lambda u: u.export(limit=100, cursor="cur_9"), "export", {"limit": 100, "cursor": "cur_9"}),
@@ -198,6 +219,36 @@ def test_add_sends_items_with_the_keyword_fields_filled_in():
 def test_a_bare_add_sends_text_alone():
     _, _, body = sent(lambda u: u.add("Prefers green tea."))
     assert body == {"items": [{"text": "Prefers green tea."}]}
+
+
+def test_id_as_a_keyword_names_the_one_item_added():
+    _, _, body = sent(lambda u: u.add("Vegetarian.", id="diet", kind="note"))
+    assert body == {"items": [{"text": "Vegetarian.", "id": "diet", "kind": "note"}]}
+    _, _, body = sent(lambda u: u.add([{"text": "Vegan.", "id": "own"}], id="diet"))
+    assert body == {"items": [{"text": "Vegan.", "id": "own"}]}
+
+
+def test_id_as_a_keyword_with_several_items_fails_before_sending():
+    client, recorded = memory(answer)
+    with pytest.raises(ValueError, match="id= names one item"):
+        client.user("dana").add(["a", "b"], id="diet")
+    assert recorded.requests == []
+
+
+def test_feedback_takes_a_search_result_or_its_id():
+    client, recorded = memory(answer)
+    dana = client.user("dana")
+    dana.feedback(dana.search("Where does Dana live?"), "ok")
+    assert recorded.body() == {"search_id": "srch_7Hq2mN4xKd9", "verdict": "ok"}
+
+
+def test_feedback_on_a_search_that_failed_open_fails_before_sending():
+    from alexein import SearchResult
+
+    client, recorded = memory(answer)
+    with pytest.raises(ValueError, match="search_id"):
+        client.user("dana").feedback(SearchResult.unavailable("q"), "missing")
+    assert recorded.requests == []
 
 
 def test_an_item_without_text_fails_before_sending():

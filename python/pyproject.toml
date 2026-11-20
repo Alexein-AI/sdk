@@ -1,6 +1,6 @@
 [project]
 name = "alexein"
-version = "0.3.1"
+version = "0.3.3"
 description = "Python client for Alexein: long-term memory for your app users and agents, with LangGraph, OpenAI Agents SDK and CrewAI integrations."
 readme = "README.md"
 license = "MIT"

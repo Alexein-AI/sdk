@@ -43,7 +43,7 @@ you named it.
 
 The base URL is the host: the client adds `/v2`, and `http://localhost:8210/v2/` means the same host as
 `http://localhost:8210`. `integration="my-app"` adds one lowercase word to the `User-Agent`
-(`alexein-python/0.3.0 my-app`), so the console's request logs show where requests came from.
+(`alexein-python/0.3.3 my-app`), so the console's request logs show where requests came from.
 
 ## Adding
 
@@ -59,6 +59,7 @@ dana.add(
     session="trip-may",
 )
 dana.add("Moving house on 1 December.", kind="note", expires="2026-12-31")
+dana.add("Vegetarian, allergic to peanuts.", id="diet", kind="note")  # id= names the one item added
 ```
 
 | Item field | Meaning                                                   |
@@ -95,8 +96,17 @@ Each memory is a `Known(text)`, a `Fact(ref, text, source)` or an `Excerpt(ref, 
 roles)`; `result.known`, `.facts` and `.excerpts` hold each kind. `dana.open(ref)` reads one whole: an
 excerpt in full, or a fact with the excerpts it was learned from.
 
-`context()` is the notes, a blank line, then each memory as `- <text>` (an excerpt after its date), cut at a
-whole memory so it never exceeds `max_chars`; empty when memory found nothing.
+`context()` is the notes, a blank line, then each memory as `- <text>` (an excerpt after its date), each on
+one line (a memory's own line breaks become spaces), cut at a whole memory so it never exceeds `max_chars`;
+empty when memory found nothing.
+
+When an answer from memory turns out wrong or incomplete, say so: memory answers questions like it better.
+
+```python
+dana.feedback(result, "wrong", note="Dana moved to Porto in October.")  # or "missing", "ok"
+```
+
+It takes the result or its `result.search_id`, and needs a key that writes.
 
 `fast=True` answers sooner, a little less precisely, and free: use it where a reply cannot wait, like a voice
 agent's turn. `before` and `after` (ISO dates), `filters`, `provider`, `source` and `kind` narrow a search.
@@ -111,6 +121,10 @@ agent's turn. `before` and `after` (ISO dates), `filters`, `provider`, `source` 
 | `user.latest(k=10, place=, after=, before=)`                  | the most recent excerpts                          |
 | `user.around(ref, width=2)`                                   | the excerpts either side of one                   |
 | `user.open(ref)`                                              | one memory whole                                  |
+| `user.subject(name, limit=None)`                              | one person or thing whole: story, values, links   |
+| `user.related(ref)`                                           | what the people and things in a memory link to    |
+| `user.how_they_work(who=None, surface=None)`                  | the person's routines and writing style           |
+| `user.lessons(task)`                                          | what the person taught assistants, for a task     |
 | `user.history(subject, attribute=None)`                       | every value a subject was stated to have          |
 | `user.summary()`                                              | counts, dates, connected apps and the known lines |
 | `user.facts(limit=, cursor=)` / `user.iter_facts()`           | the facts memory learned, newest first            |
@@ -121,12 +135,15 @@ agent's turn. `before` and `after` (ISO dates), `filters`, `provider`, `source` 
 | `user.status(ids)`                                            | queued, stored, processed or unknown, per item    |
 | `user.forget(items=, sessions=, refs=)`                       | erase every copy, for good; returns a receipt     |
 | `user.correct(ref, replacement=None)`                         | retract one fact, optionally saying what is true  |
+| `user.feedback(search, verdict, note=None)`                   | how a search went: `wrong`, `missing` or `ok`     |
+| `user.refresh()`                                              | bring this app user's memory up to date soon      |
 | `user.versions(item_id)`                                      | an item's versions, and when and why it went      |
 | `user.export(limit=, cursor=)` / `user.iter_export()`         | everything memory holds for this app user         |
 | `user.delete()`                                               | erase this app user whole                         |
 
 Arguments left out are not sent, so the API's defaults apply. Every result is a frozen dataclass, and `.raw`
-holds the JSON as the API sent it. The `iter_*` methods follow `next` page by page.
+holds the JSON as the API sent it. A read of an app user nothing was ever added for raises `NotFoundError`,
+`item()` included; `item()` answers `None` for an id an app user's memory does not hold. The `iter_*` methods follow `next` page by page.
 
 ## Async
 

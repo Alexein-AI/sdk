@@ -152,3 +152,31 @@ class Deleted:
     @classmethod
     def parse(cls, raw: Json) -> Deleted:
         return cls(raw.get("user", ""), bool(raw.get("deleted")), raw)
+
+
+@dataclass(frozen=True)
+class Feedback:
+    """Feedback on one search, kept as a note of this app user's memory: the search id and
+    verdict as sent, and the note's `status`, "queued" or "stored" as an add answers it."""
+
+    search_id: str
+    verdict: str
+    status: str
+    raw: Json = field(default_factory=dict[str, Any], repr=False, compare=False)
+
+    @classmethod
+    def parse(cls, raw: Json) -> Feedback:
+        return cls(raw.get("search_id", ""), raw.get("verdict", ""), raw.get("status", ""), raw)
+
+
+@dataclass(frozen=True)
+class Refreshed:
+    """A refresh asked for: `status` is "queued", or "already_queued" when one was already
+    waiting or under way."""
+
+    status: str
+    raw: Json = field(default_factory=dict[str, Any], repr=False, compare=False)
+
+    @classmethod
+    def parse(cls, raw: Json) -> Refreshed:
+        return cls(raw.get("status", ""), raw)

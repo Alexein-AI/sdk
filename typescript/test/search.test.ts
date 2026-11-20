@@ -8,7 +8,7 @@ import { memory, ok } from "./helpers.js";
 const NOTE = SEARCH.notes[0]!;
 const KNOWN = "- Alice Chen · home city: Lisbon (said 2026-10-01); Berlin (said 2024-06-01)";
 const FACT_LINE = "- (said 2026-10-01) Alice lives in Lisbon";
-const EXCERPT_LINE = "- 2026-10-01: I just moved to Lisbon from Berlin\nfor the new job at Acme.";
+const EXCERPT_LINE = "- 2026-10-01: I just moved to Lisbon from Berlin for the new job at Acme.";
 
 describe("SearchResult", () => {
   it("reads the answer into typed memories", async () => {
@@ -38,6 +38,7 @@ describe("SearchResult", () => {
     expect(found.refs).toEqual(["mem_5pQ1zX8gHd2", "mem_9fK2xQ7aLp3"]);
     expect(found.sources).toBeNull();
     expect(found.failed).toBe(false);
+    expect(found.searchId).toBe("srch_7Hq2mN4xKd9");
     expect(found.raw).toEqual(SEARCH);
   });
 
@@ -69,7 +70,7 @@ describe("context()", () => {
         "\n" +
         "- Alice Chen · home city: Lisbon (said 2026-10-01); Berlin (said 2024-06-01)\n" +
         "- (said 2026-10-01) Alice lives in Lisbon\n" +
-        "- 2026-10-01: I just moved to Lisbon from Berlin\nfor the new job at Acme.",
+        "- 2026-10-01: I just moved to Lisbon from Berlin for the new job at Acme.",
     );
   });
 
@@ -104,6 +105,17 @@ describe("context()", () => {
 
   it("dates an excerpt only when its date is known", () => {
     const undated = SearchResult.parse({ memories: [{ ...EXCERPT, date: null }] });
-    expect(undated.context()).toBe(`- ${EXCERPT.text}`);
+    expect(undated.context()).toBe("- I just moved to Lisbon from Berlin for the new job at Acme.");
+  });
+
+  it("keeps each memory on one line, its line breaks made spaces", () => {
+    const text =
+      "Context: chat (app), 1 Oct 2026. Dana. Turn 1.\n\nDana: Vegetarian.\r\n No nuts. ";
+    const found = SearchResult.parse({ notes: [], memories: [{ ...EXCERPT, text }, FACT] });
+    expect(found.context()).toBe(
+      "- 2026-10-01: Context: chat (app), 1 Oct 2026. Dana. Turn 1. Dana: Vegetarian. No nuts.\n" +
+        FACT_LINE,
+    );
+    expect(found.excerpts[0]!.text).toBe(text);
   });
 });

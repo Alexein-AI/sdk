@@ -20,12 +20,15 @@ from alexein._results import (
     StoredItem,
     Summary,
 )
-from alexein._types import Author, Item, Json, Kinds
+from alexein._subjects import Lessons, Related, Subject, Ways
+from alexein._types import Author, Item, Json, Kinds, Verdict
 from alexein._writes import (
     AddResult,
     Correction,
     Deleted,
+    Feedback,
     Forgotten,
+    Refreshed,
     Statuses,
     Versions,
     merged,
@@ -61,15 +64,17 @@ class AsyncUser:
         expires: str | None = None,
         at: str | None = None,
         metadata: Json | None = None,
+        id: str | None = None,
     ) -> AddResult:
         """Remember text: a string, an item dict, or a list of either. The keyword fields fill
         every item that does not set its own. With `wait`, returns once they are searchable;
         with `redact`, phone numbers, cards, keys and the like are replaced before memory keeps
-        any copy. More than 500 items go in batches; a retry never saves an item twice."""
+        any copy. `id` names a single item, so sending it again edits it; for several, give each
+        its own. More than 500 items go in batches; a retry never saves an item twice."""
         defaults: Json = {
             "kind": kind, "session": session, "role": role, "author": author, "title": title,
             "about": list(about) if about is not None else None, "expires": expires, "at": at,
-            "metadata": metadata,
+            "metadata": metadata, "id": id,
         }  # fmt: skip
         calls = _calls.add(items, wait=wait, redact=redact, defaults=defaults)
         if not calls:
@@ -146,6 +151,25 @@ class AsyncUser:
         """One memory by its ref, whole: an excerpt in full, or a fact with the excerpts it was
         learned from."""
         return await self._send(_calls.open(ref))
+
+    async def subject(self, name: str, *, limit: int | None = None) -> Subject:
+        """One person or thing by name, whole: how it went, its values now, its facts in the
+        order they were said, the conversations about it, and how it relates to others."""
+        return await self._send(_calls.subject(name, limit=limit))
+
+    async def related(self, ref: str) -> Related:
+        """What the people and things one fact or excerpt names link to, by its ref."""
+        return await self._send(_calls.related(ref))
+
+    async def how_they_work(self, *, who: str | None = None, surface: str | None = None) -> Ways:
+        """How the person works - their routines before an action and how they write on each
+        `surface` - for an agent about to act or write for them. `who` names someone else."""
+        return await self._send(_calls.how_they_work(who=who, surface=surface))
+
+    async def lessons(self, task: str) -> Lessons:
+        """What an assistant should know before `task`: how the person corrected assistants and
+        the notes they left on answers, most like it first."""
+        return await self._send(_calls.lessons(task))
 
     async def history(self, subject: str, *, attribute: str | None = None) -> History:
         """Every value a subject was stated to have, and since when."""
@@ -233,6 +257,20 @@ class AsyncUser:
     async def correct(self, ref: str, replacement: str | None = None) -> Correction:
         """Retract one fact by its ref, and optionally say what is true instead."""
         return await self._send(_calls.correct(ref, replacement))
+
+    async def feedback(
+        self, search: str | SearchResult, verdict: Verdict, *, note: str | None = None
+    ) -> Feedback:
+        """Say how a search went - "wrong", "missing" or "ok" - by its result or its
+        `search_id`, and optionally what was true, so memory answers questions like it better.
+        Kept as a note of this memory. Needs a key that writes."""
+        search_id = search.search_id if isinstance(search, SearchResult) else search
+        return await self._send(_calls.feedback(search_id or "", verdict, note=note))
+
+    async def refresh(self) -> Refreshed:
+        """Ask memory to bring what it has gathered of this app user up to date soon - after a
+        large import, say. Once an hour per app user. Needs a key that writes."""
+        return await self._send(_calls.refresh())
 
     async def versions(self, item_id: str) -> Versions:
         """Every version of one added item, and when and why it went. Needs a key that writes."""

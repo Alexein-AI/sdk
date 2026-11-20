@@ -4,6 +4,7 @@ know yet is still reachable."""
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Literal, TypeAlias
@@ -82,11 +83,18 @@ def _memories(raw: Json) -> list[AnyMemory]:
     return [parse_memory(m) for m in listed(raw, "memories")]
 
 
+# A line break and the spaces around it: an excerpt's text is its header, a blank line, then
+# what was said, often over several lines, and in a prompt each memory is one line.
+_BREAK = re.compile(r"\s*[\r\n]\s*")
+
+
 def _line(memory: AnyMemory) -> str:
-    """`- <text>`, or `- <YYYY-MM-DD>: <text>` for an excerpt with a date."""
+    """`- <text>`, or `- <YYYY-MM-DD>: <text>` for an excerpt with a date: on one line, its line
+    breaks made spaces."""
+    text = _BREAK.sub(" ", memory.text.strip())
     if isinstance(memory, Excerpt) and memory.date:
-        return f"- {memory.date[:10]}: {memory.text}"
-    return f"- {memory.text}"
+        return f"- {memory.date[:10]}: {text}"
+    return f"- {text}"
 
 
 @dataclass(frozen=True)
@@ -94,7 +102,8 @@ class SearchResult:
     """What memory holds for a question: `memories` in order - known lines, then facts, then
     excerpts - and `notes` for the model that reads them. `answerable` is False when memory
     does not seem to hold the answer, and None when that was not checked. `failed` is True when
-    a `fail_open` client could not reach memory, and the result is empty for that reason."""
+    a `fail_open` client could not reach memory, and the result is empty for that reason.
+    `search_id` is what `feedback()` takes to say how the search went (None when failed)."""
 
     query: str
     answerable: bool | None
@@ -102,6 +111,7 @@ class SearchResult:
     memories: list[AnyMemory]
     sources: list[Any] | None = None
     failed: bool = False
+    search_id: str | None = None
     raw: Json = field(default_factory=dict[str, Any], repr=False, compare=False)
 
     @classmethod
@@ -112,6 +122,7 @@ class SearchResult:
             notes=listed(raw, "notes"),
             memories=_memories(raw),
             sources=raw.get("sources"),
+            search_id=raw.get("search_id"),
             raw=raw,
         )
 
@@ -142,9 +153,9 @@ class SearchResult:
         return self._fit(max_chars)[1]
 
     def context(self, max_chars: int = 4000) -> str:
-        """The text to paste into a prompt: the notes, then each memory on a line of its own,
-        excerpts after their date. Whole memories only, at most `max_chars` long; empty when
-        memory found nothing."""
+        """The text to paste into a prompt: the notes, then each memory on a line of its own (its
+        line breaks made spaces), excerpts after their date. Whole memories only, at most
+        `max_chars` long; empty when memory found nothing."""
         return self._fit(max_chars)[0]
 
     def _fit(self, max_chars: int) -> tuple[str, list[AnyMemory]]:

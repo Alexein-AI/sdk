@@ -22,12 +22,14 @@ export type {
   Filters,
   ForgetOptions,
   GrepOptions,
+  HowTheyWorkOptions,
   ItemsOptions,
   LatestOptions,
   OpenItemsOptions,
   Origin,
   PageOptions,
   SearchOptions,
+  Verdict,
 } from "./calls.js";
 export type { AddOptions, Adding, Author, Item, ItemDefaults } from "./items.js";
 export {
@@ -46,6 +48,7 @@ export type { FieldError } from "./errors.js";
 export type { Json } from "./json.js";
 export type { Excerpt, Fact, Known, MemoryEntry } from "./memories.js";
 export { SearchResult } from "./search.js";
+export type { Card, Lessons, Line, Link, Related, Subject, Ways } from "./subjects.js";
 export type {
   FollowUp,
   History,
@@ -74,8 +77,10 @@ export type {
   Correction,
   Deleted,
   Erased,
+  Feedback,
   Forgotten,
   ItemStatus,
+  Refreshed,
   Statuses,
   VersionEntry,
   Versions,

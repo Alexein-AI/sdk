@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.3 - 2026-11-20
+
+The same version as `@alexein/sdk`, which has the same changes.
+
+- `add(text, id="diet")`: `id` is a keyword, as Add's other fields are, and names the one item added, so
+  sending it again edits it. With several items it is a `ValueError`: give each its own `id`.
+- `SearchResult.search_id`, and `user.feedback(result_or_search_id, "wrong" | "missing" | "ok", note=...)`
+  to say how a search went.
+- The API's other routes: `user.subject(name, limit=)`, `user.related(ref)`,
+  `user.how_they_work(who=, surface=)`, `user.lessons(task)` and `user.refresh()`, answering `Subject`,
+  `Related`, `Ways`, `Lessons` and `Refreshed`.
+- `context()` keeps each memory on one line: an excerpt's text is its header, a blank line, then what was
+  said, so its line breaks are made spaces. The memory itself keeps them.
+- `AppUser` has `raw`, as every result does.
+
 ## 0.3.1 - 2026-11-17
 
 - `QuotaExceededError`: a 402, when the organisation has used this month's events (on an add) or retrievals

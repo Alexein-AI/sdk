@@ -181,3 +181,35 @@ export function parseDeleted(value: unknown): Deleted {
   const raw = object(value);
   return { user: text(raw.user), deleted: bool(raw.deleted), raw };
 }
+
+/**
+ * Feedback on one search, kept as a note of this app user's memory: the search id and verdict as
+ * sent, and the note's `status`, `queued` or `stored` as an add answers it.
+ */
+export interface Feedback {
+  readonly searchId: string;
+  readonly verdict: string;
+  readonly status: string;
+  readonly raw: Json;
+}
+
+export function parseFeedback(value: unknown): Feedback {
+  const raw = object(value);
+  return {
+    searchId: text(raw.search_id),
+    verdict: text(raw.verdict),
+    status: text(raw.status),
+    raw,
+  };
+}
+
+/** A refresh asked for: `queued`, or `already_queued` when one was already waiting or under way. */
+export interface Refreshed {
+  readonly status: string;
+  readonly raw: Json;
+}
+
+export function parseRefreshed(value: unknown): Refreshed {
+  const raw = object(value);
+  return { status: text(raw.status), raw };
+}

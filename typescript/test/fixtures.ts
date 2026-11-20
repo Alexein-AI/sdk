@@ -19,6 +19,7 @@ export const FACT = {
 
 export const SEARCH = {
   query: "Where does Alice live?",
+  search_id: "srch_7Hq2mN4xKd9",
   answerable: true,
   notes: ["Values are listed as stated, newest first."],
   memories: [
@@ -200,3 +201,62 @@ export const ME = {
 };
 
 export const DELETED = { user: "user_42", deleted: true };
+
+export const SUBJECT = {
+  name: "Acme billing migration",
+  facts: 23,
+  about: [{ text: "Alice has led it since August", refs: ["mem_f6", "mem_f3"] }],
+  values: [{ attribute: "cutover", value: "2026-11-23", since: "2026-10-14" }],
+  timeline: [
+    {
+      date: "2026-08-04",
+      text: "(said 2026-08-04) Alice will lead the Acme billing migration",
+      ref: "mem_f6",
+      source: "mem_e1",
+    },
+  ],
+  conversations: [{ date: "2026-08-04", text: "Planning it", ref: "mem_e1" }],
+  links: [{ link: "Acme billing migration led by Alice", date: "2026-08-04", ref: "mem_f6" }],
+};
+
+export const SUBJECT_UNKNOWN = {
+  name: "billing",
+  facts: 0,
+  suggestions: ["acme billing migration"],
+};
+
+export const RELATED = {
+  links: [{ link: "Alice works at Acme", date: "2026-10-01", ref: "mem_f2", source: "mem_e9" }],
+};
+
+export const WAYS = {
+  who: "Alice Chen",
+  cards: [
+    {
+      kind: "routine",
+      text: "Before merging a pull request: runs the checks",
+      procedures: [{ anchor: "merged", occurrences: 41 }],
+      refs: ["mem_f8"],
+    },
+    { kind: "style", text: "Short lowercase one-liners", surface: "slack", refs: [] },
+  ],
+  procedures: ["merged: ran 38/41"],
+  voice: "slack: 412 messages",
+};
+
+export const LESSONS = {
+  task: "Draft a reply to Ada",
+  cards: [
+    {
+      kind: "lesson",
+      text: "Keep drafts for Ada under 100 words",
+      from: ["correction"],
+      refs: ["mem_f3"],
+    },
+  ],
+  lessons: [{ kind: "strategy", text: "Lead with the decision." }],
+};
+
+export const FEEDBACK = { search_id: "srch_7Hq2mN4xKd9", verdict: "wrong", status: "queued" };
+
+export const REFRESHED = { status: "queued" };

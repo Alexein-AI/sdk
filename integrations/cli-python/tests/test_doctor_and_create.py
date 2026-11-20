@@ -178,6 +178,24 @@ def test_the_key_check_uses_the_consoles_names(monkeypatch: pytest.MonkeyPatch) 
     assert real_check("tm_x", None) == env.Check(True, False, "Acme/Production, reads only")
 
 
+def test_a_personal_key_says_so(monkeypatch: pytest.MonkeyPatch) -> None:
+    def answered(request: httpx.Request) -> httpx.Response:
+        me = {"kind": "key", "org": "o7k2", "org_name": "Acme", "project": "_a1b2c3d4e5"}
+        return httpx.Response(200, json={**me, "space": "personal", "writes": True})
+
+    def client(key: str, **options: Any) -> Memory:
+        http = httpx.Client(transport=httpx.MockTransport(answered))
+        return Memory(key, http_client=http, **options)
+
+    monkeypatch.setattr(env, "Memory", client)
+    assert real_check("tm_x", None) == env.Check(
+        True,
+        True,
+        "Acme, a personal key (one person's memory: each user id names a collection in it, "
+        "not an app user), reads and writes",
+    )
+
+
 def test_a_key_the_service_does_not_know(monkeypatch: pytest.MonkeyPatch) -> None:
     def client(key: str, **options: Any) -> Memory:
         refused = httpx.MockTransport(lambda r: httpx.Response(401, json={"detail": "no"}))

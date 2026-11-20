@@ -10,12 +10,15 @@ from conftest import answer, memory, ok
 from alexein import (
     AddedItem,
     AppUser,
+    Card,
     Erased,
     Excerpt,
     Fact,
     FollowUp,
     ItemStatus,
     Known,
+    Line,
+    Link,
     Memories,
     OpenItem,
     SearchResult,
@@ -54,6 +57,7 @@ def test_search(dana):
     assert found.excerpts == [found.memories[2]]
     assert found.refs == ["mem_f1", "mem_e1"]
     assert found.sources is None
+    assert found.search_id == "srch_7Hq2mN4xKd9"
     assert found.raw == api.SEARCHED
 
 
@@ -72,6 +76,21 @@ def test_context_is_the_same_text_every_client_writes():
     assert without_notes.context().startswith("- Dana lives in Lisbon.\n- Dana moved")
     undated = SearchResult.parse({"memories": [{**api.EXCERPT, "date": None}]})
     assert undated.context() == "- Dana: I moved to Lisbon for the job at Acme."
+
+
+def test_context_keeps_each_memory_on_one_line():
+    """An excerpt's text is its header, a blank line, then what was said over several lines: in
+    the context it is one line, its line breaks made spaces."""
+    excerpt = {
+        **api.EXCERPT,
+        "text": "Context: chat (app), 1 Oct 2026. Dana. Turn 1.\n\nDana: Vegetarian.\r\n No nuts. ",
+    }
+    found = SearchResult.parse({"notes": [], "memories": [excerpt, api.FACT]})
+    assert found.context() == (
+        "- 2026-10-01: Context: chat (app), 1 Oct 2026. Dana. Turn 1. Dana: Vegetarian. No nuts.\n"
+        "- Dana moved to Lisbon for a job at Acme."
+    )
+    assert found.excerpts[0].text == excerpt["text"]  # the memory itself is kept as sent
 
 
 def test_context_is_cut_at_a_whole_memory():
@@ -190,7 +209,68 @@ def test_users():
     client, _ = memory(answer)
     page = client.users()
     assert page.users == [AppUser("dana", 14, 6, "2026-10-30T08:00:00Z")]
+    assert page.users[0].raw == api.USERS_PAGE["users"][0]
     assert page.next == "dana"
+
+
+def test_subject(dana):
+    found = dana.subject("Acme billing migration")
+    assert found.name == "Acme billing migration" and found.facts == 23
+    assert found.about == [Line("Alice has led it since August", ["mem_f6", "mem_f3"])]
+    assert found.values == [Value("cutover", "2026-11-23", "2026-10-14")]
+    assert found.timeline == [
+        Fact(
+            "mem_f6",
+            "(said 2026-08-04) Alice will lead the Acme billing migration",
+            source="mem_e1",
+            date="2026-08-04",
+        )
+    ]
+    assert found.conversations == [Line("Planning it", ["mem_e1"], "2026-08-04")]
+    assert found.links == [Link("Acme billing migration led by Alice", "mem_f6", "2026-08-04")]
+    assert found.suggestions is None
+    client, _ = memory(lambda r: ok(api.SUBJECT_UNKNOWN))
+    unknown = client.user("dana").subject("billing")
+    assert unknown.facts == 0 and unknown.timeline == []
+    assert unknown.suggestions == ["acme billing migration"]
+
+
+def test_related(dana):
+    found = dana.related("mem_f1")
+    assert list(found) == [Link("Alice works at Acme", "mem_f2", "2026-10-01", "mem_e9")]
+    assert len(found) == 1
+
+
+def test_how_they_work(dana):
+    found = dana.how_they_work()
+    assert found.who == "Alice Chen"
+    assert [(c.kind, c.surface, c.refs) for c in found.cards] == [
+        ("routine", None, ["mem_f8"]),
+        ("style", "slack", []),
+    ]
+    assert found.cards[0].raw["procedures"] == [{"anchor": "merged", "occurrences": 41}]
+    assert found.procedures == ["merged: ran 38/41"]
+    assert found.voice == "slack: 412 messages"
+
+
+def test_lessons(dana):
+    found = dana.lessons("Draft a reply to Ada")
+    assert found.task == "Draft a reply to Ada"
+    (card,) = found.cards
+    assert (card.kind, card.text, card.from_, card.refs) == (
+        "lesson",
+        "Keep drafts for Ada under 100 words",
+        ["correction"],
+        ["mem_f3"],
+    )
+    assert [(c.kind, c.text) for c in found.lessons] == [("strategy", "Lead with the decision.")]
+    assert isinstance(card, Card)
+
+
+def test_feedback_and_refresh(dana):
+    given = dana.feedback("srch_7Hq2mN4xKd9", "wrong", note="She moved to Porto.")
+    assert (given.search_id, given.verdict, given.status) == ("srch_7Hq2mN4xKd9", "wrong", "queued")
+    assert dana.refresh().status == "queued"
 
 
 def test_open_items(dana):
