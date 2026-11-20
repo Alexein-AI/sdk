@@ -232,7 +232,9 @@ export function context(answer: IDataObject, maxChars: number): string {
 	let out = '';
 	for (const memory of memories) {
 		const date = memory.type === 'excerpt' && memory.date ? String(memory.date).slice(0, 10) : '';
-		const text = String(memory.text ?? '').trim().replace(BREAK, ' ');
+		const text = String(memory.text ?? '')
+			.trim()
+			.replace(BREAK, ' ');
 		const line = `- ${date ? `${date}: ` : ''}${text}`;
 		const grown = `${out || head}${out ? '\n' : ''}${line}`;
 		if (grown.length > maxChars) break;
