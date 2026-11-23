@@ -35,15 +35,16 @@ export const PAGED: Record<string, { key: string; max: number }> = {
 // adds itself, so `http://localhost:8210/v2/` and `http://localhost:8210` are the same.
 export const host = (baseUrl: unknown) => String(baseUrl ?? '').replace(/(?:\/v2)?\/*$/, '');
 
-// An app user ID: 1-35 letters, digits, '.', '_' and '-', beginning with a letter or digit. Checked
-// before a round trip, so the mistake shows on the item that made it.
-const USER_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,34}$/;
+// An app user ID, as the API takes it: any ID an app already has, up to 128 characters with no
+// control character and no space at either end; ASCII only, which is all the X-Alexein-User header
+// carries faithfully. Checked before a round trip, so the mistake shows on the item that made it.
+const USER_ID = /^[!-~](?:[ -~]{0,126}[!-~])?$/;
 
 export function checkedUser(value: unknown): string {
 	const user = String(value ?? '').trim();
 	if (!USER_ID.test(user)) {
 		throw new Error(
-			`App User "${user}" is not a usable ID: 1 to 35 letters, digits, '.', '_' and '-', beginning with a letter or digit`,
+			`App User "${user}" is not a usable ID: up to 128 characters, no control characters, ASCII only`,
 		);
 	}
 	return user;

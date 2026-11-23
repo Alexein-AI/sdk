@@ -326,14 +326,28 @@ def test_an_integration_is_one_word_on_the_user_agent():
             Memory("tm_test", integration=wrong)
 
 
-@pytest.mark.parametrize("user_id", ["dana", "d", "user_42", "a.b-c_d", "9" * 35])
+@pytest.mark.parametrize(
+    "user_id",
+    [
+        "dana",
+        "d",
+        "user_42",
+        "a.b-c_d",
+        "6f1c2b9e-3d4a-4e5f-8a7b-9c0d1e2f3a4b",  # a UUID
+        "dana@example.com",
+        "auth0|5f7c8ec7c33c6c004bbafe82",
+        "dana smith",
+        "-dana",
+        "x" * 128,  # the API's longest (2026-11-23: any id an app already has)
+    ],
+)
 def test_a_usable_user_id_is_taken(user_id: str):
     client, _ = memory(answer)
     assert client.user(user_id).id == user_id
 
 
 @pytest.mark.parametrize(
-    "user_id", ["", "-dana", ".dana", "_dana", "dana smith", "dana@example.com", "x" * 36]
+    "user_id", ["", "x" * 129, " dana", "dana ", "dana\nsmith", "dana\tsmith", "dané", "\x00"]
 )
 def test_a_wrong_user_id_fails_where_it_was_named(user_id: str):
     client, recorded = memory(answer)

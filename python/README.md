@@ -17,7 +17,14 @@ from alexein import Memory
 memory = Memory()  # reads ALEXEIN_API_KEY
 dana = memory.user("dana")  # your own id for one of your app users
 
-dana.add("I moved to Lisbon for the job at Acme.", role="user", session="onboarding")
+dana.add(
+    "I moved to Lisbon for the job at Acme.",
+    id="move",  # sent again, it edits this item, never copies it
+    role="user",
+    author={"name": "Dana", "self": True},  # Dana's own words, and her name
+    session="onboarding",
+    wait=True,  # searchable once it returns
+)
 dana.add({"id": "diet", "kind": "note", "text": "Vegetarian, allergic to peanuts."}, wait=True)
 
 result = dana.search("Where does Dana live?")
@@ -26,8 +33,8 @@ print(result.context())  # ready to paste into a prompt
 
 Make a key in the console, under **API keys** (https://app.alexein.ai/console/keys). A key belongs to one
 project; each app user you name with `memory.user(...)` has a memory of their own inside it. An app user id is
-1 to 35 letters, digits, `.`, `_` or `-`, starting with a letter or digit; another raises `ValueError` where
-you named it.
+the id your app already has for them (a UUID, an email, `auth0|...`): up to 128 characters, no control
+characters, no space at either end, ASCII only; another raises `ValueError` where you named it.
 
 ## Settings
 
@@ -76,7 +83,11 @@ dana.add("Vegetarian, allergic to peanuts.", id="diet", kind="note")  # id= name
 | `expires`  | when it stops being true; it is erased then               |
 | `metadata` | your own JSON                                             |
 
-An add is accepted at once and searchable a moment later; `wait=True` returns once it is searchable.
+An add is accepted at once and searchable a moment later; `wait=True` returns once it is searchable, so
+search straight after an add with `wait=True`. On what the app user says themselves, pass
+`author={"name": ..., "self": True}`: memory then knows the words are theirs and what they are called, so a
+question that names them ("Where does Dana live?") finds them. Without an author, a message is kept as said by
+its `role`, not by anyone memory knows.
 `redact=True` replaces phone numbers, cards, keys and the like before memory keeps any copy. Lists longer than
 500 items go in batches, and every request carries an `Idempotency-Key` that a retry repeats, so a retried add
 never saves an item twice.

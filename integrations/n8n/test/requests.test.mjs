@@ -211,8 +211,16 @@ test('forget and status refuse to name nothing', () => {
 
 test('an app user ID is checked before a round trip', () => {
 	assert.equal(checkedUser(' 1234567 '), '1234567');
-	assert.equal(checkedUser('x'.repeat(35)), 'x'.repeat(35));
-	for (const bad of ['', '-dana', 'dana smith', 'dana/smith', 'x'.repeat(36)]) {
+	for (const good of [
+		'x'.repeat(128),
+		'6f1c2b9e-3d4a-4e5f-8a7b-9c0d1e2f3a4b',
+		'dana@example.com',
+		'auth0|5f7c8ec7c33c6c004bbafe82',
+		'dana smith',
+	]) {
+		assert.equal(checkedUser(good), good);
+	}
+	for (const bad of ['', 'x'.repeat(129), 'dana\nsmith', 'dana\tsmith', 'dané']) {
 		assert.throws(() => checkedUser(bad), /not a usable ID/, bad);
 	}
 });

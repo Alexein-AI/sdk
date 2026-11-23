@@ -247,7 +247,7 @@ def test_a_crew_without_whose_never_uses_the_last_runs_user(caplog: pytest.LogCa
     assert any("whose" in r.message for r in caplog.records)
 
 
-@pytest.mark.parametrize("user_id", ["dana@example.com", "dana smith", "-dana"])
+@pytest.mark.parametrize("user_id", ["x" * 129, "dana\nsmith", " dana"])
 def test_a_user_id_memory_cannot_hold_stops_at_kickoff(user_id: str):
     mem, recorder = wired()
     llm = stand()

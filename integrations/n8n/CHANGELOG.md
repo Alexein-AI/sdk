@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **App User** takes what the API takes since 2026-11-23: any ID you already have (a UUID, an email address), up
+  to 128 characters with no control characters, ASCII only. Before: 1 to 35 letters, digits, `.`, `_` and `-`.
+
 ## 0.3.2 - 2026-11-20
 
 - Search's `context` keeps each memory on one line, as the SDKs' `context()` does: an excerpt's line breaks

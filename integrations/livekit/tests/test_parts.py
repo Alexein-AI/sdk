@@ -23,10 +23,10 @@ from alexein_livekit._recall import place, question, wrap
 def test_an_identity_alexein_can_use_is_the_user_id_as_it_is() -> None:
     assert app_user_id("dana") == "dana"
     assert app_user_id("user_42.prod-A") == "user_42.prod-A"
-    longest = "user-" + "7" * 30  # 35 characters, the most an app user id has
+    longest = "user-" + "7" * 30  # 35 characters, the most an identity is used as it is
     assert app_user_id(longest) == longest  # the same memory a backend writes to by that id
-    # A UUID with its dashes is 36 characters, one more than an app user id takes: hashed, as
-    # the client would refuse it.
+    # A UUID with its dashes is 36 characters, one more than `_USABLE` takes: hashed, as it always
+    # was, so its memory stays where it is (the API takes it as it is since 2026-11-23).
     uuid = "6f1c2b9e-3d4a-4e5f-8a7b-9c0d1e2f3a4b"
     assert app_user_id(uuid) == participant_id(uuid)
 

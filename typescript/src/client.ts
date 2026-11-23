@@ -15,7 +15,11 @@ import { User } from "./user.js";
  * ```ts
  * const memory = new Memory();          // ALEXEIN_API_KEY from the environment
  * const dana = memory.user("dana");     // your own id for one of your app users
- * await dana.add("I moved to Lisbon for the job at Acme.");
+ * await dana.add("I moved to Lisbon.", {
+ *   id: "move",
+ *   author: { name: "Dana", self: true },
+ *   wait: true,
+ * });
  * console.log((await dana.search("Where does Dana live?")).context());
  * ```
  */
@@ -47,8 +51,9 @@ export class Memory {
   }
 
   /**
-   * The memory of one of your app users, by your own id for them: 1 to 35 letters, digits, `.`,
-   * `_` and `-`, beginning with a letter or digit. A RangeError otherwise, before any request.
+   * The memory of one of your app users, by the id your app already has for them (a UUID, an
+   * email): up to 128 characters, no control characters, ASCII only. A RangeError otherwise,
+   * before any request.
    */
   user(id: string): User {
     return new User(this.#transport, checkedUserId(id), this.failOpen, this.#settings.log);

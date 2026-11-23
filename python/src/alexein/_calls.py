@@ -39,8 +39,10 @@ T = TypeVar("T")
 
 # The API takes at most this many items in one add; a longer list is sent in batches.
 BATCH = 500
-# What the API accepts as an app user id, checked here so a typo fails where it was made.
-_USER_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,34}")
+# What the API accepts as an app user id (2026-11-23: any id an app already has, up to 128
+# characters with no control character and no space at either end), checked here so a mistake
+# fails where it was made. ASCII only: the X-Alexein-User header carries no other text faithfully.
+_USER_ID = re.compile(r"[!-~](?:[ -~]{0,126}[!-~])?")
 
 
 @dataclass(frozen=True)
@@ -58,8 +60,8 @@ class Call(Generic[T]):
 def checked_user(user_id: str) -> str:
     if not isinstance(user_id, str) or not _USER_ID.fullmatch(user_id):  # pyright: ignore[reportUnnecessaryIsInstance]
         raise ValueError(
-            f"not a usable app user id: {user_id!r} (1 to 35 letters, digits, '.', '_' and "
-            "'-', starting with a letter or digit)"
+            f"not a usable app user id: {user_id!r} (up to 128 characters, no control characters,"
+            " no space at either end, ASCII only)"
         )
     return user_id
 

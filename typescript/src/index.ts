@@ -5,7 +5,11 @@
  * import { Memory } from "@alexein/sdk";
  *
  * const dana = new Memory().user("dana");
- * await dana.add("I moved to Lisbon for the job at Acme.");
+ * await dana.add("I moved to Lisbon.", {
+ *   id: "move",
+ *   author: { name: "Dana", self: true },
+ *   wait: true,
+ * });
  * console.log((await dana.search("Where does Dana live?")).context());
  * ```
  *

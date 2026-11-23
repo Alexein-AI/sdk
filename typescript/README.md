@@ -21,7 +21,13 @@ import { Memory } from "@alexein/sdk";
 const memory = new Memory(); // reads ALEXEIN_API_KEY
 const dana = memory.user("dana"); // your own id for one of your app users
 
-await dana.add("I moved to Lisbon for the job at Acme.", { role: "user", session: "onboarding" });
+await dana.add("I moved to Lisbon for the job at Acme.", {
+  id: "move", // sent again, it edits this item, never copies it
+  role: "user",
+  author: { name: "Dana", self: true }, // Dana's own words, and her name
+  session: "onboarding",
+  wait: true, // searchable once it returns
+});
 await dana.add(
   { id: "diet", kind: "note", text: "Vegetarian, allergic to peanuts." },
   { wait: true },
@@ -32,9 +38,10 @@ console.log(result.context()); // ready to paste into a prompt
 ```
 
 Make a key in the console, under **API keys**. A key belongs to one project; each app user you name
-with `memory.user(...)` has a memory of their own inside it. An app user id is 1 to 35 letters,
-digits, `.`, `_` and `-`, beginning with a letter or digit; `memory.user()` throws a `RangeError`
-for any other, before a request is made.
+with `memory.user(...)` has a memory of their own inside it. An app user id is the id your app
+already has for them (a UUID, an email, `auth0|...`): up to 128 characters, no control characters,
+no space at either end, ASCII only; `memory.user()` throws a `RangeError` for any other, before a
+request is made.
 
 ## Settings
 
@@ -77,7 +84,10 @@ await dana.add("Vegetarian, allergic to peanuts.", { id: "diet", kind: "note" })
 The item fields are `text` (required), `kind`, `id`, `session`, `role`, `author`, `title`, `about`,
 `at`, `expires` and `metadata`. The same `id` again is an edit; as an option, `id` names the one item
 added, and with several items it is a `RangeError`. `wait: true` answers once the items
-are searchable; `redact: true` replaces phone numbers, cards, keys and the like before memory keeps
+are searchable, so search straight after an add with `wait: true`. On what the app user says
+themselves, pass `author: { name, self: true }`: memory then knows the words are theirs and what they
+are called, so a question that names them ("Where does Dana live?") finds them. Without an author, a
+message is kept as said by its `role`, not by anyone memory knows. `redact: true` replaces phone numbers, cards, keys and the like before memory keeps
 them. More than 500 items go as several requests, each with an `Idempotency-Key` its retries send
 again, so a retry never saves an item twice.
 

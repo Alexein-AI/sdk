@@ -19,8 +19,9 @@ import re
 
 from livekit import rtc
 
-# Alexein's app user ids (the `X-Alexein-User` header), as the client checks them before it sends
-# one: 1 to 35 letters, digits, `.`, `_` and `-`, starting with a letter or digit. One of your own
+# Which identities are used as they are: 1 to 35 letters, digits, `.`, `_` and `-`, starting with a
+# letter or digit - the rule app user ids had until 2026-11-23. The API now takes any id up to 128
+# characters, but this stays as it was, so every identity keeps the memory it has always had. One
 # that passes is used as it is, the same memory your backend writes to; any other is hashed.
 _USABLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,34}")
 # What this module makes: an identity that already looks like one is hashed again, so nobody can
@@ -30,9 +31,9 @@ _PHONE = (rtc.ParticipantKind.PARTICIPANT_KIND_SIP, rtc.ParticipantKind.PARTICIP
 
 
 def app_user_id(identity: str) -> str:
-    """`identity` as an app user id: itself when it passes the client's id check (`_USABLE`: 35
-    characters at most), else `lk-` and a hash of it (27 characters), which names nobody's number
-    or address and that no other identity maps to."""
+    """`identity` as an app user id: itself when it passes `_USABLE` (35 characters at most, the
+    old id rule, kept so no identity changes memory), else `lk-` and a hash of it (27
+    characters), which names nobody's number or address and that no other identity maps to."""
     if not identity:
         raise ValueError("an empty identity names nobody")
     if _USABLE.fullmatch(identity) and not _MADE.fullmatch(identity):
