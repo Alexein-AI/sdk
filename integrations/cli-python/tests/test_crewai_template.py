@@ -334,7 +334,10 @@ def test_memory_with_no_hook_says_so(
     assert any("whose" in r.message for r in caplog.records)
 
 
-@pytest.mark.parametrize("user_id", ["dana@example.com", "dana smith", "-dana"])
+# Ids the API refuses, now that an app user id may be up to 128 printable ASCII characters
+# (an email, "dana smith" and "-dana" are fine): a space at either end, past 128, and a letter
+# outside ASCII.
+@pytest.mark.parametrize("user_id", [" dana", "d" * 129, "dänä"])
 def test_a_user_id_memory_cannot_hold_stops_at_kickoff(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, user_id: str
 ) -> None:
