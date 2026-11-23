@@ -15,6 +15,7 @@ memory = Memory()                      # reads ALEXEIN_API_KEY
 dana = memory.user("dana")             # your own id for one of your app users
 dana.add(
     "I moved to Lisbon for the job at Acme.",
+    id="move",                              # sent again, it edits this item, never copies it
     role="user",
     author={"name": "Dana", "self": True},  # Dana's own words, and her name
     wait=True,                              # searchable once it returns
@@ -27,6 +28,7 @@ import { Memory } from "@alexein/sdk";
 
 const dana = new Memory().user("dana");
 await dana.add("I moved to Lisbon for the job at Acme.", {
+  id: "move", // sent again, it edits this item, never copies it
   role: "user",
   author: { name: "Dana", self: true }, // Dana's own words, and her name
   wait: true, // searchable once it returns

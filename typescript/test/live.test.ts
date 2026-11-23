@@ -31,9 +31,10 @@ async function stored(user: ReturnType<Memory["user"]>, ids: string[]): Promise<
 }
 
 describe.skipIf(!key)("a running service", () => {
-  it("runs the README's example, which prints the answer on its first run", async () => {
+  it("runs the README's example: the answer on its first run, and once on the next", async () => {
     // It printed an empty line (2026-11-23): its add not yet searchable, its words not naming
-    // Dana. Run as written for a fresh app user, with a `fast` search so it stays free.
+    // Dana; run again, the sentence twice, its add having no id. Run twice as written for a
+    // fresh app user, with a `fast` search so it stays free.
     process.env.ALEXEIN_API_URL ||= "http://localhost:8210";
     const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
     const example = /```ts\n([\s\S]*?)```/.exec(readme)?.[1] ?? "";
@@ -47,15 +48,17 @@ describe.skipIf(!key)("a running service", () => {
       );
     expect(code, "the README's example changed: update this test").toContain(id);
     expect(code).toContain("fast: true");
-    const printed: string[] = [];
     const run = Object.getPrototypeOf(async () => {}).constructor;
     try {
-      await run(
-        "Memory",
-        "console",
-        code,
-      )(Memory, { log: (...said: unknown[]) => printed.push(said.join(" ")) });
-      expect(printed.join("\n")).toContain("Lisbon");
+      for (let time = 0; time < 2; time++) {
+        const printed: string[] = [];
+        await run(
+          "Memory",
+          "console",
+          code,
+        )(Memory, { log: (...said: unknown[]) => printed.push(said.join(" ")) });
+        expect(printed.join("\n").split("I moved to Lisbon").length - 1).toBe(1);
+      }
     } finally {
       await new Memory().user(id).delete();
     }

@@ -22,6 +22,7 @@ const memory = new Memory(); // reads ALEXEIN_API_KEY
 const dana = memory.user("dana"); // your own id for one of your app users
 
 await dana.add("I moved to Lisbon for the job at Acme.", {
+  id: "move", // sent again, it edits this item, never copies it
   role: "user",
   author: { name: "Dana", self: true }, // Dana's own words, and her name
   session: "onboarding",

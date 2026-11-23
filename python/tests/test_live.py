@@ -82,11 +82,11 @@ def test_the_quickstart():
 README = Path(__file__).resolve().parents[2] / "README.md"
 
 
-def test_the_readme_example_prints_the_answer_on_its_first_run():
+def test_the_readme_example_prints_the_answer_on_its_first_run_and_once_on_the_next():
     """The repository README's Python example, as written, for an app user with nothing yet: it
-    printed an empty line (2026-11-23), its add not yet searchable and its words not naming Dana.
-    Run with a fresh app user and a `fast` search, so it stays free; then that app user is
-    deleted."""
+    printed an empty line (2026-11-23), its add not yet searchable and its words not naming Dana;
+    run again, it printed the sentence twice, its add having no id. Run twice with a fresh app
+    user and a `fast` search, so it stays free; then that app user is deleted."""
     example = re.search(r"```python\n(.*?)```", README.read_text(), re.DOTALL)
     assert example, "no Python example in the README"
     user = f"sdk-readme-{uuid.uuid4().hex[:8]}"
@@ -95,11 +95,12 @@ def test_the_readme_example_prints_the_answer_on_its_first_run():
         '.search("Where does Dana live?")', '.search("Where does Dana live?", fast=True)'
     )
     assert user in code and "fast=True" in code, "the README's example changed: update this test"
-    printed = io.StringIO()
     try:
-        with contextlib.redirect_stdout(printed):
-            exec(compile(code, str(README), "exec"), {})
-        assert "Lisbon" in printed.getvalue(), printed.getvalue()
+        for _ in range(2):
+            printed = io.StringIO()
+            with contextlib.redirect_stdout(printed):
+                exec(compile(code, str(README), "exec"), {})
+            assert printed.getvalue().count("I moved to Lisbon") == 1, printed.getvalue()
     finally:
         with Memory() as memory:
             memory.user(user).delete()

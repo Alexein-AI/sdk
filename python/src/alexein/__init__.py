@@ -4,7 +4,12 @@
 from alexein import Memory
 
 dana = Memory().user("dana")
-dana.add("I moved to Lisbon for the job at Acme.", author={"name": "Dana", "self": True}, wait=True)
+dana.add(
+    "I moved to Lisbon for the job at Acme.",
+    id="move",
+    author={"name": "Dana", "self": True},
+    wait=True,
+)
 print(dana.search("Where does Dana live?").context())
 ```
 
