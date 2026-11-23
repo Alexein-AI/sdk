@@ -52,8 +52,8 @@ trailing `/v2` means the same host (`http://localhost:8210/v2/` -> `http://local
 - Headers: `Authorization: Bearer <key>`, `User-Agent`, `Content-Type: application/json`,
   `X-Alexein-User: <user id>` on every route but `me` and `users`.
   `Idempotency-Key` on every `add` request (see Adding).
-- A user id is checked client-side before any request: 1-35 characters, letters, digits, `.`,
-  `_`, `-`, beginning with a letter or digit. A wrong one is a `ValueError` in Python and a
+- A user id is checked client-side before any request: as the API takes it, up to 128 characters
+  with no control character and no space at either end, and ASCII only (all the header carries). A wrong one is a `ValueError` in Python and a
   `RangeError` in TypeScript, raised by `memory.user(id)` itself, so the mistake surfaces where it
   was made.
 - Fields the caller did not set are not sent (no `null`s for absent optionals); the API's

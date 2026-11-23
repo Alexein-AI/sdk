@@ -66,8 +66,8 @@ class Memory:
         return self._transport.send(_calls.me())
 
     def user(self, user_id: str) -> User:
-        """The memory of one of your app users, by your own id for them: 1 to 35 letters,
-        digits, '.', '_' or '-', starting with a letter or digit."""
+        """The memory of one of your app users, by the id your app already has for them (a
+        UUID, an email): up to 128 characters, no control characters, ASCII only."""
         return User(self._transport, _calls.checked_user(user_id), fail_open=self.fail_open)
 
     def users(self, limit: int | None = None, cursor: str | None = None) -> UsersPage:
@@ -130,8 +130,8 @@ class AsyncMemory:
         return await self._transport.send(_calls.me())
 
     def user(self, user_id: str) -> AsyncUser:
-        """The memory of one of your app users, by your own id for them: 1 to 35 letters,
-        digits, '.', '_' or '-', starting with a letter or digit."""
+        """The memory of one of your app users, by the id your app already has for them (a
+        UUID, an email): up to 128 characters, no control characters, ASCII only."""
         return AsyncUser(self._transport, _calls.checked_user(user_id), fail_open=self.fail_open)
 
     async def users(self, limit: int | None = None, cursor: str | None = None) -> UsersPage:

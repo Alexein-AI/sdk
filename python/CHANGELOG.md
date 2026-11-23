@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `memory.user(id)` takes what the API takes since 2026-11-23: the id your app already has (a UUID, an email,
+  `auth0|...`), up to 128 characters with no control character, no space at either end, ASCII only. Before:
+  1 to 35 letters, digits, `.`, `_` and `-`.
+
 ## 0.3.3 - 2026-11-20
 
 The same version as `@alexein/sdk`, which has the same changes.

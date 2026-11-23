@@ -11,8 +11,12 @@ const KEYS_PAGE = "https://app.alexein.ai/console/keys";
 
 /** One short lowercase word, added to the User-Agent: `langgraph`. */
 const INTEGRATION = /^[a-z0-9][a-z0-9._-]{0,31}$/;
-/** An app user id: as the API takes it, checked before a round trip. */
-const USER_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,34}$/;
+/**
+ * An app user id: as the API takes it (any id an app already has, up to 128 characters with no
+ * control character and no space at either end), checked before a round trip. ASCII only: the
+ * `X-Alexein-User` header carries no other text faithfully.
+ */
+const USER_ID = /^[!-~](?:[ -~]{0,126}[!-~])?$/;
 
 export interface MemoryOptions {
   /** Defaults to `ALEXEIN_API_KEY` from the environment. */
@@ -65,8 +69,8 @@ export function normalizeBaseUrl(url: string): string {
 export function checkedUserId(id: string): string {
   if (typeof id !== "string" || !USER_ID.test(id)) {
     throw new RangeError(
-      `not a usable app user id: ${JSON.stringify(id)} (1 to 35 letters, digits, '.', '_' and ` +
-        "'-', beginning with a letter or digit)",
+      `not a usable app user id: ${JSON.stringify(id)} (up to 128 characters, no control ` +
+        "characters, no space at either end, ASCII only)",
     );
   }
   return id;

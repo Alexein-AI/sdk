@@ -47,8 +47,9 @@ export class Memory {
   }
 
   /**
-   * The memory of one of your app users, by your own id for them: 1 to 35 letters, digits, `.`,
-   * `_` and `-`, beginning with a letter or digit. A RangeError otherwise, before any request.
+   * The memory of one of your app users, by the id your app already has for them (a UUID, an
+   * email): up to 128 characters, no control characters, ASCII only. A RangeError otherwise,
+   * before any request.
    */
   user(id: string): User {
     return new User(this.#transport, checkedUserId(id), this.failOpen, this.#settings.log);

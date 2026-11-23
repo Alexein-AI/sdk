@@ -85,11 +85,22 @@ describe("defaults", () => {
 });
 
 describe("an app user id", () => {
-  it.each(["dana", "user_42", "a", "A.b-c_d", "9lives", "x".repeat(35)])("takes %j", (id) => {
+  it.each([
+    "dana",
+    "user_42",
+    "a",
+    "A.b-c_d",
+    "9lives",
+    "6f1c2b9e-3d4a-4e5f-8a7b-9c0d1e2f3a4b", // a UUID
+    "dana@example.com",
+    "auth0|5f7c8ec7c33c6c004bbafe82",
+    "dana smith",
+    "x".repeat(128), // the API's longest (2026-11-23: any id an app already has)
+  ])("takes %j", (id) => {
     expect(memory().client.user(id).id).toBe(id);
   });
 
-  it.each(["", "-dana", ".dana", "_dana", "dana smith", "dana/1", "dané", "x".repeat(36)])(
+  it.each(["", "x".repeat(129), " dana", "dana ", "dana\nsmith", "dana\tsmith", "dané", "\u0000"])(
     "refuses %j with a RangeError, before a round trip",
     (bad) => {
       const { client, sent } = memory();

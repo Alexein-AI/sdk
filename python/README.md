@@ -32,8 +32,8 @@ print(result.context())  # ready to paste into a prompt
 
 Make a key in the console, under **API keys** (https://app.alexein.ai/console/keys). A key belongs to one
 project; each app user you name with `memory.user(...)` has a memory of their own inside it. An app user id is
-1 to 35 letters, digits, `.`, `_` or `-`, starting with a letter or digit; another raises `ValueError` where
-you named it.
+the id your app already has for them (a UUID, an email, `auth0|...`): up to 128 characters, no control
+characters, no space at either end, ASCII only; another raises `ValueError` where you named it.
 
 ## Settings
 

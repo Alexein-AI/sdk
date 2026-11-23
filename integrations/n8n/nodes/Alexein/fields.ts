@@ -172,7 +172,7 @@ export const operations: INodeProperties[] = [
 		placeholder: 'e.g. user_42',
 		displayOptions: { hide: { operation: ['users'] } },
 		description:
-			"Your ID for the person whose memory this is, usually an expression from the trigger, such as the Telegram user. Each app user has a memory of their own. 1 to 35 letters, digits, '.', '_' and '-', beginning with a letter or digit.",
+			'Your ID for the person whose memory this is, usually an expression from the trigger, such as the Telegram user. Each app user has a memory of their own. Any ID you already have, such as a UUID or an email address: up to 128 characters, ASCII only.',
 	},
 ];
 

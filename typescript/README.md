@@ -37,9 +37,10 @@ console.log(result.context()); // ready to paste into a prompt
 ```
 
 Make a key in the console, under **API keys**. A key belongs to one project; each app user you name
-with `memory.user(...)` has a memory of their own inside it. An app user id is 1 to 35 letters,
-digits, `.`, `_` and `-`, beginning with a letter or digit; `memory.user()` throws a `RangeError`
-for any other, before a request is made.
+with `memory.user(...)` has a memory of their own inside it. An app user id is the id your app
+already has for them (a UUID, an email, `auth0|...`): up to 128 characters, no control characters,
+no space at either end, ASCII only; `memory.user()` throws a `RangeError` for any other, before a
+request is made.
 
 ## Settings
 

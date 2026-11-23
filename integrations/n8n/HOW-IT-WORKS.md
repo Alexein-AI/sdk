@@ -339,7 +339,7 @@ was not checked: with Fast, or a search narrowed by After, Filters, Provider, So
 
 | Where it fails                                | What n8n shows                                                                                                                                                                                                                                   |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| App User is not a usable ID                   | `App User "dana smith" is not a usable ID: 1 to 35 letters, digits, '.', '_' and '-', beginning with a letter or digit`. No request is made                                                                                                      |
+| App User is not a usable ID                   | `App User "dané" is not a usable ID: up to 128 characters, no control characters, ASCII only`. No request is made                                                                                                      |
 | Add with empty Text                           | `Text is empty: there is nothing to remember`                                                                                                                                                                                                    |
 | Metadata or Filters that isn't a JSON object  | `Metadata must be a JSON object` / `Filters must be a JSON object`                                                                                                                                                                               |
 | Forget naming nothing; Get Status with no IDs | `Nothing to forget: ...` / `Item IDs is empty: ...`                                                                                                                                                                                              |
@@ -434,9 +434,8 @@ App User "user_42"  → the memory of user_42 in that project
   project, or another organisation, is a different memory too.
 - **No setup.** An app user exists once something is added for them. There is nothing to create first; **Delete
   App User** erases one whole, and their next add starts a new memory.
-- **Valid IDs:** 1 to 35 letters, digits, `.`, `_` and `-`, beginning with a letter or digit. The node checks
-  this before sending. Telegram user IDs, database IDs and UUIDs all fit. Email addresses don't (`@`), so hash
-  them or use your own ID.
+- **Valid IDs:** any ID you already have, up to 128 characters, with no control characters and in ASCII. The
+  node checks this before sending. Telegram user IDs, database IDs, UUIDs and email addresses all fit.
 
 ## 12. The Telegram template
 
@@ -524,7 +523,7 @@ and `N8N_SECURE_COOKIE=false` (for plain-HTTP localhost). It logs in as `e2e@exa
 | Items per add request | 500                                                               | API          | the node splits larger groups itself                                         |
 | Request body          | 1,000,000 bytes                                                   | API          | `413`; 500 long documents can pass it, so send big documents in smaller runs |
 | Query, phrase         | 2,000 characters                                                  | API          | `422`                                                                        |
-| App user ID           | 35 characters                                                     | node and API | refused before sending                                                       |
+| App user ID           | 128 characters                                                    | node and API | refused before sending                                                       |
 | Kind                  | up to 8                                                           | API          | `422`                                                                        |
 | Results               | Latest, Find Phrase and Open Items 50; Width 5; pages 100 to 500  | node and API | the field won't go higher                                                    |
 | Context               | Context Length, minimum 200, default 4,000 characters             | node         | whole lines only                                                             |

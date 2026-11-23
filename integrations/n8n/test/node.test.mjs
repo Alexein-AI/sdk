@@ -179,7 +179,7 @@ test("an API refusal is a node error in the API's words", async () => {
 
 test('with Continue On Fail, a bad item is an error output and the rest go on', async () => {
 	const items = [
-		{ operation: 'add', user: 'dana smith', text: 'bad user' },
+		{ operation: 'add', user: 'dané', text: 'bad user' },
 		{ operation: 'add', user: 'dana', text: 'fine' },
 	];
 	const { context, sent } = fake(items, addedOk, { continueOnFail: true });

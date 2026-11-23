@@ -83,9 +83,9 @@ can change it, and the model's tools act on that user only.
   within its room - so it gets a namespace of its own: `participant_id(identity)`, `lk-` and a hash,
   which no id your backend writes can meet. Your backend can call `participant_id` to reach the same
   memory. `bind(participant=..., share_identity=True)` uses the identity itself instead, where it
-  is an app user id by the [id rule](https://docs.alexein.ai/concepts/app-users#the-id-rule) (1 to
-  35 letters, digits, `.`, `_` or `-`), so the agent shares memory with ids your backend writes -
-  only where your token server issues the identity from your own user ids. An identity the rule
+  is 1 to 35 letters, digits, `.`, `_` or `-` (the id rule until 2026-11-23, kept here so no
+  identity changes memory, though the API now takes longer ids), so the agent shares memory with
+  ids your backend writes - only where your token server issues the identity from your own user ids. An identity the rule
   does not take, such as a UUID with its dashes (36 characters), is hashed as `app_user_id`
   says. Either way, an identity every caller is given ("guest", "user") is one
   memory for all of them.
