@@ -17,7 +17,13 @@ from alexein import Memory
 memory = Memory()  # reads ALEXEIN_API_KEY
 dana = memory.user("dana")  # your own id for one of your app users
 
-dana.add("I moved to Lisbon for the job at Acme.", role="user", session="onboarding")
+dana.add(
+    "I moved to Lisbon for the job at Acme.",
+    role="user",
+    author={"name": "Dana", "self": True},  # Dana's own words, and her name
+    session="onboarding",
+    wait=True,  # searchable once it returns
+)
 dana.add({"id": "diet", "kind": "note", "text": "Vegetarian, allergic to peanuts."}, wait=True)
 
 result = dana.search("Where does Dana live?")
@@ -76,7 +82,11 @@ dana.add("Vegetarian, allergic to peanuts.", id="diet", kind="note")  # id= name
 | `expires`  | when it stops being true; it is erased then               |
 | `metadata` | your own JSON                                             |
 
-An add is accepted at once and searchable a moment later; `wait=True` returns once it is searchable.
+An add is accepted at once and searchable a moment later; `wait=True` returns once it is searchable, so
+search straight after an add with `wait=True`. On what the app user says themselves, pass
+`author={"name": ..., "self": True}`: memory then knows the words are theirs and what they are called, so a
+question that names them ("Where does Dana live?") finds them. Without an author, a message is kept as said by
+its `role`, not by anyone memory knows.
 `redact=True` replaces phone numbers, cards, keys and the like before memory keeps any copy. Lists longer than
 500 items go in batches, and every request carries an `Idempotency-Key` that a retry repeats, so a retried add
 never saves an item twice.

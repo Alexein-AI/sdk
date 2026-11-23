@@ -15,7 +15,7 @@ import { User } from "./user.js";
  * ```ts
  * const memory = new Memory();          // ALEXEIN_API_KEY from the environment
  * const dana = memory.user("dana");     // your own id for one of your app users
- * await dana.add("I moved to Lisbon for the job at Acme.");
+ * await dana.add("I moved to Lisbon.", { author: { name: "Dana", self: true }, wait: true });
  * console.log((await dana.search("Where does Dana live?")).context());
  * ```
  */

@@ -13,7 +13,12 @@ from alexein import Memory
 
 memory = Memory()                      # reads ALEXEIN_API_KEY
 dana = memory.user("dana")             # your own id for one of your app users
-dana.add("I moved to Lisbon for the job at Acme.", role="user", session="onboarding")
+dana.add(
+    "I moved to Lisbon for the job at Acme.",
+    role="user",
+    author={"name": "Dana", "self": True},  # Dana's own words, and her name
+    wait=True,                              # searchable once it returns
+)
 print(dana.search("Where does Dana live?").context())
 ```
 
@@ -21,7 +26,11 @@ print(dana.search("Where does Dana live?").context())
 import { Memory } from "@alexein/sdk";
 
 const dana = new Memory().user("dana");
-await dana.add("I moved to Lisbon for the job at Acme.", { role: "user", session: "onboarding" });
+await dana.add("I moved to Lisbon for the job at Acme.", {
+  role: "user",
+  author: { name: "Dana", self: true }, // Dana's own words, and her name
+  wait: true, // searchable once it returns
+});
 console.log((await dana.search("Where does Dana live?")).context());
 ```
 

@@ -7,6 +7,7 @@
  * finds it too.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Memory } from "../src/index.js";
 
@@ -30,6 +31,36 @@ async function stored(user: ReturnType<Memory["user"]>, ids: string[]): Promise<
 }
 
 describe.skipIf(!key)("a running service", () => {
+  it("runs the README's example, which prints the answer on its first run", async () => {
+    // It printed an empty line (2026-11-23): its add not yet searchable, its words not naming
+    // Dana. Run as written for a fresh app user, with a `fast` search so it stays free.
+    process.env.ALEXEIN_API_URL ||= "http://localhost:8210";
+    const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
+    const example = /```ts\n([\s\S]*?)```/.exec(readme)?.[1] ?? "";
+    const id = `sdk-readme-${crypto.randomUUID().slice(0, 8)}`;
+    const code = example
+      .replace(/^import .*$/m, "")
+      .replace('user("dana")', `user("${id}")`)
+      .replace(
+        'search("Where does Dana live?")',
+        'search("Where does Dana live?", { fast: true })',
+      );
+    expect(code, "the README's example changed: update this test").toContain(id);
+    expect(code).toContain("fast: true");
+    const printed: string[] = [];
+    const run = Object.getPrototypeOf(async () => {}).constructor;
+    try {
+      await run(
+        "Memory",
+        "console",
+        code,
+      )(Memory, { log: (...said: unknown[]) => printed.push(said.join(" ")) });
+      expect(printed.join("\n")).toContain("Lisbon");
+    } finally {
+      await new Memory().user(id).delete();
+    }
+  });
+
   it("adds, searches, opens, versions and forgets", { timeout: 120_000 }, async () => {
     const memory = new Memory({ baseUrl: process.env.ALEXEIN_API_URL || "http://localhost:8210" });
     const me = await memory.me();

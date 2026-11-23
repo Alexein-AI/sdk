@@ -28,7 +28,7 @@ class Memory:
     ```python
     memory = Memory()                # ALEXEIN_API_KEY from the environment
     dana = memory.user("dana")       # your own id for one of your app users
-    dana.add("I moved to Lisbon for the job at Acme.")
+    dana.add("I moved to Lisbon.", author={"name": "Dana", "self": True}, wait=True)
     print(dana.search("Where does Dana live?").context())
     ```
 
