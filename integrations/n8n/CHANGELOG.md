@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.3 - 2026-11-24
 
 - **App User** takes what the API takes since 2026-11-23: any ID you already have (a UUID, an email address), up
   to 128 characters with no control characters, ASCII only. Before: 1 to 35 letters, digits, `.`, `_` and `-`.

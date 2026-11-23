@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.4 - 2026-11-24
 
 - `memory.user(id)` takes what the API takes since 2026-11-23: the id your app already has (a UUID, an email,
   `auth0|...`), up to 128 characters with no control character, no space at either end, ASCII only. Before:
