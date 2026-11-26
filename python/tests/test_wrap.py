@@ -742,12 +742,28 @@ def test_no_look_alike_can_close_or_fake_the_fence() -> None:
 # ----------------------------------------------------------------------- the gate --
 
 
+ACKS = [
+    "thanks!",
+    "ok, do it",
+    "Sounds good.",
+    "yes please",
+    "Thank you so much!",
+    "cool",
+    "great, thanks",
+    "lol",
+    "haha nice",
+    "ok",
+    "\U0001f44d",
+    "Thanks Claude, that worked perfectly",
+]
+
+
 def test_a_thank_you_looks_nothing_up_and_adds_nothing() -> None:
     mem, recorded = memory(searched())
     model = Model(anthropic, lambda path, body: message())
     claude = wrap_anthropic(model.client(anthropic.Anthropic), mem, user_id="dana")
 
-    for said in ("thanks!", "ok, do it", "Sounds good.", "yes please", "Thank you so much!"):
+    for said in ACKS:
         claude.messages.create(model="m", max_tokens=10, messages=asked(said))
         last = memory_of(claude).last
         assert last is not None and last.skipped, said
@@ -755,13 +771,44 @@ def test_a_thank_you_looks_nothing_up_and_adds_nothing() -> None:
 
     assert recorded.bodies("search") == []
     assert all("system" not in b for b in model.bodies)
-    assert len(adds(recorded)) == 10  # the exchanges are still saved
+    assert len(adds(recorded)) == 2 * len(ACKS)  # the exchanges are still saved
 
 
-def test_only_what_bears_on_the_message_is_added() -> None:
-    off_topic = {"type": "known", "text": "Dana's favourite colour is green."}
-    after = {"type": "known", "text": "Dana lives in Lisbon, near the river."}  # after the excerpts
-    memories = [{"type": "known", "text": "Dana lives in Lisbon."}, off_topic, EXCERPT, after]
+# Questions as people ask them, and the memory that answers each: the answer is shown, though it
+# shares no word with the question.
+ANSWERS = [
+    ("Where do I live?", "Dana moved to Lisbon for a job at Acme."),
+    ("What's my favourite food?", "Dana loves sushi, especially salmon nigiri."),
+    ("What do you know about me?", "Dana works at Acme as a data engineer."),
+    ("Who is my manager?", "Dana reports to Priya Shah."),
+    ("When is my flight?", "Dana's flight to Berlin leaves 3 Dec at 07:40."),
+    ("Remind me what we decided about the queue", "The team chose a new retry queue on 12 Nov."),
+    ("What's my wife's name?", "Dana is married to Maria."),
+    ("Am I allergic to anything?", "Dana has a peanut allergy."),
+    ("How old is my daughter?", "Dana's daughter Lea turned 7 in May."),
+    ("Which database do we use for billing?", "Billing runs on Postgres 16."),
+    ("ok what about the deployment schedule for the billing service?", "Deploys go out Tuesdays."),
+    ("no, I meant the Berlin office", "The Berlin office moved to Kreuzberg."),
+    ("yes, and who is my manager?", "Dana reports to Priya Shah."),
+]
+
+
+@pytest.mark.parametrize(("question", "answer"), ANSWERS)
+def test_the_memory_that_answers_is_shown(question: str, answer: str) -> None:
+    found = {"type": "fact", "ref": "mem_a", "text": answer, "source": None}
+    mem, recorded = memory(searched(memories=[found]))
+    model = Model(anthropic, lambda path, body: message())
+    claude = wrap_anthropic(model.client(anthropic.Anthropic), mem, user_id="dana", save=False)
+
+    claude.messages.create(model="m", max_tokens=10, messages=asked(question))
+
+    assert len(recorded.bodies("search")) == 1
+    assert answer in model.bodies[0]["system"]
+
+
+def test_what_memory_lists_after_the_excerpts_is_left_out() -> None:
+    after = {"type": "known", "text": "Dana likes jazz."}  # the rest of what memory holds
+    memories = [{"type": "known", "text": "Dana lives in Lisbon."}, EXCERPT, after]
     mem, _ = memory(searched(memories=memories))
     model = Model(anthropic, lambda path, body: message())
     claude = wrap_anthropic(model.client(anthropic.Anthropic), mem, user_id="dana", save=False)
@@ -771,18 +818,7 @@ def test_only_what_bears_on_the_message_is_added() -> None:
     system = model.bodies[0]["system"]
     assert "- Dana lives in Lisbon." in system
     assert "Dana: I moved to Lisbon" in system
-    assert "colour" not in system and "near the river" not in system
-
-
-def test_nothing_that_bears_on_the_message_adds_nothing() -> None:
-    mem, recorded = memory(searched(memories=[{"type": "known", "text": "Dana likes jazz."}]))
-    model = Model(anthropic, lambda path, body: message())
-    claude = wrap_anthropic(model.client(anthropic.Anthropic), mem, user_id="dana", save=False)
-
-    claude.messages.create(model="m", max_tokens=10, messages=asked())
-
-    assert len(recorded.bodies("search")) == 1
-    assert "system" not in model.bodies[0]
+    assert "jazz" not in system
 
 
 def test_a_memory_is_shown_once_a_session_across_wrapped_clients() -> None:

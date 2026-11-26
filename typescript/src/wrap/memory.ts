@@ -145,11 +145,10 @@ function speaker(raw: Json, roles: string[] | null): string {
 function blockOf(
   found: SearchResult,
   maxTokens: number,
-  query: string | undefined,
-  shown: ReadonlySet<string>,
+  shown: ReadonlySet<string> | undefined,
 ): { text: string; marks: string[] } {
   if (found.failed || found.answerable === false) return { text: "", marks: [] };
-  const memories = query === undefined ? found.memories : relevant(found.memories, query, shown);
+  const memories = shown === undefined ? found.memories : relevant(found.memories, shown);
   const budget = maxTokens * CHARS_PER_TOKEN;
   const lines: string[] = [];
   const marks: string[] = [];
@@ -177,10 +176,10 @@ function blockOf(
 /**
  * What `found` adds to a system prompt: the header, then its memories inside `<memory>`, one a
  * line with when and by whom, at most four, cut at a whole memory within `maxTokens`. With
- * `query`, only the memories that bear on it. Empty when nothing is left.
+ * `gated`, without the lines memory lists after the excerpts. Empty when nothing is left.
  */
-export function memoryBlock(found: SearchResult, maxTokens: number, query?: string): string {
-  return blockOf(found, maxTokens, query, new Set()).text;
+export function memoryBlock(found: SearchResult, maxTokens: number, gated = false): string {
+  return blockOf(found, maxTokens, gated ? new Set() : undefined).text;
 }
 
 /** The words in a message's content: a string, or the text parts of a list. */
@@ -362,7 +361,7 @@ export class AutoMemory {
       let text = "";
       if (found) {
         const shown = this.#shown();
-        const made = blockOf(found, this.#options.maxTokens, asking, new Set(shown));
+        const made = blockOf(found, this.#options.maxTokens, new Set(shown));
         text = made.text;
         shown.push(...made.marks);
         shown.splice(0, Math.max(0, shown.length - SHOWN));

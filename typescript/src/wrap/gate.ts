@@ -7,75 +7,37 @@
 import type { MemoryEntry } from "../memories.js";
 
 /**
- * Words that say nothing about a topic: how questions and requests are asked, and code's own
- * keywords. A topic is the rest (`terms`).
+ * Words a go-ahead, a thank-you or a greeting is made of. A message of these alone (and perhaps one
+ * name: "Thanks Claude!") asks nothing memory could answer.
  */
-const STOP = new Set(
-  `about above after again against all also always and another any anything are around because
-  been before being below between both but can cannot could did does doing done down during
-  each either else even ever every few for from further get gets getting give going gone got
-  had has have having her here hers him his how however into its itself just keep know last
-  least less let lets like likely look looks made make makes many may maybe might mine more
-  most much must need needs never new next not now off once one only onto other others our
-  ours out over own please put quite rather really right said same say says see seem seems set
-  shall she should show since some something still such sure take than thank thanks that the
-  their theirs them then there these they thing things think this those though through too
-  try under until upon use used uses using very want wants was way well were what whatever
-  when where whether which while who whom whose why will with within without would yes yet
-  you your yours yourself okay hello hey hi
-  const var function return import export class def self true false null none async await
-  type interface string number int str bool void public private static elif while try catch
-  except raise throw lambda yield pass break continue new this from`.split(/\s+/),
+const ACK_WORDS = new Set(
+  `thanks thank thx ty you so much very many ok okay kk yes yeah yep yup no nope nah sure great
+  cool nice perfect perfectly awesome good fine lgtm works worked working got it sounds sound
+  looks look please do go ahead continue proceed done alright right wonderful excellent amazing
+  brilliant appreciated appreciate cheers hi hello hey bye goodbye that this thats all for now
+  then will lol haha the and just really too again also well indeed exactly correct agreed
+  agree understood makes sense love is was`.split(/\s+/),
 );
-const WORD = /[A-Za-z][A-Za-z0-9]+/g;
-const CAMEL = /([a-z0-9])([A-Z])/g;
-/** A go-ahead or a thank-you: no question to look up, unless it goes on to name a topic at length. */
-const ACK =
-  /^\s*(?:yes|yeah|yep|no|nope|ok|okay|sure|thanks|thank you|great|cool|nice|perfect|go ahead|continue|proceed|do it|sounds good|lgtm|looks good)\b/i;
-
-function stem(word: string): string {
-  for (const suffix of ["ing", "ed", "es", "s"]) {
-    if (word.endsWith(suffix) && word.length - suffix.length >= 4) {
-      return word.slice(0, -suffix.length);
-    }
-  }
-  return word;
-}
-
-/** A text's topic words: lower case, camelCase split, short and common words left out, stemmed. */
-export function terms(text: string): Set<string> {
-  const out = new Set<string>();
-  for (const found of (text ?? "").replace(CAMEL, "$1 $2").matchAll(WORD)) {
-    const word = found[0].toLowerCase();
-    if (word.length >= 3 && !STOP.has(word)) out.add(stem(word));
-  }
-  return out;
-}
-
-function matches(term: string, words: Set<string>): boolean {
-  if (words.has(term)) return true;
-  if (term.length < 5) return false;
-  for (const w of words) if (w.length >= 5 && w.slice(0, 5) === term.slice(0, 5)) return true;
-  return false;
-}
-
-function overlap(wanted: Set<string>, text: string): number {
-  const words = terms(text);
-  let n = 0;
-  for (const term of wanted) if (matches(term, words)) n++;
-  return n;
-}
+/** The words such a message opens with, when it adds one name of its own ("Thanks Claude"). */
+const ACK_OPENERS = new Set(
+  `thanks thank thx ty ok okay kk yes yeah yep yup no nope nah sure great cool nice perfect
+  awesome good fine lgtm sounds looks got hi hello hey cheers lol haha alright`.split(/\s+/),
+);
 
 /**
- * Whether the user's message is worth a lookup: it names a topic, and is not a go-ahead or a
- * thank-you ("thanks!", "ok, do it", "sounds good") with few words of its own.
+ * Whether the user's message is worth a lookup: anything but a slash command, and a message that
+ * is only a go-ahead, a thank-you or a greeting ("thanks!", "ok, do it", "sounds good", "Thanks
+ * Claude, that worked perfectly", "👍"). A question always is, and so is anything about the user
+ * ("What do you know about me?").
  */
 export function worthRecall(said: string): boolean {
   const text = said.trim();
   if (!text || text.startsWith("/")) return false;
-  const named = terms(text);
-  if (!named.size) return false;
-  return !(ACK.test(text) && named.size < 6);
+  if (text.includes("?")) return true;
+  const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
+  const extra = words.filter((w) => w.length > 1 && !ACK_WORDS.has(w));
+  if (!extra.length) return false;
+  return !(extra.length === 1 && ACK_OPENERS.has(words[0]!));
 }
 
 /** What a memory is known by, so it is shown once in a session: its ref, else its words. */
@@ -87,26 +49,20 @@ export function markOf(memory: MemoryEntry): string {
 }
 
 /**
- * Of a search's memories, in order, those that bear on `query`: the lines the API lists after the
- * excerpts - the rest of what it holds, which bore on nothing asked - left out; of the rest, those
- * sharing a topic word with the query (two for a query of more than three), and not shown before
- * in this session.
+ * Of a search's memories, in the order memory ranked them, those to show: the lines the API lists
+ * after the excerpts - the rest of what it holds, which bore on nothing asked - left out, and none
+ * shown before in this session.
  */
 export function relevant(
   memories: readonly MemoryEntry[],
-  query: string,
   shown: ReadonlySet<string>,
 ): MemoryEntry[] {
-  const wanted = terms(query);
-  if (!wanted.size) return [];
-  const need = wanted.size <= 3 ? 1 : 2;
   const kept: MemoryEntry[] = [];
   let past = false;
   for (const memory of memories) {
     if (memory.type === "excerpt") past = true;
     else if (past) continue;
-    if (shown.has(markOf(memory))) continue;
-    if (overlap(wanted, memory.text) >= need) kept.push(memory);
+    if (!shown.has(markOf(memory))) kept.push(memory);
   }
   return kept;
 }

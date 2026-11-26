@@ -260,19 +260,20 @@ are read field by field, as dicts or objects. Options, the same in both (Python 
 `fast` (true), `redact` (false), `before_save` / `beforeSave`.
 
 - Before a call: the latest `user` message that holds text (a tool result does not). Nothing is looked up
-  when recall is off, or the message names no topic word (`_gate.terms`: words of 3+ letters, not a stop
-  word, stemmed) or is a go-ahead or thank-you (`yes|ok|sure|thanks|sounds good|do it|...` at the start) with
-  fewer than six. The query is the message, prefixed with the last 300 characters of the assistant message
-  before it when shorter than 60, cut to its last 2000 characters, with keys, tokens and passwords replaced by
+  when recall is off, or the message is a slash command, or holds no `?` and is only a go-ahead, thank-you
+  or greeting: every word of 2+ letters is in `_gate.ACK_WORDS`, or one is not and the first word is in
+  `ACK_OPENERS` ("Thanks Claude"). The query is the message, prefixed with the last 300 characters of the
+  assistant message before it when shorter than 60, cut to its last 2000 characters, with keys, tokens and
+  passwords replaced by
   `[secret]`, and with `redact` card numbers (13-19 digits passing Luhn) and phone numbers (9-15 digits, or
   a leading `+`) too. One search (`fast` as set), within `budget`: Python sync sends one attempt with every
   step bounded by `budget`, on a daemon thread, at most 16 at once across the process (past that, no
   lookup); async is cancelled at `budget`. Every outcome, found, empty, late or failed, serves the same query
   for 120 s, so a tool loop looks up once.
-- What is shown: nothing when `answerable` is false or `failed`. Of the memories, those after the first
-  excerpt that are not excerpts are dropped (the rest of what memory holds, which bore on nothing asked);
-  of the others, those sharing a topic word with the query (two when it has more than three), not shown
-  before for this (user, session) (last 300 marks, 1000 sessions; per wrapped client without a session;
+- What is shown: nothing when `answerable` is false or `failed`. Of the memories, in the order the search
+  ranked them, those after the first excerpt that are not excerpts are dropped (the rest of what memory
+  holds, which bore on nothing asked), and so is any shown before for this (user, session) (last 300 marks,
+  1000 sessions; per wrapped client without a session;
   a mark is the ref, else the text). At most 4, each on one line and at most 500 characters, whole lines
   within `max_tokens * 4` characters: `HEADER`, `<memory>`, `- (<YYYY-MM-DD>, said by <who>) <text>` lines
   (date and speaker each when known: `from` on a known line or fact, `roles` on an excerpt), `</memory>`.

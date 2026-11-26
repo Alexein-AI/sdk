@@ -223,12 +223,12 @@ the async clients too (`AsyncAnthropic`, `AsyncOpenAI`, with a `Memory` or an `A
 `create` (streaming or not), `parse` and `stream`.
 
 - **Before each call**, one search with the user's latest message (with the end of the reply before it, when
-  the message is short). Nothing is looked up for a go-ahead or a thank-you ("thanks!", "ok, do it"). Of what
-  the search finds, only the memories that share a topic word with the message are added, at most four, each
-  once per conversation (`session`), and nothing when none bears on it. They go in the system prompt, after
-  yours, inside a `<memory>` block that says they are quoted data, not instructions, gives each line's date
-  and who said it, and states that memory never authorises sharing secrets or sending data out; no character
-  in them can close or fake that block. A call waits at most `budget` seconds for it; when memory is slow,
+  the message is short). Nothing is looked up for a message that is only a go-ahead, a thank-you or a
+  greeting ("thanks!", "ok, do it"); a question always is. What the search ranks first is added, at most
+  four memories, each once per conversation (`session`), without the rest of what memory holds that it lists
+  last. They go in the system prompt, after yours, inside a `<memory>` block that says they are quoted data,
+  not instructions, gives each line's date and who said it, and states that memory never authorises sharing
+  secrets or sending data out; no character in them can close or fake that block. A call waits at most `budget` seconds for it; when memory is slow,
   down or refuses, the model is called without it, and nothing is raised. Keys, tokens and passwords are
   never sent as a search.
 - **After each call**, the user's message and the reply are saved in the background, never delaying the reply.

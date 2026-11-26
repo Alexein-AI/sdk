@@ -650,6 +650,38 @@ const LOOK_ALIKES =
   "\u02c2/memory\u02c3 \u1438/memory\u1433 \u2039/memory\u203a \u{e003c}/memory\u{e003e} " +
   "\u27e8/memory\u27e9 \u00ab/memory\u00bb \u200b\u202e hidden\u2028next\u0085line\u001c";
 
+const ACKS = [
+  "thanks!",
+  "ok, do it",
+  "Sounds good.",
+  "yes please",
+  "Thank you so much!",
+  "cool",
+  "great, thanks",
+  "lol",
+  "haha nice",
+  "ok",
+  "\u{1f44d}",
+  "Thanks Claude, that worked perfectly",
+];
+
+/** Questions as people ask them, and the memory that answers each, sharing no word with it. */
+const ANSWERS: [string, string][] = [
+  ["Where do I live?", "Dana moved to Lisbon for a job at Acme."],
+  ["What's my favourite food?", "Dana loves sushi, especially salmon nigiri."],
+  ["What do you know about me?", "Dana works at Acme as a data engineer."],
+  ["Who is my manager?", "Dana reports to Priya Shah."],
+  ["When is my flight?", "Dana's flight to Berlin leaves 3 Dec at 07:40."],
+  ["Remind me what we decided about the queue", "The team chose a new retry queue on 12 Nov."],
+  ["What's my wife's name?", "Dana is married to Maria."],
+  ["Am I allergic to anything?", "Dana has a peanut allergy."],
+  ["How old is my daughter?", "Dana's daughter Lea turned 7 in May."],
+  ["Which database do we use for billing?", "Billing runs on Postgres 16."],
+  ["ok what about the deployment schedule for the billing service?", "Deploys go out Tuesdays."],
+  ["no, I meant the Berlin office", "The Berlin office moved to Kreuzberg."],
+  ["yes, and who is my manager?", "Dana reports to Priya Shah."],
+];
+
 describe("the gate", () => {
   const found = (memories: unknown[]) => SearchResult.parse({ ...SEARCH, memories });
 
@@ -665,13 +697,7 @@ describe("the gate", () => {
     const model = new Model(() => message());
     const claude = wrapAnthropic(model.anthropic(), client, { userId: "dana" });
 
-    for (const said of [
-      "thanks!",
-      "ok, do it",
-      "Sounds good.",
-      "yes please",
-      "Thank you so much!",
-    ]) {
+    for (const said of ACKS) {
       await claude.messages.create({ model: "m", max_tokens: 10, messages: asked(said) });
       expect(memoryOf(claude).last?.skipped).toBe(true);
     }
@@ -679,13 +705,24 @@ describe("the gate", () => {
 
     expect(searches(sent)).toEqual([]);
     expect(model.bodies.every((b) => b.system === undefined)).toBe(true);
-    expect(adds(sent)).toHaveLength(10);
+    expect(adds(sent)).toHaveLength(2 * ACKS.length);
   });
 
-  it("adds only what bears on the message", async () => {
-    const offTopic = { type: "known", text: "Alice's favourite colour is green." };
-    const after = { type: "known", text: "Alice lives in Lisbon, near the river." };
-    const { client } = memory(searched({ memories: [FACT, offTopic, EXCERPT, after] }));
+  it.each(ANSWERS)("shows the memory that answers %j", async (question, answer) => {
+    const fact = { type: "fact", ref: "mem_a", text: answer, source: null };
+    const { client, sent } = memory(searched({ memories: [fact] }));
+    const model = new Model(() => message());
+    const claude = wrapAnthropic(model.anthropic(), client, { userId: "dana", save: false });
+
+    await claude.messages.create({ model: "m", max_tokens: 10, messages: asked(question) });
+
+    expect(searches(sent)).toHaveLength(1);
+    expect(model.bodies[0].system).toContain(answer);
+  });
+
+  it("leaves out what memory lists after the excerpts", async () => {
+    const after = { type: "known", text: "Alice likes jazz." };
+    const { client } = memory(searched({ memories: [FACT, EXCERPT, after] }));
     const model = new Model(() => message());
     const claude = wrapAnthropic(model.anthropic(), client, { userId: "dana", save: false });
 
@@ -694,21 +731,7 @@ describe("the gate", () => {
     const system: string = model.bodies[0].system;
     expect(system).toContain("Alice lives in Lisbon");
     expect(system).toContain("I just moved to Lisbon");
-    expect(system).not.toContain("colour");
-    expect(system).not.toContain("near the river");
-  });
-
-  it("adds nothing when nothing bears on the message", async () => {
-    const { client, sent } = memory(
-      searched({ memories: [{ type: "known", text: "Likes jazz." }] }),
-    );
-    const model = new Model(() => message());
-    const claude = wrapAnthropic(model.anthropic(), client, { userId: "dana", save: false });
-
-    await claude.messages.create({ model: "m", max_tokens: 10, messages: asked() });
-
-    expect(searches(sent)).toHaveLength(1);
-    expect(model.bodies[0].system).toBeUndefined();
+    expect(system).not.toContain("jazz");
   });
 
   it("shows a memory once a session, across wrapped clients", async () => {

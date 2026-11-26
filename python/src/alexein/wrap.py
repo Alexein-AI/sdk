@@ -156,14 +156,14 @@ def _paired(found: SearchResult) -> list[tuple[Any, Json]]:
 
 
 def _block(
-    found: SearchResult, max_tokens: int, query: str | None, shown: set[str] | frozenset[str]
+    found: SearchResult, max_tokens: int, shown: set[str] | frozenset[str] | None
 ) -> tuple[str, list[str]]:
     """The block and the marks of the memories in it."""
     if found.failed or found.answerable is False:
         return "", []
     memories = _paired(found)
-    if query is not None:
-        memories = _gate.relevant(memories, query, shown)
+    if shown is not None:
+        memories = _gate.relevant(memories, shown)
     budget = max_tokens * _CHARS_PER_TOKEN
     lines: list[str] = []
     marks: list[str] = []
@@ -186,11 +186,11 @@ def _block(
     return HEADER + "\n<memory>\n" + "\n".join(lines) + "\n</memory>", marks
 
 
-def block(found: SearchResult, max_tokens: int, query: str | None = None) -> str:
+def block(found: SearchResult, max_tokens: int, gated: bool = False) -> str:
     """What `found` adds to a system prompt: the header, then its memories inside <memory>, one
     a line with when and by whom, at most four, cut at a whole memory within `max_tokens`. With
-    `query`, only the memories that bear on it. Empty when nothing is left."""
-    return _block(found, max_tokens, query, frozenset())[0]
+    `gated`, without the lines memory lists after the excerpts. Empty when nothing is left."""
+    return _block(found, max_tokens, frozenset() if gated else None)[0]
 
 
 # ------------------------------------------------------------------- reading the payloads --
@@ -622,7 +622,7 @@ class AutoMemory:
             shown = self._shown()
             with _lock:
                 seen = frozenset(shown)
-            text, marks = _block(found, self.max_tokens, query, seen)
+            text, marks = _block(found, self.max_tokens, seen)
             with _lock:
                 shown.extend(marks)
         failed = found is not None and found.failed
