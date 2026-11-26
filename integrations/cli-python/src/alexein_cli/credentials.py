@@ -42,8 +42,8 @@ def key_from(given: str | None, read: Callable[[], str | None]) -> str | None:
     return key
 
 
-class Shell(Protocol):
-    """What the credentials need of the computer: a test hands in one over a scratch directory."""
+class Places(Protocol):
+    """Where a computer keeps a user's settings: its home, its platform and its environment."""
 
     @property
     def home(self) -> Path: ...
@@ -53,6 +53,10 @@ class Shell(Protocol):
 
     @property
     def env(self) -> Mapping[str, str]: ...
+
+
+class Shell(Places, Protocol):
+    """What the credentials need of the computer: a test hands in one over a scratch directory."""
 
     def has(self, command: str) -> bool:
         """Whether a command is on PATH."""
@@ -89,7 +93,7 @@ class LocalShell:
         return Ran(done.returncode, done.stdout or "")
 
 
-def directory(shell: Shell) -> Path:
+def directory(shell: Places) -> Path:
     """`ALEXEIN_CONFIG_DIR`, else `alexein` in the platform's place for settings."""
     env = shell.env
     if env.get("ALEXEIN_CONFIG_DIR"):
@@ -99,7 +103,7 @@ def directory(shell: Shell) -> Path:
     return Path(env.get("XDG_CONFIG_HOME") or shell.home / ".config") / "alexein"
 
 
-def credentials_file(shell: Shell) -> Path:
+def credentials_file(shell: Places) -> Path:
     return directory(shell) / "credentials.json"
 
 

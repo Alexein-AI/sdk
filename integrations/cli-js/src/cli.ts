@@ -22,6 +22,7 @@ import { connect } from "./connect.js";
 import { create, DEFAULT_MODEL } from "./create.js";
 import { keyFrom } from "./credentials.js";
 import { doctor } from "./doctor.js";
+import { install, offerInstall } from "./install.js";
 import { memoryMain, NAMES, summaries } from "./memory.js";
 import { TEMPLATES } from "./render.js";
 import { init, MINIMUMS, options, PARTS, type Part } from "./scaffold.js";
@@ -40,6 +41,9 @@ Usage:
   npx @alexein/cli connect [options]                   add Alexein AI to Claude Code, Cursor,
                                                        VS Code, Copilot CLI, Codex, Gemini CLI,
                                                        Antigravity and Devin Desktop
+  npx @alexein/cli install                             put the alexein command on your PATH, to
+                                                       type alexein ... from then on (login,
+                                                       connect, init and create offer it once)
 
   <framework> is langgraph or openai-agents.
 
@@ -116,14 +120,25 @@ function readStdin(): string | undefined {
   return process.stdin.isTTY ? undefined : readFileSync(0, "utf8");
 }
 
+/** A setup command's exit code, after offering once to install `alexein` where it did its work. */
+async function offered(code: number, console: Console, offer: boolean): Promise<number> {
+  if (code === 0 && offer) await offerInstall(console);
+  return code;
+}
+
 export async function main(
   argv: string[],
   given?: Console,
   stdin: () => string | undefined = readStdin,
 ): Promise<number> {
   const [first, ...rest] = argv;
+  if (first === "login") {
+    const console = given ?? Console.forTerminal(false);
+    return offered(await memoryMain(first, rest, { console, stdin }), console, true);
+  }
   if (first !== undefined && NAMES.has(first))
     return memoryMain(first, rest, { console: given, stdin });
+  if (first === "install" && !rest.length) return install(given ?? new Console());
   if (first === "skill" && !rest.length) {
     (given ?? new Console()).line(readFileSync(`${TEMPLATES}skill/SKILL.md`, "utf8").trimEnd());
     return 0;
@@ -169,7 +184,7 @@ export async function main(
       ?.split(",")
       .map((id) => id.trim())
       .filter(Boolean);
-    return connect(
+    const code = await connect(
       {
         only,
         key,
@@ -182,6 +197,7 @@ export async function main(
       },
       console,
     );
+    return offered(code, console, !(v.list || v.json || v["dry-run"] || v.remove));
   }
   if (v["nodes-only"] && v["tools-only"]) {
     console.fail("--nodes-only and --tools-only: pick one");
@@ -203,7 +219,7 @@ export async function main(
     sdk: v.sdk,
     dryRun: Boolean(v["dry-run"]),
   });
-  if (command === "init") return init(cwd, o, console);
+  if (command === "init") return offered(await init(cwd, o, console), console, !v["dry-run"]);
   if (command === "create") {
     if (!framework || !(framework in MINIMUMS)) {
       const known = Object.keys(MINIMUMS).join(", ");
@@ -217,7 +233,7 @@ export async function main(
       return 2;
     }
     const model = v.model ?? (framework === "langgraph" ? DEFAULT_MODEL : "");
-    return create(name, cwd, model, o, console);
+    return offered(await create(name, cwd, model, o, console), console, !v["dry-run"]);
   }
   console.fail(`no command ${JSON.stringify(command)}: init, create, doctor or connect`);
   return 2;

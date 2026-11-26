@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `install` puts the `alexein` command on PATH for good, with `uv tool install alexein-cli`, and
+  `uv tool update-shell` where uv's folder for commands is not on PATH. `login`, `connect`, `init`
+  and `create` offer it once, when they run at a terminal and `alexein` is not on PATH; a no is kept
+  in `~/.config/alexein/state.json`. uvx's own copy, which uvx puts on PATH while it runs, is not
+  taken for an installed one.
+- A step whose word is nine letters long (`signed in`, `installed`) no longer runs into its text.
 - Memory from the shell: `search`, `latest`, `open`, `subject`, `summary`, `history`, `add`, `status`,
   `forget` and `export`, each one route of the memory API, printed to read or with `--json` as the API
   answered. `forget` asks first unless `--yes`; `export` writes JSON lines, to a file only its owner

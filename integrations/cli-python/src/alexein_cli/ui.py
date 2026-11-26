@@ -31,7 +31,7 @@ class Console:
         (self.out or _print)(text)
 
     def step(self, verb: str, what: str) -> None:
-        self.line(f"  {verb:<9}{what}")
+        self.line(f"  {verb:<8} {what}")
 
     def fail(self, why: str) -> None:
         self.line(f"alexein-cli: {why}")
@@ -45,13 +45,15 @@ class Console:
             return getpass.getpass(prompt)
         return input(prompt)
 
-    def confirm(self, question: str) -> bool:
-        """Yes with `--yes`; asked at a terminal; no otherwise."""
+    def confirm(self, question: str, *, by_default: bool = False) -> bool:
+        """Yes with `--yes`; asked at a terminal, where Enter answers `by_default`; no otherwise."""
         if self.yes:
             return True
         if not self.interactive:
             return False
-        return self._reply(f"  {question} [y/N] ", secret=False).strip().lower() in ("y", "yes")
+        choices = "[Y/n]" if by_default else "[y/N]"
+        said = self._reply(f"  {question} {choices} ", secret=False).strip().lower()
+        return said in ("y", "yes") if said else by_default
 
     def secret(self, question: str) -> str:
         """A key, typed without echo; empty when skipped or when nobody can answer."""

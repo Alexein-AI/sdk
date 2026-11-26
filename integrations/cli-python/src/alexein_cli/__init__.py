@@ -29,6 +29,7 @@ from alexein_cli import connect as connecting
 from alexein_cli import create as creating
 from alexein_cli import create_crewai, memory
 from alexein_cli import doctor as checking
+from alexein_cli import install as installing
 from alexein_cli._version import __version__
 from alexein_cli.credentials import key_from
 from alexein_cli.render import TEMPLATES
@@ -136,6 +137,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     memory.register(commands.add_parser)
     commands.add_parser(
+        "install",
+        help="put the alexein command on your PATH, to type alexein ... from then on "
+        "(login, connect, init and create offer it once)",
+    )
+    commands.add_parser(
         "skill",
         help="the guide for an AI agent to use these commands, to save as its skill: "
         "alexein skill > ~/.claude/skills/alexein/SKILL.md",
@@ -201,9 +207,12 @@ def main(
     if args.command == "skill":
         (console or Console.for_terminal(yes=True)).line(SKILL.read_text().rstrip())
         return 0
+    if args.command == "install":
+        return installing.install(console or Console.for_terminal(yes=True))
     if args.command in memory.NAMES:
         yes = bool(getattr(args, "yes", False))
-        return memory.run(args, console or Console.for_terminal(yes=yes), stdin)
+        console = console or Console.for_terminal(yes=yes)
+        return _offered(memory.run(args, console, stdin), console, args.command == "login")
     console = console or Console.for_terminal(yes=args.yes)
     try:
         args.key = key_from(args.key, stdin)
@@ -211,17 +220,28 @@ def main(
         console.fail(str(error))
         return 2
     if args.command == "connect":
-        return _connect(args, console)
+        quiet = args.list or args.json or args.dry_run or args.remove
+        return _offered(_connect(args, console), console, not quiet)
     if args.command == "create":
         if args.framework not in MINIMUMS:
             console.fail(f"no template for {args.framework!r}; there is: {', '.join(MINIMUMS)}")
             return 2
         if args.framework == "crewai":
             model = args.model or create_crewai.DEFAULT_MODEL
-            return create_crewai.create(args.name, cwd, model, _options(args), console)
-        model = args.model or (creating.DEFAULT_MODEL if args.framework == "langgraph" else "")
-        return creating.create(args.name, cwd, model, _options(args), console)
-    return init(cwd, _options(args), console)
+            made = create_crewai.create(args.name, cwd, model, _options(args), console)
+        else:
+            model = args.model or (creating.DEFAULT_MODEL if args.framework == "langgraph" else "")
+            made = creating.create(args.name, cwd, model, _options(args), console)
+        return _offered(made, console, not args.dry_run)
+    return _offered(init(cwd, _options(args), console), console, not args.dry_run)
+
+
+def _offered(code: int, console: Console, offer: bool) -> int:
+    """A setup command's exit code, after offering once to install `alexein` where it did its
+    work."""
+    if code == 0 and offer:
+        installing.offer_install(console)
+    return code
 
 
 if __name__ == "__main__":

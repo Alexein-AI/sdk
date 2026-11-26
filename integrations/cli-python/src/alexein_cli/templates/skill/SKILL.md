@@ -9,7 +9,9 @@ Alexein is this person's long-term memory, shared across sessions and apps: what
 people they work with said, decided and did. The `alexein` command reads and writes it.
 `alexein whoami` says which key it uses and whose memory that is.
 
-Add `--json` to any command to read exactly what memory answered.
+Add `--json` to any command to read exactly what memory answered. If `alexein` is not found, the
+same commands run as `npx -y @alexein/cli <command>` or `uvx alexein-cli <command>`; the person can
+put `alexein` on PATH for good with `npx @alexein/cli install` or `uvx alexein-cli install`.
 
 ## Search first
 

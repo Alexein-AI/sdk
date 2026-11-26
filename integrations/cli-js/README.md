@@ -13,6 +13,7 @@ npx @alexein/cli doctor                         # is it all set up?
 npx @alexein/cli connect                        # Alexein AI in Claude Code, Cursor, VS Code, ...
 npx @alexein/cli connect --remove               # ... and out of them again
 npx @alexein/cli search "where does dana live"  # memory itself, once you have logged in
+npx @alexein/cli install                        # alexein on your PATH: type alexein ... from then on
 ```
 
 The command it installs is `alexein-cli`, also called `alexein`.
@@ -66,7 +67,11 @@ is each tool's sign-in: disconnect a tool in My memory to end that too.
 ## Memory from the shell
 
 The memory itself, from a terminal or an AI agent's shell: search it, save to it, read one memory
-whole, forget, export. `npx @alexein/cli <command>`, or `alexein <command>` once installed (`npm install -g @alexein/cli`).
+whole, forget, export. `npx @alexein/cli <command>` runs them, and so does `alexein <command>` once
+the command is installed. `npx @alexein/cli install` puts it on your PATH, with
+`npm install -g @alexein/cli`; `login`, `connect`, `init` and `create` offer to, once, the first time they
+run at a terminal.
+Upgrade it with `npm update -g @alexein/cli`.
 
 ```bash
 alexein login                                  # asks for the key; or --key - and pipe it in

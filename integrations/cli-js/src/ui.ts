@@ -37,7 +37,7 @@ export class Console {
   }
 
   step(verb: string, what: string): void {
-    this.line(`  ${verb.padEnd(9)}${what}`);
+    this.line(`  ${verb.padEnd(8)} ${what}`);
   }
 
   fail(why: string): void {
@@ -68,12 +68,13 @@ export class Console {
     }
   }
 
-  /** Yes with `--yes`; asked at a terminal; no otherwise. */
-  async confirm(question: string): Promise<boolean> {
+  /** Yes with `--yes`; asked at a terminal, where Enter answers `byDefault`; no otherwise. */
+  async confirm(question: string, byDefault = false): Promise<boolean> {
     if (this.yes) return true;
     if (!this.interactive) return false;
-    const reply = await this.#reply(`  ${question} [y/N] `, false);
-    return ["y", "yes"].includes(reply.trim().toLowerCase());
+    const reply = await this.#reply(`  ${question} ${byDefault ? "[Y/n]" : "[y/N]"} `, false);
+    const said = reply.trim().toLowerCase();
+    return said ? ["y", "yes"].includes(said) : byDefault;
   }
 
   /** A key, typed without echo; empty when skipped or when nobody can answer. */
