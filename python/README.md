@@ -198,7 +198,7 @@ memory unreachable, timing out, or answering 429 or 5xx after its retries - does
 each logs a warning on the `alexein` logger. Every other method, and every other error (a wrong key, a wrong
 request), still raises. Pair it with a short `timeout` where a reply cannot wait.
 
-## Memory without tool calls: Anthropic and OpenAI clients
+## Automatic memory: Anthropic and OpenAI clients
 
 Your model reads memory before every reply, and every exchange is saved, without the model deciding to call a
 tool. Wrap the client you already use:

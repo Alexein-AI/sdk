@@ -52,7 +52,7 @@ builder.add_node("remember", memory.remember)  # the turn, saved
 
 Or let the CLI wire it into a project you have: `uvx alexein-cli init langgraph`, `npx @alexein/cli init langgraph`.
 
-## Memory without tool calls
+## Automatic memory
 
 Wrap the model client you already use: memory is read before each call and each exchange saved, with no tool
 for the model to decide to call.

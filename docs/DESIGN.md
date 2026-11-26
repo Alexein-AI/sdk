@@ -243,7 +243,7 @@ Ported from the CLI's templates (`integrations/cli-*/templates/*/memory.*.tmpl` 
 brought them in), keeping their behaviour, onto the v2 surface, as importable modules with the same
 `AlexeinMemory`-style entry point and module-level defaults.
 
-### `alexein.wrap` / `@alexein/sdk/wrap`, `@alexein/sdk/ai-sdk`: memory without tool calls
+### `alexein.wrap` / `@alexein/sdk/wrap`, `@alexein/sdk/ai-sdk`: automatic memory
 
 ```
 wrap_anthropic(client, memory=None, *, user_id, **options)   wrapAnthropic(client, memory?, { userId, ...options })

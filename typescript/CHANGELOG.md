@@ -2,7 +2,7 @@
 
 ## 0.3.5 - 2026-11-26
 
-- `@alexein/sdk/wrap`: `wrapAnthropic(client, memory, { userId })` and `wrapOpenAI(...)`; `@alexein/sdk/ai-sdk`: `alexeinMiddleware(memory, { userId })` for `wrapLanguageModel`: memory without tool calls. Before each call, what memory holds about the user's latest message
+- `@alexein/sdk/wrap`: `wrapAnthropic(client, memory, { userId })` and `wrapOpenAI(...)`; `@alexein/sdk/ai-sdk`: `alexeinMiddleware(memory, { userId })` for `wrapLanguageModel`: automatic memory. Before each call, what memory holds about the user's latest message
   goes into the system prompt as quoted data, within a time budget and a token cap; after it, the message and
   the reply are saved in the background, a stream's when it ends. Memory being slow or down never stops a call.
   Options: `session`, `author`, `recall`, `save`, `budget`, `maxTokens`, `fast`, `redact`, `beforeSave`.
