@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fix: a key typed or pasted at the terminal, when `init`, `create` or `login` asks for it, is no
+  longer shown as it is typed. On recent Node versions readline ignored the way the prompt hid it; the
+  terminal is now read in raw mode, with nothing echoed.
 - `install` puts the `alexein` command on PATH for good, with `npm install -g @alexein/cli`, and says
   how to put npm's folder on PATH where it is not. `login`, `connect`, `init` and `create` offer it
   once, when they run at a terminal and `alexein` is not on PATH; a no is kept in

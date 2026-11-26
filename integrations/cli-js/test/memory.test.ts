@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { main } from "../src/cli.js";
 import type { Shell } from "../src/credentials.js";
 import { memoryMain } from "../src/memory.js";
-import { outline } from "../src/outline.js";
+import { memories, outline } from "../src/outline.js";
 import { Console } from "../src/ui.js";
 import { answer, KEY, REF, SEARCHED, serve, type Respond, type Sent } from "./recorded.js";
 
@@ -175,6 +175,9 @@ describe("the memory commands", () => {
 
     const empty = await run(["add", "-", "--user", "dana"], { shell, stdin: "  \n" });
     expect(empty.code).toBe(2);
+    const noKey = await run(["latest", "--key", "-"], { shell: new Computer() });
+    expect(noKey.code).toBe(2);
+    expect(noKey.said).toContain("none came");
   });
 
   it("asks before forgetting, and forgets nothing unasked without --yes", async () => {
@@ -396,5 +399,13 @@ describe("the command line", () => {
       "tags: (none)",
       "note: a\n  b",
     ]);
+    expect(outline({ about: { rules: [], when: null }, answers: {}, count: 0 })).toEqual([
+      "about: (none)",
+      "answers: (none)",
+      "count: 0",
+    ]);
+    expect(
+      memories([{ ref: "r1", text: "t", date: "2026-10-01T09:30:00Z" }], "none", "excerpt"),
+    ).toEqual(["excerpt   2026-10-01  r1", "  t"]);
   });
 });

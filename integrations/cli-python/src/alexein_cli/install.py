@@ -21,16 +21,31 @@ from alexein_cli.ui import Console
 PACKAGE = "alexein-cli"
 
 
-def installed(host: Host, running: Path | None = None) -> bool:
-    """Whether `alexein` is on PATH for good. uvx puts the bin folder of the environment it runs the
-    CLI in on the PATH of the command, so that folder - `running`, by default this Python's - is not
-    counted: it is this run's copy, not a command a new terminal has."""
-    here = os.path.realpath(running if running is not None else Path(sys.executable).parent)
-    lasting = [
-        folder
-        for folder in host.env.get("PATH", "").split(os.pathsep)
-        if folder and os.path.realpath(folder) != here
+def _uv_caches(host: Host) -> list[str]:
+    """Where uv keeps its cache, which is where uvx makes the environments it runs a tool in:
+    `UV_CACHE_DIR`, else the platform's place for caches."""
+    env = host.env
+    places = [
+        env.get("UV_CACHE_DIR"),
+        os.path.join(env["XDG_CACHE_HOME"], "uv") if env.get("XDG_CACHE_HOME") else None,
+        str(host.home / ".cache" / "uv"),
+        os.path.join(env["LOCALAPPDATA"], "uv", "cache") if env.get("LOCALAPPDATA") else None,
     ]
+    return [os.path.realpath(place) for place in places if place]
+
+
+def installed(host: Host) -> bool:
+    """Whether `alexein` is on PATH for good. uvx puts the bin folder of the environment it runs
+    the CLI in - a folder in uv's cache - on the PATH of the command, so folders in uv's cache are
+    not counted: they are this run's copy, not a command a new terminal has. Any other folder is:
+    pip's, pipx's, uv tool's, or an activated environment's."""
+    caches = _uv_caches(host)
+
+    def cached(folder: str) -> bool:
+        real = os.path.realpath(folder)
+        return any(real == cache or real.startswith(cache + os.sep) for cache in caches)
+
+    lasting = [f for f in host.env.get("PATH", "").split(os.pathsep) if f and not cached(f)]
     return shutil.which("alexein", path=os.pathsep.join(lasting)) is not None
 
 
@@ -39,10 +54,10 @@ def _uv(host: Host) -> str | None:
     return host.env.get("UV") or ("uv" if host.has("uv") else None)
 
 
-def install(console: Console, host: Host | None = None, running: Path | None = None) -> int:
+def install(console: Console, host: Host | None = None) -> int:
     """`install`: 0 when `alexein` is on PATH, or installed with its folder put on PATH."""
     host = host or LocalHost()
-    if installed(host, running):
+    if installed(host):
         console.line("alexein is on your PATH already: type alexein in any terminal.")
         console.line(f"  To upgrade it: uv tool upgrade {PACKAGE}")
         return 0
@@ -56,7 +71,7 @@ def install(console: Console, host: Host | None = None, running: Path | None = N
     if host.attach(uv, ["tool", "install", PACKAGE]) != 0:
         console.fail(f"uv tool install {PACKAGE} failed; what uv said is above")
         return 1
-    if installed(host, running):
+    if installed(host):
         console.step("installed", "alexein: type alexein in any terminal")
         return 0
     folder = host.run(uv, ["tool", "dir", "--bin"]).out.strip() or "uv's folder for commands"
@@ -91,7 +106,6 @@ def offer_install(
     host: Host | None = None,
     *,
     terminal: bool | None = None,
-    running: Path | None = None,
 ) -> None:
     """After a setup command that did what it was asked, at a terminal: when `alexein` is not on
     PATH, ask once - Enter is yes - to install it. A no is kept, and it is not asked again. Never
@@ -100,12 +114,12 @@ def offer_install(
     if not console.interactive or not (sys.stdout.isatty() if terminal is None else terminal):
         return
     host = host or LocalHost()
-    if installed(host, running) or _state(host).get("install") == "declined":
+    if installed(host) or _state(host).get("install") == "declined":
         return
     console.line()
     question = "Install the alexein command, so you can type alexein in any terminal?"
     if console.confirm(question, by_default=True):
-        install(console, host, running)
+        install(console, host)
         return
     folder = directory(host)
     folder.mkdir(parents=True, exist_ok=True, mode=0o700)

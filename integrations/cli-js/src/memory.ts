@@ -136,7 +136,7 @@ export const COMMANDS: Record<string, Command> = {
         source: text(v.source),
       });
       if (json) return print(console, found.raw);
-      return show(console, memories(found.raw.memories, "Nothing yet."));
+      return show(console, memories(found.raw.memories, "Nothing yet.", "excerpt"));
     },
   },
   open: {
@@ -386,8 +386,17 @@ interface Found {
   saved?: credentials.Saved;
 }
 
+/** `--key`, with `-` read from stdin; nothing piped to `-` is a command given wrongly. */
+function keyGiven(v: Values, stdin: () => string | undefined): string | undefined {
+  try {
+    return credentials.keyFrom(text(v.key), stdin);
+  } catch (error) {
+    throw new Usage((error as Error).message);
+  }
+}
+
 function findKey(v: Values, shell: credentials.Shell, stdin: () => string | undefined): Found {
-  const given = credentials.keyFrom(text(v.key), stdin);
+  const given = keyGiven(v, stdin);
   if (given) return { key: given, from: "--key" };
   const set = shell.env.ALEXEIN_API_KEY?.trim();
   if (set) return { key: set, from: "ALEXEIN_API_KEY" };
@@ -501,7 +510,7 @@ async function login(
   if (args.length)
     throw new Usage(`login takes no words: ${args.join(" ")}; give the key with --key`);
   const key =
-    credentials.keyFrom(text(v.key), stdin) ??
+    keyGiven(v, stdin) ??
     (await console.secret(
       "Your Alexein API key (the console's API keys, or My memory › Personal keys):",
     ));

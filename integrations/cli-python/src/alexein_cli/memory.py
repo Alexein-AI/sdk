@@ -92,7 +92,7 @@ def _latest(user: User, args: argparse.Namespace, console: Console, _stdin: Stdi
     )
     if args.json:
         return _print(console, found.raw)
-    return _show(console, memories(found.raw.get("memories"), "Nothing yet."))
+    return _show(console, memories(found.raw.get("memories"), "Nothing yet.", "excerpt"))
 
 
 def _open(user: User, args: argparse.Namespace, console: Console, _stdin: Stdin) -> int:
@@ -313,8 +313,16 @@ class _Found:
     saved: dict[str, Any] | None = None
 
 
+def _key_given(args: argparse.Namespace, stdin: Stdin) -> str | None:
+    """`--key`, with `-` read from stdin; nothing piped to `-` is a command given wrongly."""
+    try:
+        return credentials.key_from(args.key, stdin)
+    except ValueError as error:
+        raise Usage(str(error)) from error
+
+
 def _find_key(args: argparse.Namespace, shell: credentials.Shell, stdin: Stdin) -> _Found:
-    given = credentials.key_from(args.key, stdin)
+    given = _key_given(args, stdin)
     if given:
         return _Found(given, "--key")
     set_key = (shell.env.get("ALEXEIN_API_KEY") or "").strip()
@@ -398,7 +406,7 @@ def run(
 def _login(
     args: argparse.Namespace, console: Console, shell: credentials.Shell, stdin: Stdin
 ) -> int:
-    key = credentials.key_from(args.key, stdin) or console.secret(
+    key = _key_given(args, stdin) or console.secret(
         "Your Alexein API key (the console's API keys, or My memory › Personal keys):"  # noqa: RUF001
     )
     if not key:

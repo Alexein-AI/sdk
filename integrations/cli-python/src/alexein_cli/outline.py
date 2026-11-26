@@ -11,6 +11,17 @@ import json
 from typing import Any, cast
 
 
+def _empty(value: Any) -> bool:
+    """Nothing to show: None, "", [], {}, or an object of nothing but those."""
+    if value is None or value == "":
+        return True
+    if isinstance(value, list):
+        return not value
+    if isinstance(value, dict):
+        return all(_empty(entry) for entry in cast(dict[str, Any], value).values())
+    return False
+
+
 def _scalar(value: Any) -> str:
     if value is None:
         return "-"
@@ -38,10 +49,10 @@ def outline(value: Any, indent: str = "") -> list[str]:
     if isinstance(value, dict):
         fields = cast(dict[str, Any], value)
         if not fields:
-            return [f"{indent}(empty)"]
+            return [f"{indent}(none)"]
         lines = []
         for name, entry in fields.items():
-            if isinstance(entry, list) and not entry:
+            if isinstance(entry, list | dict) and _empty(entry):
                 lines.append(f"{indent}{name}: (none)")
             elif isinstance(entry, dict | list):
                 lines += [f"{indent}{name}:", *outline(entry, f"{indent}  ")]
@@ -51,7 +62,7 @@ def outline(value: Any, indent: str = "") -> list[str]:
     return [f"{indent}{_indented(_scalar(value), indent)}"]
 
 
-def _memory(entry: Any) -> list[str]:
+def _memory(entry: Any, kind: str) -> list[str]:
     """One memory as a heading - its kind, its day, its ref - and its text under it."""
     if not isinstance(entry, dict):
         return outline(entry)
@@ -62,17 +73,18 @@ def _memory(entry: Any) -> list[str]:
         return value if isinstance(value, str) else ""
 
     session = f"  (session {string('session')})" if string("session") else ""
-    parts = (f"{string('type') or 'memory':<8}", string("date")[:10], string("ref"))
+    parts = (f"{string('type') or kind:<8}", string("date")[:10], string("ref"))
     heading = "  ".join(part for part in parts if part) + session
     text = fields.get("text")
     return [heading.rstrip(), f"  {_indented(_scalar('' if text is None else text), '  ')}"]
 
 
-def memories(found: Any, empty: str) -> list[str]:
-    """Memories, one after another with a line between; `empty` when there are none."""
+def memories(found: Any, none: str, kind: str = "memory") -> list[str]:
+    """Memories, one after another with a line between; `none` when there are none. `kind` names
+    those that do not say what they are: the latest are all excerpts, and say nothing."""
     if not isinstance(found, list) or not found:
-        return [empty]
+        return [none]
     lines: list[str] = []
     for n, entry in enumerate(cast(list[Any], found)):
-        lines += ([""] if n else []) + _memory(entry)
+        lines += ([""] if n else []) + _memory(entry, kind)
     return lines

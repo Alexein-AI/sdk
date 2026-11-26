@@ -15,7 +15,7 @@ from conftest import SEARCHED, Recorded, answer, ok, route, wire
 
 from alexein_cli import SKILL, _parser, credentials, main, memory  # pyright: ignore[reportPrivateUsage]
 from alexein_cli.connect import Ran
-from alexein_cli.outline import outline
+from alexein_cli.outline import memories, outline
 from alexein_cli.ui import Console
 
 KEY = "tm_test"
@@ -170,6 +170,9 @@ def test_add_reads_stdin_with_dash_as_the_persons_own_words(
     assert item["session"] == "s-1" and item["author"] == {"self": True}
     assert body(recorded.last)["wait"] is True
     assert run(["add", "-", "--user", "dana"], keyed(tmp_path), stdin="  \n")[0] == 2
+    (tmp_path / "nokey").mkdir()
+    code, said = run(["latest", "--key", "-"], Computer(tmp_path / "nokey", commands=()), stdin="")
+    assert code == 2 and "none came" in said
 
 
 def test_forget_asks_first_and_forgets_nothing_unasked(
@@ -383,3 +386,7 @@ def test_outline_shows_json_as_a_person_reads_it() -> None:
         "tags: (none)",
         "note: a\n  b",
     ]
+    nothing = {"about": {"rules": [], "when": None}, "answers": {}, "count": 0}
+    assert outline(nothing) == ["about: (none)", "answers: (none)", "count: 0"]
+    found = [{"ref": "r1", "text": "t", "date": "2026-10-01T09:30:00Z"}]
+    assert memories(found, "none", "excerpt") == ["excerpt   2026-10-01  r1", "  t"]

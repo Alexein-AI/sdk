@@ -35,7 +35,7 @@ class Computer:
         self.home = tmp / "home"
         self.home.mkdir()
         self.platform = "linux"
-        self.running = tmp / "cache" / "archive-v0" / "IprIy8" / "bin"
+        self.running = tmp / "cache" / "uv" / "archive-v0" / "IprIy8" / "bin"
         self.bin = tmp / "local" / "bin"
         for folder in (self.running, self.bin):
             folder.mkdir(parents=True)
@@ -44,6 +44,7 @@ class Computer:
         self.env = {
             "PATH": os.pathsep.join(str(p) for p in path),
             "ALEXEIN_CONFIG_DIR": str(self.home / "config"),
+            "UV_CACHE_DIR": str(tmp / "cache" / "uv"),
             **({"UV": "/opt/uv/bin/uv"} if uv else {}),
         }
         self.fails = fails
@@ -79,15 +80,27 @@ def said(console: Console) -> str:
 
 def test_uvx_own_copy_is_not_taken_for_alexein_on_path(tmp_path: Path) -> None:
     computer = Computer(tmp_path)
-    assert not installed(computer, computer.running)
+    assert not installed(computer)
     executable(computer.bin / "alexein")
-    assert installed(computer, computer.running)
+    assert installed(computer)
+
+
+def test_an_alexein_beside_the_python_that_runs_it_counts(tmp_path: Path) -> None:
+    """pip into a system Python puts alexein in the interpreter's own folder: /usr/local/bin."""
+    computer = Computer(tmp_path)
+    system = tmp_path / "usr" / "local" / "bin"
+    system.mkdir(parents=True)
+    executable(system / "alexein")
+    computer.env["PATH"] = f"{system}{os.pathsep}{computer.env['PATH']}"
+    console = quiet()
+    assert install(console, computer) == 0
+    assert computer.attached == [] and "on your PATH already" in said(console)
 
 
 def test_install_runs_uv_tool_install_with_the_uv_that_runs_it(tmp_path: Path) -> None:
     computer = Computer(tmp_path)
     console = quiet()
-    assert install(console, computer, computer.running) == 0
+    assert install(console, computer) == 0
     assert computer.attached == ["/opt/uv/bin/uv tool install alexein-cli"]
     assert "installed alexein: type alexein in any terminal" in said(console)
 
@@ -95,7 +108,7 @@ def test_install_runs_uv_tool_install_with_the_uv_that_runs_it(tmp_path: Path) -
 def test_install_puts_uvs_folder_on_path_where_it_is_not(tmp_path: Path) -> None:
     computer = Computer(tmp_path, on_path=False)
     console = quiet()
-    assert install(console, computer, computer.running) == 0
+    assert install(console, computer) == 0
     assert computer.attached == [
         "/opt/uv/bin/uv tool install alexein-cli",
         "/opt/uv/bin/uv tool update-shell",
@@ -105,7 +118,7 @@ def test_install_puts_uvs_folder_on_path_where_it_is_not(tmp_path: Path) -> None
     (tmp_path / "again").mkdir()
     stuck = Computer(tmp_path / "again", on_path=False, shell_updated=False)
     console = quiet()
-    assert install(console, stuck, stuck.running) == 0
+    assert install(console, stuck) == 0
     assert f'export PATH="{stuck.bin}:$PATH"' in said(console)
 
 
@@ -116,24 +129,24 @@ def test_install_leaves_an_alexein_there_and_says_when_uv_is_missing_or_fails(
     there = Computer(tmp_path / "a")
     executable(there.bin / "alexein")
     console = quiet()
-    assert install(console, there, there.running) == 0
+    assert install(console, there) == 0
     assert there.attached == [] and "on your PATH already" in said(console)
 
     (tmp_path / "b").mkdir()
     no_uv = Computer(tmp_path / "b", uv=False)
     console = quiet()
-    assert install(console, no_uv, no_uv.running) == 1
+    assert install(console, no_uv) == 1
     assert "uv is not on PATH" in said(console)
 
     (tmp_path / "c").mkdir()
     failing = Computer(tmp_path / "c", fails=True)
-    assert install(quiet(), failing, failing.running) == 1
+    assert install(quiet(), failing) == 1
 
 
 def test_the_offer_asks_once_at_a_terminal_and_enter_installs(tmp_path: Path) -> None:
     computer = Computer(tmp_path)
     console = quiet([""])
-    offer_install(console, computer, terminal=True, running=computer.running)
+    offer_install(console, computer, terminal=True)
     question = "Install the alexein command, so you can type alexein in any terminal? [Y/n]"
     assert question in said(console)
     assert computer.attached == ["/opt/uv/bin/uv tool install alexein-cli"]
@@ -142,19 +155,19 @@ def test_the_offer_asks_once_at_a_terminal_and_enter_installs(tmp_path: Path) ->
 def test_the_offer_keeps_a_no_and_does_not_ask_again(tmp_path: Path) -> None:
     computer = Computer(tmp_path)
     first = quiet(["n"])
-    offer_install(first, computer, terminal=True, running=computer.running)
+    offer_install(first, computer, terminal=True)
     assert computer.attached == []
     assert "not asked again. Any time: uvx alexein-cli install" in said(first)
     state = json.loads((Path(computer.env["ALEXEIN_CONFIG_DIR"]) / "state.json").read_text())
     assert state == {"install": "declined"}
 
     second = quiet(["y"])
-    offer_install(second, computer, terminal=True, running=computer.running)
+    offer_install(second, computer, terminal=True)
     assert second.said == [] and computer.attached == []
 
 
 def test_the_offer_is_never_made_where_nobody_can_answer(tmp_path: Path) -> None:
     computer = Computer(tmp_path)
-    offer_install(quiet(), computer, terminal=True, running=computer.running)
-    offer_install(quiet(["y"]), computer, terminal=False, running=computer.running)
+    offer_install(quiet(), computer, terminal=True)
+    offer_install(quiet(["y"]), computer, terminal=False)
     assert computer.attached == []
