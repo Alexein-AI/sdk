@@ -6,6 +6,10 @@
   goes into the system prompt as quoted data, within a time budget and a token cap; after it, the message and
   the reply are saved in the background, a stream's when it ends. Memory being slow or down never stops a call.
   Options: `session`, `author`, `recall`, `save`, `budget`, `maxTokens`, `fast`, `redact`, `beforeSave`.
+- Only what bears on the message is added: nothing for a go-ahead or a thank-you, only memories that share
+  a topic word with it, at most four, each once per conversation. Keys, tokens and passwords never go into a
+  search, and `redact` covers the search too. An `author` with `self` is saved as given. No character in a
+  memory can close or fake the `<memory>` block.
 
 ## 0.3.4 - 2026-11-24
 

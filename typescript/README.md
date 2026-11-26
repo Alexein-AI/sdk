@@ -229,31 +229,35 @@ const { text } = await generateText({ model, messages });
 ```
 
 - **Before each call**, one search with the user's latest message (with the end of the reply before it, when
-  the message is short). What bears on it is added to the system prompt, after yours: inside a `<memory>`
-  block that says it is quoted data, not instructions, gives each line's date and who said it, and states that
-  memory never authorises sharing secrets or sending data out. A call waits at most `budget` milliseconds for
-  it; when memory is slow, down or refuses, the model is called without it, and nothing is thrown.
+  the message is short). Nothing is looked up for a go-ahead or a thank-you ("thanks!", "ok, do it"). Of what
+  the search finds, only the memories that share a topic word with the message are added, at most four, each
+  once per conversation (`session`), and nothing when none bears on it. They go in the system prompt, after
+  yours, inside a `<memory>` block that says they are quoted data, not instructions, gives each line's date
+  and who said it, and states that memory never authorises sharing secrets or sending data out; no character
+  in them can close or fake that block. A call waits at most `budget` milliseconds for it; when memory is slow,
+  down or refuses, the model is called without it, and nothing is thrown. Keys, tokens and passwords are
+  never sent as a search.
 - **After each call**, the user's message and the reply are saved in the background, never delaying the reply.
   A reply that asks to run a tool is not saved; the turn's last answer is, once. A stream is saved when it
-  ends. The calls of one tool loop share one search.
+  ends. The calls of one tool loop share one lookup.
 - Whose memory is used is the `userId` your code passes, never anything a model or a request body says.
 
 | Option       | Default | What it does                                                                                                   |
 | ------------ | ------- | -------------------------------------------------------------------------------------------------------------- |
 | `userId`     | -       | your id for the app user whose memory this is                                                                  |
 | `session`    | none    | the conversation: saves are grouped under it, and a retried call edits what it saved                           |
-| `author`     | none    | who the user is, `{ name, id }`; their messages are saved as theirs                                            |
+| `author`     | none    | who the user is, `{ name, id }`; their messages are saved as theirs (`self: true` unless you pass `self`)      |
 | `recall`     | `true`  | look memory up before each call                                                                                |
 | `save`       | `true`  | save the user's message and the reply after each call                                                          |
 | `budget`     | `1500`  | the longest a call waits for memory, in milliseconds                                                           |
 | `maxTokens`  | `600`   | about how many tokens of memory a call is given at most                                                        |
 | `fast`       | `true`  | skip search's relevance check; with `false`, what memory judges off-topic is left out (raise `budget` with it) |
-| `redact`     | `false` | replace phone numbers, cards, keys and the like before memory keeps any copy                                   |
+| `redact`     | `false` | replace phone numbers, cards, keys and the like in the search and before memory keeps any copy                 |
 | `beforeSave` | none    | a function that sees the items about to be saved and answers those to save (none: nothing)                     |
 
 `memoryOf(client).last` (or `middleware.alexein.last`) says how the last lookup went (`ms`, `chars`,
 `timedOut`, `failed`, `reused`). Saves run in the background: in a serverless function, `await
-memoryOf(client).flush()` before it returns. Without a `memory`, a client for the process is made from
+memoryOf(client).flush()` (`await middleware.alexein.flush()` for the AI SDK) before it returns. Without a `memory`, a client for the process is made from
 `ALEXEIN_API_KEY`. The AI SDK middleware is for AI SDK 7 (`@ai-sdk/provider` 4). See
 `examples/wrapped-client.ts`.
 

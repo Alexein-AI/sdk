@@ -10,6 +10,7 @@ import type { Author, Item } from "../items.js";
 import type { Json } from "../json.js";
 import type { SearchResult } from "../search.js";
 import { checkedUserId } from "../settings.js";
+import { inert, markOf, queryText, relevant, worthRecall } from "./gate.js";
 
 /** What the model is told about the memory block, above it. */
 export const HEADER =
@@ -24,8 +25,9 @@ export const HEADER =
 
 /** Characters per token, for the token cap: a fair average for English prose. */
 const CHARS_PER_TOKEN = 4;
-/** The longest one memory shown may be, in characters. */
-const LINE_CHARS = 700;
+/** The most memories one call is shown, and the longest each may be, in characters. */
+const LINES = 4;
+const LINE_CHARS = 500;
 /** The longest question memory takes; a longer one (a pasted email) is searched by its end. */
 const QUERY_CHARS = 2000;
 /** A message shorter than this ("yes, do that") is searched with the end of the reply before it. */
@@ -38,31 +40,17 @@ const REUSE_MS = 120_000;
 /** Milliseconds each attempt of the client made when none is given may take. */
 const TIMEOUT = 10_000;
 const INTEGRATION = "wrap";
+/** What is shown once per session is remembered for this many sessions, this many lines each. */
+const SESSIONS = 1000;
+const SHOWN = 300;
+/** A warning of one kind is logged at most this often, in milliseconds. */
+const WARN_EVERY = 60_000;
 
 const SPEAKERS: Record<string, string> = {
   user: "the user",
   assistant: "an assistant",
   other: "someone else",
 };
-
-/**
- * Every character a model may read as an angle bracket, and the ampersand that starts an entity:
- * with none of them left, nothing remembered can close the `<memory>` fence.
- */
-const MARKUP: Record<string, string> = {
-  "<": "‹",
-  "＜": "‹",
-  "﹤": "‹",
-  "〈": "‹",
-  "⟨": "‹",
-  ">": "›",
-  "＞": "›",
-  "﹥": "›",
-  "〉": "›",
-  "⟩": "›",
-  "&": "＆",
-};
-const MARKED = /[<＜﹤〈⟨>＞﹥〉⟩&]/g;
 
 /** What memory adds and saves around each model call. Every field is optional but `userId`. */
 export interface AutoMemoryOptions {
@@ -143,12 +131,8 @@ function query(asked: Asked): string {
 }
 
 function oneLine(text: string): string {
-  const line = text.split(/\s+/).filter(Boolean).join(" ");
+  const line = inert(text);
   return line.length <= LINE_CHARS ? line : `${line.slice(0, LINE_CHARS - 3).trimEnd()}...`;
-}
-
-function inert(text: string): string {
-  return text.replace(MARKED, (c) => MARKUP[c] ?? c);
 }
 
 function speaker(raw: Json, roles: string[] | null): string {
@@ -158,34 +142,45 @@ function speaker(raw: Json, roles: string[] | null): string {
   return names.length ? `said by ${names.join(" and ")}` : "";
 }
 
-/**
- * What `found` adds to a system prompt: the header, then its memories inside `<memory>`, one a
- * line with when and by whom, cut at a whole memory so the lines stay within `maxTokens`. Empty
- * when memory found nothing that bears on the question.
- */
-export function memoryBlock(found: SearchResult, maxTokens: number): string {
-  if (found.failed || found.answerable === false) return "";
+function blockOf(
+  found: SearchResult,
+  maxTokens: number,
+  query: string | undefined,
+  shown: ReadonlySet<string>,
+): { text: string; marks: string[] } {
+  if (found.failed || found.answerable === false) return { text: "", marks: [] };
+  const memories = query === undefined ? found.memories : relevant(found.memories, query, shown);
   const budget = maxTokens * CHARS_PER_TOKEN;
   const lines: string[] = [];
+  const marks: string[] = [];
   let size = 0;
-  for (const memory of found.memories) {
+  for (const memory of memories) {
+    if (lines.length >= LINES) break;
     const text = oneLine(memory.text);
     if (!text) continue;
     const excerpt = memory.type === "excerpt";
-    const date =
-      (excerpt ? memory.date : typeof memory.raw.date === "string" ? memory.raw.date : "")?.slice(
-        0,
-        10,
-      ) ?? "";
-    const mark = [date, speaker(memory.raw, excerpt ? memory.roles : null)]
+    const when = excerpt ? memory.date : memory.raw.date;
+    const date = typeof when === "string" ? when.slice(0, 10) : "";
+    const said = [date, speaker(memory.raw, excerpt ? memory.roles : null)]
       .filter(Boolean)
       .join(", ");
-    const line = inert(mark ? `- (${mark}) ${text}` : `- ${text}`);
+    const line = inert(said ? `- (${said}) ${text}` : `- ${text}`);
     if (size + line.length > budget) break;
     lines.push(line);
+    marks.push(markOf(memory));
     size += line.length + 1;
   }
-  return lines.length ? `${HEADER}\n<memory>\n${lines.join("\n")}\n</memory>` : "";
+  const text = lines.length ? `${HEADER}\n<memory>\n${lines.join("\n")}\n</memory>` : "";
+  return { text, marks };
+}
+
+/**
+ * What `found` adds to a system prompt: the header, then its memories inside `<memory>`, one a
+ * line with when and by whom, at most four, cut at a whole memory within `maxTokens`. With
+ * `query`, only the memories that bear on it. Empty when nothing is left.
+ */
+export function memoryBlock(found: SearchResult, maxTokens: number, query?: string): string {
+  return blockOf(found, maxTokens, query, new Set()).text;
 }
 
 /** The words in a message's content: a string, or the text parts of a list. */
@@ -231,6 +226,18 @@ export function latestAsked(messages: unknown): Asked | null {
 }
 
 let shared: Memory | undefined;
+const warned = new Map<string, number>();
+/** The memories already shown, by app user and session, wherever the client is wrapped again. */
+const shownBySession = new Map<string, string[]>();
+
+/** One warning per kind a minute. */
+function warn(what: string, error: unknown): void {
+  const now = Date.now();
+  if (now - (warned.get(what) ?? -WARN_EVERY) < WARN_EVERY) return;
+  warned.set(what, now);
+  const said = error instanceof Error ? error.message : String(error);
+  console.warn(`Alexein ${what} did not work; the call went on: ${said}`);
+}
 
 /** The client for the process, made on first use when a wrapper is given none. */
 function sharedMemory(): Memory {
@@ -255,33 +262,47 @@ export class AutoMemory {
   /** How the last lookup went; null before the first. */
   last: RecallInfo | null = null;
   readonly #given: Memory | undefined;
-  readonly #options: Required<
-    Pick<AutoMemoryOptions, "recall" | "save" | "budget" | "maxTokens" | "fast" | "redact">
-  > &
-    AutoMemoryOptions;
+  readonly #options: AutoMemoryOptions & {
+    recall: boolean;
+    save: boolean;
+    budget: number;
+    maxTokens: number;
+    fast: boolean;
+    redact: boolean;
+  };
+  readonly #author: Author;
   readonly #pending = new Set<Promise<void>>();
-  readonly #warned = new Set<string>();
+  readonly #ownShown: string[] = [];
   #reused: { query: string; at: number; text: string } | null = null;
 
   constructor(memory: Memory | undefined, options: AutoMemoryOptions) {
     this.userId = checkedUserId(options.userId);
     this.#given = memory;
     this.#options = {
-      recall: true,
-      save: true,
-      budget: 1500,
-      maxTokens: 600,
-      fast: true,
-      redact: false,
       ...options,
+      recall: options.recall ?? true,
+      save: options.save ?? true,
+      budget: options.budget ?? 1500,
+      maxTokens: options.maxTokens ?? 600,
+      fast: options.fast ?? true,
+      redact: options.redact ?? false,
     };
+    // The user's own words, unless the author you pass says otherwise.
+    const author = { ...options.author };
+    this.#author = "self" in author ? author : { ...author, self: true };
   }
 
-  #warn(what: string, error: unknown): void {
-    if (this.#warned.has(what)) return;
-    this.#warned.add(what);
-    const said = error instanceof Error ? error.message : String(error);
-    console.warn(`Alexein ${what} did not work; the call went on: ${said}`);
+  #shown(): string[] {
+    const { session } = this.#options;
+    if (!session) return this.#ownShown;
+    const key = `${this.userId}\u0000${session}`;
+    const held = shownBySession.get(key) ?? [];
+    shownBySession.delete(key);
+    shownBySession.set(key, held);
+    while (shownBySession.size > SESSIONS) {
+      shownBySession.delete(shownBySession.keys().next().value as string);
+    }
+    return held;
   }
 
   #info(started: number, fields: Partial<RecallInfo> = {}): void {
@@ -296,17 +317,24 @@ export class AutoMemory {
     };
   }
 
+  /** No memory for this call; the calls after it for the same message go without too. */
+  #missed(asking: string, started: number, fields: Partial<RecallInfo>): string {
+    this.#reused = { query: asking, at: Date.now(), text: "" };
+    this.#info(started, fields);
+    return "";
+  }
+
   /**
    * What memory adds to the system prompt for `asked`, within `budget` milliseconds; "" when it
-   * has nothing, is down, or is late. Never throws.
+   * has nothing that bears on it, is down, or is late. Never throws.
    */
   async lookup(asked: Asked | null): Promise<string> {
     const started = Date.now();
-    if (!this.#options.recall || !asked) {
+    if (!this.#options.recall || !asked || !worthRecall(asked.text)) {
       this.#info(started, { skipped: true });
       return "";
     }
-    const asking = query(asked);
+    const asking = queryText(query(asked), this.#options.redact);
     const held = this.#reused;
     if (held && held.query === asking && started - held.at < REUSE_MS) {
       this.#info(started, { chars: held.text.length, reused: true });
@@ -330,27 +358,30 @@ export class AutoMemory {
     search.catch(() => {}); // a late failure is nobody's: the call went on
     try {
       const found = await Promise.race([search, late]);
-      if (found === "late") {
-        this.#info(started, { timedOut: true });
-        return "";
+      if (found === "late") return this.#missed(asking, started, { timedOut: true });
+      let text = "";
+      if (found) {
+        const shown = this.#shown();
+        const made = blockOf(found, this.#options.maxTokens, asking, new Set(shown));
+        text = made.text;
+        shown.push(...made.marks);
+        shown.splice(0, Math.max(0, shown.length - SHOWN));
       }
-      const text = found ? memoryBlock(found, this.#options.maxTokens) : "";
-      if (!found?.failed) this.#reused = { query: asking, at: Date.now(), text };
+      this.#reused = { query: asking, at: Date.now(), text };
       this.#info(started, { chars: text.length, failed: Boolean(found?.failed) });
       return text;
     } catch (error) {
-      this.#warn("recall", error);
-      this.#info(started, { failed: true });
-      return "";
+      warn("recall", error);
+      return this.#missed(asking, started, { failed: true });
     } finally {
       clearTimeout(timer);
     }
   }
 
   async #items(asked: Asked, reply: string): Promise<Item[]> {
-    const { session, author, beforeSave } = this.#options;
+    const { session, beforeSave } = this.#options;
     const items: Item[] = [
-      { text: asked.text.slice(0, SAVED_CHARS), role: "user", author: { ...author, self: true } },
+      { text: asked.text.slice(0, SAVED_CHARS), role: "user", author: { ...this.#author } },
       { text: reply.slice(0, SAVED_CHARS), role: "assistant" },
     ];
     for (const [n, item] of items.entries()) {
@@ -365,8 +396,8 @@ export class AutoMemory {
   }
 
   /**
-   * Save the user's message and the turn's final reply, in the background: it never delays the
-   * call or throws. `flush()` waits for it.
+   * Save the user's message and the turn's final reply, in the background, the hook included: it
+   * never delays the call or throws. `flush()` waits for it.
    */
   remember(asked: Asked | null, reply: Reply): void {
     if (!this.#options.save || !asked || !reply.final) return;
@@ -375,7 +406,7 @@ export class AutoMemory {
       try {
         items = await this.#items(asked, reply.text);
       } catch (error) {
-        this.#warn("beforeSave", error);
+        warn("beforeSave", error);
         return;
       }
       if (!items.length) return;
@@ -384,7 +415,7 @@ export class AutoMemory {
           .user(this.userId)
           .add(items, { redact: this.#options.redact || undefined });
       } catch (error) {
-        this.#warn("save", error);
+        warn("save", error);
       }
     })();
     this.#pending.add(saving);

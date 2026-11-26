@@ -259,27 +259,43 @@ are read field by field, as dicts or objects. Options, the same in both (Python 
 `session`, `author`, `recall` (true), `save` (true), `budget` (1.5 s), `max_tokens` / `maxTokens` (600),
 `fast` (true), `redact` (false), `before_save` / `beforeSave`.
 
-- Before a call: the latest `user` message that holds text (a tool result does not), prefixed with the last 300
-  characters of the assistant message before it when shorter than 60, cut to its last 2000 characters, is
-  searched once (`fast` as set), waited for at most `budget`; a lookup is reused for the same query for 120 s,
-  so a tool loop searches once. Nothing when `answerable` is false, `failed`, a 404, an error or late. What is
-  found is `HEADER`, then `<memory>`, one memory a line as `- (<YYYY-MM-DD>, said by <who>) <text>` (date and
-  speaker each when known: `from` on a known line or fact, `roles` on an excerpt), each on one line and at most
-  700 characters, whole lines while their total stays within `max_tokens * 4` characters, then `</memory>`.
-  Every `<`, `>` (and look-alikes) and `&` in a memory is replaced, so nothing remembered closes the fence.
-  Search notes are not shown. Anthropic: appended to `system` (a string gets `\n\n` + block; a list gets a
-  text block). Chat: a message with the leading instruction message's role (else `system`), after the leading
+- Before a call: the latest `user` message that holds text (a tool result does not). Nothing is looked up
+  when recall is off, or the message names no topic word (`_gate.terms`: words of 3+ letters, not a stop
+  word, stemmed) or is a go-ahead or thank-you (`yes|ok|sure|thanks|sounds good|do it|...` at the start) with
+  fewer than six. The query is the message, prefixed with the last 300 characters of the assistant message
+  before it when shorter than 60, cut to its last 2000 characters, with keys, tokens and passwords replaced by
+  `[secret]`, and with `redact` card numbers (13-19 digits passing Luhn) and phone numbers (9-15 digits, or
+  a leading `+`) too. One search (`fast` as set), within `budget`: Python sync sends one attempt with every
+  step bounded by `budget`, on a daemon thread, at most 16 at once across the process (past that, no
+  lookup); async is cancelled at `budget`. Every outcome, found, empty, late or failed, serves the same query
+  for 120 s, so a tool loop looks up once.
+- What is shown: nothing when `answerable` is false or `failed`. Of the memories, those after the first
+  excerpt that are not excerpts are dropped (the rest of what memory holds, which bore on nothing asked);
+  of the others, those sharing a topic word with the query (two when it has more than three), not shown
+  before for this (user, session) (last 300 marks, 1000 sessions; per wrapped client without a session;
+  a mark is the ref, else the text). At most 4, each on one line and at most 500 characters, whole lines
+  within `max_tokens * 4` characters: `HEADER`, `<memory>`, `- (<YYYY-MM-DD>, said by <who>) <text>` lines
+  (date and speaker each when known: `from` on a known line or fact, `roles` on an excerpt), `</memory>`.
+  In a memory, format characters (Unicode Cf: zero-width, bidi, tag characters) are dropped, controls and
+  line breaks become spaces, every angle bracket and look-alike (ASCII, fullwidth, small, vertical,
+  mathematical, ornamental, quotation marks, `≪≫`) becomes `(` or `)`, and `&` becomes `+`. Search notes
+  are not shown. Anthropic: appended to `system` (a string gets `\n\n` + block; a list gets a text block).
+  Chat: a message with the leading instruction message's role (else `system`), after the leading
   `system`/`developer` messages. Responses: appended to `instructions`. AI SDK: appended to the last leading
   system message, else a system message first.
 - After a call: when the reply is final (no client-side tool call, finished) and has text, two items -
-  `{text, role: "user", author: {...author, self: true}, kind: "message"}` and `{text, role: "assistant", kind:
-  "message"}`, each cut at 8000 characters; with `session`, each carries it and the id `wrap:` + 24 hex of
-  SHA-256(`session|<index of the user message>|<0 or 1>|<user text>`) - go through `before_save`, then one
-  `add` (`redact` as set), in the background: a thread pool (sync), a task (async), a promise (TS). A stream is
-  observed and saved when its iteration ends; a `.stream()` helper's raw stream likewise.
-- Never raises for memory: a missing key, an outage, a refusal (401, 402, ...) or a hook that throws logs one
-  warning per kind on the `alexein` logger / `console.warn`, and the call goes on. A bad `user_id` raises where
-  it is given. An `AsyncMemory` with a sync client is a `TypeError`.
+  `{text, role: "user", author, kind: "message"}` (`author` as given, with `self: true` added when it has no
+  `self`) and `{text, role: "assistant", kind: "message"}`, each cut at 8000 characters; with `session`,
+  each carries it and the id `wrap:` + 24 hex of SHA-256(`session|<index of the user message>|<0 or
+  1>|<user text>`) - go through `before_save` (sync or async), then one `add` (`redact` as set), all in the
+  background: Python sync on a queue of at most 256 (the oldest dropped past it, with a warning) drained by
+  two daemon threads, waited for at most 2 s at exit; Python async a task (at most 256, the oldest cancelled);
+  TypeScript a promise. A stream is observed and saved when its iteration ends; a `.stream()` helper's raw
+  stream likewise. A TypeScript call is sent when made, awaited or not.
+- Never raises for memory: a missing key, an outage, a refusal (401, 402, ...) or a hook that throws logs a
+  warning, at most one a minute per kind across the process, on the `alexein` logger / `console.warn`, and
+  the call goes on. A bad `user_id` raises where it is given. An `AsyncMemory` with a sync client is a
+  `TypeError`. `budget` or `max_tokens` given as None / undefined keep their defaults.
 - Without a memory client, one for the process (one per event loop for async) is made on first use:
   `fail_open=True`, `integration="wrap"`, 10 s.
 

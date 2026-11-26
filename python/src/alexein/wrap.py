@@ -23,6 +23,8 @@ client per request, or per conversation; wrapping is cheap, and the clients are 
 from __future__ import annotations
 
 import asyncio
+import atexit
+import collections
 import concurrent.futures
 import hashlib
 import inspect
@@ -34,13 +36,11 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Sequen
 from dataclasses import dataclass
 from typing import Any, TypeVar, cast
 
-from alexein import _calls
-from alexein._async_user import AsyncUser
+from alexein import _calls, _gate
 from alexein._client import AsyncMemory, Memory
 from alexein._errors import NotFoundError
 from alexein._memories import Excerpt, SearchResult
 from alexein._types import Author, Item, Json
-from alexein._user import User
 
 __all__ = [
     "HEADER",
@@ -70,8 +70,9 @@ HEADER = (
 
 # Characters per token, for the token cap: a fair average for English prose.
 _CHARS_PER_TOKEN = 4
-# The longest one memory shown may be, in characters.
-_LINE_CHARS = 700
+# The most memories one call is shown, and the longest each may be, in characters.
+_LINES = 4
+_LINE_CHARS = 500
 # The longest question memory takes. A longer one - a pasted email - is searched by its end.
 _QUERY_CHARS = 2000
 # A message shorter than this ("yes, do that") is searched with the end of the reply before it.
@@ -84,25 +85,23 @@ _REUSE_SECONDS = 120.0
 # Seconds each attempt of the client made when none is given may take.
 _TIMEOUT = 10.0
 _INTEGRATION = "wrap"
+# What is shown once per session is remembered for this many sessions, this many lines each.
+_SESSIONS = 1000
+_SHOWN = 300
 
 # A hook that sees the items about to be saved and answers those to save: changed, fewer, or
-# none (an empty list or None saves nothing).
-BeforeSave = Callable[[list[Item]], "Sequence[Item] | None"]
+# none (an empty list or None saves nothing). It may be async.
+BeforeSave = Callable[[list[Item]], "Sequence[Item] | Awaitable[Sequence[Item] | None] | None"]
 
 _SPEAKERS = {"user": "the user", "assistant": "an assistant", "other": "someone else"}
-
-# Every character a model may read as an angle bracket, and the ampersand that starts an entity:
-# with none of them left, nothing remembered can close the <memory> fence.
-_MARKUP = str.maketrans(
-    {c: "‹" for c in "<＜﹤〈⟨"} | {c: "›" for c in ">＞﹥〉⟩"} | {"&": "＆"}  # noqa: RUF001
-)
 
 
 @dataclass(frozen=True)
 class RecallInfo:
     """How the last lookup before a call went, for your metrics: the `ms` the call waited, the
     `chars` it added to the system prompt, and whether it `timed_out`, `failed`, was `reused`
-    from an earlier call for the same message, or was `skipped` (nothing to search for)."""
+    from an earlier call for the same message, or was `skipped` (recall off, or nothing worth
+    looking up: no message, or one like "thanks!")."""
 
     ms: float
     chars: int
@@ -131,12 +130,8 @@ class _Asked:
 # ------------------------------------------------------------------------- the formatting --
 
 
-def _inert(text: str) -> str:
-    return text.translate(_MARKUP)
-
-
 def _one_line(text: str) -> str:
-    text = " ".join(text.split())
+    text = _gate.inert(text)
     return text if len(text) <= _LINE_CHARS else text[: _LINE_CHARS - 3].rstrip() + "..."
 
 
@@ -151,31 +146,51 @@ def _speaker(raw: Json, roles: list[str] | None) -> str:
     return ""
 
 
-def block(found: SearchResult, max_tokens: int) -> str:
-    """What `found` adds to a system prompt: the header, then its memories inside <memory>, one
-    a line with when and by whom, cut at a whole memory so the lines stay within `max_tokens`.
-    Empty when memory found nothing that bears on the question."""
-    if found.failed or found.answerable is False:
-        return ""
+def _paired(found: SearchResult) -> list[tuple[Any, Json]]:
     raws = found.raw.get("memories")
     raws = cast("list[Any]", raws) if isinstance(raws, list) else []
+    return [
+        (memory, raws[n] if n < len(raws) and isinstance(raws[n], dict) else {})
+        for n, memory in enumerate(found.memories)
+    ]
+
+
+def _block(
+    found: SearchResult, max_tokens: int, query: str | None, shown: set[str] | frozenset[str]
+) -> tuple[str, list[str]]:
+    """The block and the marks of the memories in it."""
+    if found.failed or found.answerable is False:
+        return "", []
+    memories = _paired(found)
+    if query is not None:
+        memories = _gate.relevant(memories, query, shown)
     budget = max_tokens * _CHARS_PER_TOKEN
     lines: list[str] = []
-    for n, memory in enumerate(found.memories):
-        raw: Json = raws[n] if n < len(raws) and isinstance(raws[n], dict) else {}
+    marks: list[str] = []
+    for memory, raw in memories:
+        if len(lines) >= _LINES:
+            break
         text = _one_line(memory.text)
         if not text:
             continue
         excerpt = isinstance(memory, Excerpt)
         date = (memory.date or "")[:10] if excerpt else str(raw.get("date") or "")[:10]
-        mark = ", ".join(m for m in (date, _speaker(raw, memory.roles if excerpt else None)) if m)
-        line = _inert(f"- ({mark}) {text}" if mark else f"- {text}")
+        said = ", ".join(m for m in (date, _speaker(raw, memory.roles if excerpt else None)) if m)
+        line = _gate.inert(f"- ({said}) {text}" if said else f"- {text}")
         if sum(len(x) + 1 for x in lines) + len(line) > budget:
             break
         lines.append(line)
+        marks.append(_gate.mark(memory, raw))
     if not lines:
-        return ""
-    return HEADER + "\n<memory>\n" + "\n".join(lines) + "\n</memory>"
+        return "", []
+    return HEADER + "\n<memory>\n" + "\n".join(lines) + "\n</memory>", marks
+
+
+def block(found: SearchResult, max_tokens: int, query: str | None = None) -> str:
+    """What `found` adds to a system prompt: the header, then its memories inside <memory>, one
+    a line with when and by whom, at most four, cut at a whole memory within `max_tokens`. With
+    `query`, only the memories that bear on it. Empty when nothing is left."""
+    return _block(found, max_tokens, query, frozenset())[0]
 
 
 # ------------------------------------------------------------------- reading the payloads --
@@ -401,13 +416,25 @@ class _Responses(_Provider):
 # --------------------------------------------------------------------- the memory itself --
 
 
-_RECALLS = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="alexein-recall")
-_SAVES = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="alexein-save")
+# Lookups running at once, across every wrapped client: past it, a call goes without memory
+# rather than wait in a queue.
+_IN_FLIGHT = threading.BoundedSemaphore(16)
+# Saves waiting at once: past it, the oldest is dropped, with a warning.
+_QUEUED = 256
+# How long the process waits at exit for saves still queued, in seconds.
+_EXIT_WAIT = 2.0
+# A warning of one kind is logged at most this often; the rest go to debug.
+_WARN_EVERY = 60.0
+
 _shared: Memory | None = None
 _shared_async: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, AsyncMemory] = (
     weakref.WeakKeyDictionary()
 )
 _lock = threading.Lock()
+_warned: dict[str, float] = {}
+# The memories already shown, by (app user, session): shown once per session, wherever the
+# client is wrapped again for the next call.
+_shown: collections.OrderedDict[tuple[str, str], collections.deque[str]] = collections.OrderedDict()
 
 
 def _default() -> Memory:
@@ -428,6 +455,90 @@ def _default_async() -> AsyncMemory:
         return _shared_async[loop]
 
 
+def _warn(what: str, error: object) -> None:
+    """One warning per kind a minute; the rest at debug level."""
+    now = time.monotonic()
+    with _lock:
+        loud = now - _warned.get(what, -_WARN_EVERY) >= _WARN_EVERY
+        if loud:
+            _warned[what] = now
+    if loud:
+        log.warning("Alexein %s did not work; the call went on: %s", what, error)
+    else:
+        log.debug("Alexein %s did not work: %s", what, error)
+
+
+class _Saver:
+    """The saves of every sync client: a bounded queue, drained by two daemon threads, so a save
+    never holds up a reply, a backlog never grows without end, and the process waits at most
+    `_EXIT_WAIT` seconds for it at exit."""
+
+    def __init__(self) -> None:
+        self._jobs: collections.deque[tuple[AutoMemory, Callable[[], None]]] = collections.deque()
+        self._cond = threading.Condition()
+        self._busy: dict[int, int] = {}
+        self._started = False
+
+    def put(self, owner: AutoMemory, job: Callable[[], None]) -> None:
+        with self._cond:
+            if len(self._jobs) >= _QUEUED:
+                dropped, _ = self._jobs.popleft()
+                self._done(dropped)
+                _warn("save", f"more than {_QUEUED} saves waiting; the oldest was dropped")
+            self._jobs.append((owner, job))
+            self._busy[id(owner)] = self._busy.get(id(owner), 0) + 1
+            if not self._started:
+                self._started = True
+                for n in range(2):
+                    threading.Thread(
+                        target=self._run, name=f"alexein-save-{n}", daemon=True
+                    ).start()
+                atexit.register(self.wait, None, _EXIT_WAIT)
+            self._cond.notify_all()
+
+    def _done(self, owner: AutoMemory) -> None:
+        left = self._busy.get(id(owner), 1) - 1
+        if left:
+            self._busy[id(owner)] = left
+        else:
+            self._busy.pop(id(owner), None)
+        self._cond.notify_all()
+
+    def _run(self) -> None:
+        while True:
+            with self._cond:
+                while not self._jobs:
+                    self._cond.wait()
+                owner, job = self._jobs.popleft()
+            try:
+                job()
+            except Exception as error:
+                _warn("save", error)
+            finally:
+                with self._cond:
+                    self._done(owner)
+
+    def wait(self, owner: AutoMemory | None, timeout: float | None) -> None:
+        with self._cond:
+            self._cond.wait_for(
+                lambda: not (self._busy.get(id(owner)) if owner else self._busy), timeout
+            )
+
+
+_SAVER = _Saver()
+
+
+def _run_hook(hook: BeforeSave, items: list[Item]) -> list[Item]:
+    kept: Any = hook(items)
+    if inspect.isawaitable(kept):
+
+        async def awaited() -> Any:
+            return await kept
+
+        kept = asyncio.run(awaited())
+    return list(cast("Sequence[Item]", kept)) if kept else []
+
+
 class AutoMemory:
     """One app user's memory as a wrapped client uses it: the lookup before each call and the
     save after it. `memory_of(client)` answers it, for `last`, `flush()` and `aflush()`."""
@@ -441,19 +552,21 @@ class AutoMemory:
         author: Author | None,
         recall: bool,
         save: bool,
-        budget: float,
-        max_tokens: int,
+        budget: float | None,
+        max_tokens: int | None,
         fast: bool,
         redact: bool,
         before_save: BeforeSave | None,
     ) -> None:
         self.user_id = _calls.checked_user(user_id)
         self.session = session
-        self.author: Author = {**(author or {}), "self": True}
+        # The user's own words, unless the author you pass says otherwise.
+        given = cast("Author", dict(author or {}))
+        self.author: Author = given if "self" in given else {**given, "self": True}
         self.recall = recall
         self.save = save
-        self.budget = budget
-        self.max_tokens = max_tokens
+        self.budget = 1.5 if budget is None else budget
+        self.max_tokens = 600 if max_tokens is None else max_tokens
         self.fast = fast
         self.redact = redact
         self.before_save = before_save
@@ -461,117 +574,150 @@ class AutoMemory:
         """How the last lookup went; None before the first."""
         self._memory = memory
         self._reused: tuple[str, float, str] | None = None
-        self._pending: set[concurrent.futures.Future[Any]] = set()
-        self._tasks: set[asyncio.Task[Any]] = set()
-        self._warned: set[str] = set()
+        self._tasks: collections.deque[asyncio.Task[Any]] = collections.deque()
+        self._own_shown: collections.deque[str] = collections.deque(maxlen=_SHOWN)
 
     def __repr__(self) -> str:
         return f"AutoMemory({self.user_id!r})"
 
     # -- who
 
-    def _user(self) -> User:
+    def _sync(self) -> Memory:
         memory = self._memory if self._memory is not None else _default()
         if not isinstance(memory, Memory):
             raise TypeError("a client that is not async needs a Memory, not an AsyncMemory")
-        return memory.user(self.user_id)
+        return memory
 
-    def _auser(self) -> AsyncUser | User:
-        memory = self._memory if self._memory is not None else _default_async()
-        return memory.user(self.user_id)
-
-    def _warn(self, what: str, error: BaseException) -> None:
-        if what in self._warned:
-            log.debug("Alexein %s failed: %s", what, error)
-            return
-        self._warned.add(what)
-        log.warning("Alexein %s failed; the model is called without it: %s", what, error)
+    def _shown(self) -> collections.deque[str]:
+        if not self.session:
+            return self._own_shown
+        key = (self.user_id, self.session)
+        with _lock:
+            held = _shown.get(key)
+            if held is None:
+                held = _shown[key] = collections.deque(maxlen=_SHOWN)
+                while len(_shown) > _SESSIONS:
+                    _shown.popitem(last=False)
+            _shown.move_to_end(key)
+            return held
 
     # -- before a call
 
-    def _reuse(self, query: str) -> str | None:
+    def _start(self, asked: _Asked | None) -> tuple[str, str | None]:
+        """The query for `asked`, and the block when it is decided without a search: recall off,
+        nothing worth looking up, or a lookup for the same query moments ago."""
+        if not self.recall or asked is None or not _gate.worth_recall(asked.text):
+            self.last = RecallInfo(ms=0, chars=0, skipped=True)
+            return "", ""
+        query = _gate.query_text(asked.query(), self.redact)
         held = self._reused
         if held and held[0] == query and time.monotonic() - held[1] < _REUSE_SECONDS:
-            return held[2]
-        return None
+            self.last = RecallInfo(ms=0, chars=len(held[2]), reused=True)
+            return query, held[2]
+        return query, None
 
     def _found(self, query: str, found: SearchResult | None, started: float) -> str:
-        text = block(found, self.max_tokens) if found is not None else ""
+        text = ""
+        if found is not None:
+            shown = self._shown()
+            with _lock:
+                seen = frozenset(shown)
+            text, marks = _block(found, self.max_tokens, query, seen)
+            with _lock:
+                shown.extend(marks)
         failed = found is not None and found.failed
-        if not failed:
-            self._reused = (query, time.monotonic(), text)
+        self._reused = (query, time.monotonic(), text)
         self.last = RecallInfo(
             ms=(time.monotonic() - started) * 1000, chars=len(text), failed=failed
         )
         return text
 
-    def _late(self, started: float, *, failed: bool) -> str:
+    def _missed(self, query: str, started: float, *, failed: bool) -> str:
+        """No memory for this call; the calls after it for the same message go without too."""
+        if query:
+            self._reused = (query, time.monotonic(), "")
         self.last = RecallInfo(
             ms=(time.monotonic() - started) * 1000, chars=0, timed_out=not failed, failed=failed
         )
         return ""
 
-    def _search(self, user: User, query: str) -> SearchResult | None:
+    def _search_now(self, memory: Memory, query: str) -> SearchResult | None:
+        """One attempt, within the budget: a search past it is given up, not left waiting."""
+        call = _calls.search(query, fast=self.fast or None)
         try:
-            return user.search(query, fast=self.fast)
+            return memory._transport.send_once(call, self.user_id, self.budget)  # pyright: ignore[reportPrivateUsage]
         except NotFoundError:  # nothing saved for this user yet
             return None
 
+    def _searching(self, memory: Memory, query: str) -> concurrent.futures.Future[Any] | None:
+        """The search on a daemon thread of its own, or None when too many are running."""
+        if not _IN_FLIGHT.acquire(blocking=False):
+            _warn("recall", "too many lookups running at once; this call went without memory")
+            return None
+        future: concurrent.futures.Future[Any] = concurrent.futures.Future()
+
+        def run() -> None:
+            try:
+                future.set_result(self._search_now(memory, query))
+            except BaseException as error:
+                future.set_exception(error)
+            finally:
+                _IN_FLIGHT.release()
+
+        threading.Thread(target=run, name="alexein-recall", daemon=True).start()
+        return future
+
     def lookup(self, asked: _Asked | None) -> str:
         """What memory adds to the system prompt for `asked`, within `budget` seconds; "" when
-        it has nothing, is down, or is late. Never raises."""
+        it has nothing that bears on it, is down, or is late. Never raises."""
         started = time.monotonic()
-        if not self.recall or asked is None:
-            self.last = RecallInfo(ms=0, chars=0, skipped=True)
-            return ""
-        query = asked.query()
-        if (held := self._reuse(query)) is not None:
-            self.last = RecallInfo(ms=0, chars=len(held), reused=True)
-            return held
+        query, decided = self._start(asked)
+        if decided is not None:
+            return decided
         try:
-            future = _RECALLS.submit(self._search, self._user(), query)
+            future = self._searching(self._sync(), query)
+            if future is None:
+                return self._missed(query, started, failed=True)
             return self._found(query, future.result(timeout=self.budget), started)
         except concurrent.futures.TimeoutError:
-            return self._late(started, failed=False)
+            return self._missed(query, started, failed=False)
         except Exception as error:
-            self._warn("recall", error)
-            return self._late(started, failed=True)
+            _warn("recall", error)
+            return self._missed(query, started, failed=True)
 
     async def alookup(self, asked: _Asked | None) -> str:
-        """`lookup`, awaited."""
+        """`lookup`, awaited. A search past the budget is cancelled."""
         started = time.monotonic()
-        if not self.recall or asked is None:
-            self.last = RecallInfo(ms=0, chars=0, skipped=True)
-            return ""
-        query = asked.query()
-        if (held := self._reuse(query)) is not None:
-            self.last = RecallInfo(ms=0, chars=len(held), reused=True)
-            return held
-
-        async def search() -> SearchResult | None:
-            user = self._auser()
-            try:
-                if isinstance(user, User):
-                    return await asyncio.to_thread(user.search, query, fast=self.fast)
-                return await user.search(query, fast=self.fast)
-            except NotFoundError:
-                return None
-
+        query, decided = self._start(asked)
+        if decided is not None:
+            return decided
         try:
-            found = await asyncio.wait_for(search(), self.budget)
+            memory = self._memory if self._memory is not None else _default_async()
+            if isinstance(memory, Memory):
+                future = self._searching(memory, query)
+                if future is None:
+                    return self._missed(query, started, failed=True)
+                found = await asyncio.wait_for(asyncio.wrap_future(future), self.budget)
+            else:
+                found = await asyncio.wait_for(self._asearch(memory, query), self.budget)
             return self._found(query, found, started)
         except asyncio.TimeoutError:
-            return self._late(started, failed=False)
+            return self._missed(query, started, failed=False)
         except Exception as error:
-            self._warn("recall", error)
-            return self._late(started, failed=True)
+            _warn("recall", error)
+            return self._missed(query, started, failed=True)
+
+    async def _asearch(self, memory: AsyncMemory, query: str) -> SearchResult | None:
+        try:
+            return await memory.user(self.user_id).search(query, fast=self.fast)
+        except NotFoundError:
+            return None
 
     # -- after a call
 
     def _items(self, asked: _Asked, reply: str) -> list[Item]:
-        author = cast("Author", dict(self.author))
         items: list[Item] = [
-            {"text": asked.text[:_SAVED_CHARS], "role": "user", "author": author},
+            {"text": asked.text[:_SAVED_CHARS], "role": "user", "author": dict(self.author)},  # pyright: ignore[reportAssignmentType]
             {"text": reply[:_SAVED_CHARS], "role": "assistant"},
         ]
         for n, item in enumerate(items):
@@ -580,64 +726,80 @@ class AutoMemory:
                 item["session"] = self.session
                 said = f"{self.session}|{asked.at}|{n}|{asked.text}"
                 item["id"] = "wrap:" + hashlib.sha256(said.encode()).hexdigest()[:24]
-        if self.before_save is None:
-            return items
-        kept = self.before_save(items)
-        return list(kept) if kept else []
+        return items
 
-    def _saved(self, asked: _Asked | None, reply: _Reply) -> list[Item]:
-        if not self.save or asked is None or not reply.final:
-            return []
-        try:
-            return self._items(asked, reply.text)
-        except Exception as error:
-            self._warn("before_save", error)
-            return []
+    def _wanted(self, asked: _Asked | None, reply: _Reply) -> bool:
+        return self.save and asked is not None and reply.final
 
-    def _add(self, items: list[Item]) -> None:
+    def _save_now(self, asked: _Asked, text: str) -> None:
+        """On a saver thread: the hook, then the add."""
         try:
-            self._user().add(items, redact=self.redact)
+            items = self._items(asked, text)
+            if self.before_save is not None:
+                items = _run_hook(self.before_save, items)
         except Exception as error:
-            self._warn("save", error)
+            _warn("before_save", error)
+            return
+        if items:
+            self._sync().user(self.user_id).add(items, redact=self.redact)
 
     def remember(self, asked: _Asked | None, reply: _Reply) -> None:
-        """Save the user's message and the final reply in the background. Never raises."""
-        items = self._saved(asked, reply)
-        if not items:
+        """Save the user's message and the final reply in the background, the hook included.
+        Never raises."""
+        if not self._wanted(asked, reply) or asked is None:
             return
-        future = _SAVES.submit(self._add, items)
-        self._pending.add(future)
-        future.add_done_callback(self._pending.discard)
+        text = reply.text
+        try:
+            _SAVER.put(self, lambda: self._save_now(asked, text))
+        except Exception as error:  # the interpreter shutting down
+            _warn("save", error)
 
     def aremember(self, asked: _Asked | None, reply: _Reply) -> None:
-        """`remember`, as a task of the running loop."""
-        items = self._saved(asked, reply)
-        if not items:
+        """`remember`, as a task of the running loop (a saver thread for a sync `Memory`)."""
+        if not self._wanted(asked, reply) or asked is None:
             return
+        if isinstance(self._memory, Memory):
+            self.remember(asked, reply)
+            return
+        text = reply.text
 
         async def add() -> None:
             try:
-                user = self._auser()
-                if isinstance(user, User):
-                    await asyncio.to_thread(user.add, items, redact=self.redact)
-                else:
-                    await user.add(items, redact=self.redact)
+                items = self._items(asked, text)
+                if self.before_save is not None:
+                    kept: Any = self.before_save(items)
+                    kept = await kept if inspect.isawaitable(kept) else kept
+                    items = list(cast("Sequence[Item]", kept)) if kept else []
             except Exception as error:
-                self._warn("save", error)
+                _warn("before_save", error)
+                return
+            if not items:
+                return
+            try:
+                memory = self._memory if self._memory is not None else _default_async()
+                await cast("AsyncMemory", memory).user(self.user_id).add(items, redact=self.redact)
+            except Exception as error:
+                _warn("save", error)
 
-        task = asyncio.get_running_loop().create_task(add(), name="alexein.save")
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
+        tasks = self._tasks
+        while tasks and tasks[0].done():
+            tasks.popleft()
+        if len(tasks) >= _QUEUED:
+            tasks.popleft().cancel()
+            _warn("save", f"more than {_QUEUED} saves waiting; the oldest was dropped")
+        tasks.append(asyncio.get_running_loop().create_task(add(), name="alexein.save"))
 
     def flush(self, timeout: float | None = None) -> None:
         """Wait up to `timeout` seconds (None: for as long as they take) for the saves started
         by a sync client. Call it before a short-lived process exits."""
-        concurrent.futures.wait(list(self._pending), timeout=timeout)
+        _SAVER.wait(self, timeout)
 
     async def aflush(self, timeout: float | None = None) -> None:
         """Wait for the saves an async client started: before its event loop closes."""
-        if self._tasks:
-            await asyncio.wait(list(self._tasks), timeout=timeout)
+        pending = [t for t in self._tasks if not t.done()]
+        if pending:
+            await asyncio.wait(pending, timeout=timeout)
+        await asyncio.to_thread(_SAVER.wait, self, timeout)
 
 
 # --------------------------------------------------------------------------- the proxies --
@@ -918,8 +1080,8 @@ def wrap_anthropic(
     author: Author | None = None,
     recall: bool = True,
     save: bool = True,
-    budget: float = 1.5,
-    max_tokens: int = 600,
+    budget: float | None = 1.5,
+    max_tokens: int | None = 600,
     fast: bool = True,
     redact: bool = False,
     before_save: BeforeSave | None = None,
@@ -967,8 +1129,8 @@ def wrap_openai(
     author: Author | None = None,
     recall: bool = True,
     save: bool = True,
-    budget: float = 1.5,
-    max_tokens: int = 600,
+    budget: float | None = 1.5,
+    max_tokens: int | None = 600,
     fast: bool = True,
     redact: bool = False,
     before_save: BeforeSave | None = None,

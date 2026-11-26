@@ -178,4 +178,19 @@ describe("alexeinMiddleware", () => {
       "Sunny in Lisbon.",
     ]);
   });
+
+  it("adds nothing for a thank-you", async () => {
+    const { client, sent } = memory(searched());
+    const mock = generating();
+    const middleware = alexeinMiddleware(client, { userId: "dana", save: false });
+
+    await generateText({
+      model: wrapLanguageModel({ model: mock, middleware }),
+      prompt: "thanks!",
+    });
+
+    expect(sent.routes).toEqual([]);
+    expect(mock.doGenerateCalls[0]!.prompt[0]!.role).toBe("user");
+    expect(middleware.alexein.last?.skipped).toBe(true);
+  });
 });

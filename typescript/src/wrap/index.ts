@@ -224,7 +224,10 @@ class Deferred implements PromiseLike<unknown> {
   constructor(
     private readonly start: () => Promise<{ call: Loose }>,
     private readonly seen: (data: unknown) => unknown,
-  ) {}
+  ) {
+    // Sent at once, as the library's own call is, awaited or not; a failure is the awaiter's.
+    this.#answer().catch(() => {});
+  }
 
   #call(): Promise<{ call: Loose }> {
     this.#request ??= this.start();
