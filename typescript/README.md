@@ -188,7 +188,7 @@ Memory being down should cost a reply its memory, not the reply. With
 A wrong key or a wrong request (401, 403, 400, 422) still throws, and so does every other method.
 Pair it with a short `timeout` where a reply cannot wait.
 
-## Memory without tool calls: Anthropic, OpenAI and the AI SDK
+## Automatic memory: Anthropic, OpenAI and the AI SDK
 
 Your model reads memory before every reply, and every exchange is saved, without the model deciding to call a
 tool. Wrap the client you already use:
