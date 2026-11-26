@@ -137,6 +137,18 @@ class Transport:
             time.sleep(pause)
             attempt += 1
 
+    def send_once(self, call: Call[T], user: str | None, timeout: float) -> T:
+        """One attempt, each step of it within `timeout` seconds, and no retry: for a caller
+        that goes on without the answer when it is late."""
+        rid = request_id()
+        request = _request(self.http, self.base, call, user, rid)
+        request.extensions["timeout"] = httpx.Timeout(timeout).as_dict()
+        try:
+            response = self.http.send(request)
+        except httpx.TransportError as error:
+            raise _unreached(error, rid) from error
+        return _answer(response, call, rid)
+
 
 class AsyncTransport:
     """`Transport`, over an `httpx.AsyncClient`."""

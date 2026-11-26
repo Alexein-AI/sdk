@@ -272,6 +272,7 @@ provides-extras = ["langgraph", "openai-agents", "crewai"]
 [package.metadata.requires-dev]
 crewai = [{ name = "crewai", specifier = ">=1.15,<1.16" }]
 dev = [
+    { name = "anthropic", specifier = ">=2.14" },
     { name = "anyio", specifier = ">=4" },
     { name = "langchain", specifier = ">=1" },
     { name = "langgraph", specifier = ">=1.2" },

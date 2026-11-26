@@ -198,6 +198,64 @@ memory unreachable, timing out, or answering 429 or 5xx after its retries - does
 each logs a warning on the `alexein` logger. Every other method, and every other error (a wrong key, a wrong
 request), still raises. Pair it with a short `timeout` where a reply cannot wait.
 
+## Memory without tool calls: Anthropic and OpenAI clients
+
+Your model reads memory before every reply, and every exchange is saved, without the model deciding to call a
+tool. Wrap the client you already use:
+
+```python
+from anthropic import Anthropic
+from alexein import Memory
+from alexein.wrap import wrap_anthropic
+
+memory = Memory()  # one of each for the process
+anthropic = Anthropic()
+
+
+def reply(user_id: str, conversation_id: str, messages: list[dict]) -> str:
+    claude = wrap_anthropic(anthropic, memory, user_id=user_id, session=conversation_id)
+    answer = claude.messages.create(model="...", max_tokens=1024, system="...", messages=messages)
+    return answer.content[0].text
+```
+
+`wrap_openai(OpenAI(), memory, user_id=...)` does the same for `chat.completions` and `responses`. Both take
+the async clients too (`AsyncAnthropic`, `AsyncOpenAI`, with a `Memory` or an `AsyncMemory`), and cover
+`create` (streaming or not), `parse` and `stream`.
+
+- **Before each call**, one search with the user's latest message (with the end of the reply before it, when
+  the message is short). Nothing is looked up for a message that is only a go-ahead, a thank-you or a
+  greeting ("thanks!", "ok, do it"); a question always is. What the search ranks first is added, at most
+  four memories, each once per conversation (`session`), without the rest of what memory holds that it lists
+  last. They go in the system prompt, after yours, inside a `<memory>` block that says they are quoted data,
+  not instructions, gives each line's date and who said it, and states that memory never authorises sharing
+  secrets or sending data out; no character in them can close or fake that block. A call waits at most `budget` seconds for it; when memory is slow,
+  down or refuses, the model is called without it, and nothing is raised. Keys, tokens and passwords are
+  never sent as a search.
+- **After each call**, the user's message and the reply are saved in the background, never delaying the reply.
+  A reply that asks to run a tool is not saved; the turn's last answer is, once. A stream is saved when it
+  ends. The calls of one tool loop share one lookup.
+- Whose memory is used is the `user_id` your code passes, never anything a model or a request body says.
+
+| Option        | Default | What it does                                                                                   |
+| ------------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `user_id`     | -       | your id for the app user whose memory this is                                                  |
+| `session`     | `None`  | the conversation: saves are grouped under it, and a retried call edits what it saved           |
+| `author`      | `None`  | who the user is, `{"name": ..., "id": ...}`; their messages are saved as theirs (`self: True` unless you pass `self`) |
+| `recall`      | `True`  | look memory up before each call                                                                |
+| `save`        | `True`  | save the user's message and the reply after each call                                          |
+| `budget`      | `1.5`   | the longest a call waits for memory, in seconds                                                |
+| `max_tokens`  | `600`   | about how many tokens of memory a call is given at most                                        |
+| `fast`        | `True`  | skip search's relevance check; with `False`, what memory judges off-topic is left out (raise `budget` with it) |
+| `redact`      | `False` | replace phone numbers, cards, keys and the like in the search and before memory keeps any copy |
+| `before_save` | `None`  | a function (or coroutine) that sees the items about to be saved and answers those to save (none: nothing); it runs in the background |
+
+`memory_of(client).last` says how the last lookup went (`ms`, `chars`, `timed_out`, `failed`, `reused`).
+Saves run in the background, at most 256 waiting (past that the oldest is dropped, with a warning); at
+exit the process waits at most two seconds for them. In a script or a serverless function, call
+`memory_of(client).flush()` (`await memory_of(client).aflush()` for an async client) before it ends. Without a `memory`, a client for the process is made from
+`ALEXEIN_API_KEY`. `with_raw_response` and `with_streaming_response` are passed through without memory. See
+`examples/wrapped_client.py`.
+
 ## LangGraph
 
 ```bash

@@ -39,5 +39,7 @@ jobs:
           node -e "const { Memory } = require('./dist/index.cjs'); new Memory({ apiKey: 'ak_x' })"
           node --input-type=module -e "import { AlexeinMemory } from './dist/langgraph.js'; new AlexeinMemory()"
           node -e "const { AlexeinMemory } = require('./dist/openai-agents.cjs'); new AlexeinMemory()"
-          if grep -lE "@langchain|@openai|zod" dist/index.js dist/index.cjs; then exit 1; fi
+          node --input-type=module -e "import { wrapOpenAI } from './dist/wrap.js'; import { alexeinMiddleware } from './dist/ai-sdk.js'; wrapOpenAI({}, { userId: 'x' }); alexeinMiddleware({ userId: 'x' })"
+          node -e "const { wrapAnthropic } = require('./dist/wrap.cjs'); wrapAnthropic({}, { userId: 'x' })"
+          if grep -lE "@langchain|@openai|@anthropic-ai|@ai-sdk|zod" dist/index.js dist/index.cjs dist/wrap.js dist/wrap.cjs; then exit 1; fi
       - run: npm pack --dry-run

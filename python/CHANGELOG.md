@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- `alexein.wrap`: `wrap_anthropic(client, memory, user_id=...)` and `wrap_openai(...)`: memory without tool calls. Before each call, what memory holds about the user's latest message
+  goes into the system prompt as quoted data, within a time budget and a token cap; after it, the message and
+  the reply are saved in the background, a stream's when it ends. Memory being slow or down never stops a call.
+  Options: `session`, `author`, `recall`, `save`, `budget`, `max_tokens`, `fast`, `redact`, `before_save`.
+- Nothing is looked up for a message that is only a go-ahead, a thank-you or a greeting; a question always
+  is. What the search ranks first is added, at most four memories, each once per conversation, without what
+  memory lists after the excerpts. Keys, tokens and passwords never go into a
+  search, and `redact` covers the search too. An `author` with `self` is saved as given. No character in a
+  memory can close or fake the `<memory>` block.
+
 ## 0.3.4 - 2026-11-24
 
 - `memory.user(id)` takes what the API takes since 2026-11-23: the id your app already has (a UUID, an email,
