@@ -12,7 +12,11 @@ project needs; the packages in this folder sit on top of them.
 | OpenAI Agents SDK | [`alexein.openai_agents`](../python/src/alexein/openai_agents.py), `pip install "alexein[openai-agents]"` | [`@alexein/sdk/openai-agents`](../typescript/src/openai-agents/index.ts) | [OpenAI Agents SDK](https://docs.alexein.ai/integrations/openai-agents) |
 | CrewAI | [`alexein.crewai`](../python/src/alexein/crewai.py), `pip install "alexein[crewai]"` | - | [CrewAI](https://docs.alexein.ai/integrations/crewai) |
 
-Each gives the same three things: recall before the model, the turn saved after it, and the tools
+For an agent of your own on the Anthropic or OpenAI client, or the Vercel AI SDK, `alexein.wrap` and
+`@alexein/sdk/wrap` / `@alexein/sdk/ai-sdk` wrap the model client instead: recall before each call and the
+exchange saved after it, with no tool at all.
+
+Each framework integration gives the same three things: recall before the model, the turn saved after it, and the tools
 `memory_search`, `memory_open` and `memory_add` for the model to call. Whose memory a run reads is the
 developer's code's choice, never the model's.
 

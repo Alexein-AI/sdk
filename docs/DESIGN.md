@@ -20,6 +20,8 @@ own behaviour wins, then the docs, then this file - and this file is fixed.
 | LangGraph         | `alexein.langgraph`, extra `[langgraph]`         | `@alexein/sdk/langgraph` (peer deps)                                  |
 | OpenAI Agents SDK | `alexein.openai_agents`, extra `[openai-agents]` | `@alexein/sdk/openai-agents` (peer deps)                              |
 | CrewAI            | `alexein.crewai`, extra `[crewai]`               | -                                                                     |
+| Model clients     | `alexein.wrap` (no extra: duck-typed)            | `@alexein/sdk/wrap` (no dependency)                                   |
+| AI SDK            | -                                                | `@alexein/sdk/ai-sdk` (`@ai-sdk/provider` 4 types, optional peer)     |
 | Scaffolding CLI   | `alexein-cli` (`uvx alexein-cli init langgraph`) | `@alexein/cli` (`npx @alexein/cli init langgraph`)                    |
 | LiveKit           | `alexein-livekit` (`import alexein_livekit`)     | -                                                                     |
 | n8n               | -                                                | `@alexein/n8n-nodes-alexein`, node "Alexein", credential `alexeinApi` |
@@ -240,6 +242,46 @@ as optional peer dependencies): `new AlexeinMemory()`, `MemoryAnnotation` for st
 Ported from the CLI's templates (`integrations/cli-*/templates/*/memory.*.tmpl` at the commit that
 brought them in), keeping their behaviour, onto the v2 surface, as importable modules with the same
 `AlexeinMemory`-style entry point and module-level defaults.
+
+### `alexein.wrap` / `@alexein/sdk/wrap`, `@alexein/sdk/ai-sdk`: memory without tool calls
+
+```
+wrap_anthropic(client, memory=None, *, user_id, **options)   wrapAnthropic(client, memory?, { userId, ...options })
+wrap_openai(client, memory=None, *, user_id, **options)      wrapOpenAI(client, memory?, { userId, ...options })
+-                                                            alexeinMiddleware(memory?, { userId, ...options })  // wrapLanguageModel
+memory_of(wrapped) -> AutoMemory: .last (RecallInfo), .flush(), .aflush()   memoryOf(wrapped) / middleware.alexein: .last, .flush()
+```
+
+The official clients, returned as themselves with memory on `messages` (Anthropic: `create`, `parse`,
+`stream`), `chat.completions` and `responses` (OpenAI: `create`, `parse`, `stream`); every other attribute is
+the client's, and `with_options` / `withOptions` keeps the memory. They import neither library: the payloads
+are read field by field, as dicts or objects. Options, the same in both (Python seconds, TypeScript ms):
+`session`, `author`, `recall` (true), `save` (true), `budget` (1.5 s), `max_tokens` / `maxTokens` (600),
+`fast` (true), `redact` (false), `before_save` / `beforeSave`.
+
+- Before a call: the latest `user` message that holds text (a tool result does not), prefixed with the last 300
+  characters of the assistant message before it when shorter than 60, cut to its last 2000 characters, is
+  searched once (`fast` as set), waited for at most `budget`; a lookup is reused for the same query for 120 s,
+  so a tool loop searches once. Nothing when `answerable` is false, `failed`, a 404, an error or late. What is
+  found is `HEADER`, then `<memory>`, one memory a line as `- (<YYYY-MM-DD>, said by <who>) <text>` (date and
+  speaker each when known: `from` on a known line or fact, `roles` on an excerpt), each on one line and at most
+  700 characters, whole lines while their total stays within `max_tokens * 4` characters, then `</memory>`.
+  Every `<`, `>` (and look-alikes) and `&` in a memory is replaced, so nothing remembered closes the fence.
+  Search notes are not shown. Anthropic: appended to `system` (a string gets `\n\n` + block; a list gets a
+  text block). Chat: a message with the leading instruction message's role (else `system`), after the leading
+  `system`/`developer` messages. Responses: appended to `instructions`. AI SDK: appended to the last leading
+  system message, else a system message first.
+- After a call: when the reply is final (no client-side tool call, finished) and has text, two items -
+  `{text, role: "user", author: {...author, self: true}, kind: "message"}` and `{text, role: "assistant", kind:
+  "message"}`, each cut at 8000 characters; with `session`, each carries it and the id `wrap:` + 24 hex of
+  SHA-256(`session|<index of the user message>|<0 or 1>|<user text>`) - go through `before_save`, then one
+  `add` (`redact` as set), in the background: a thread pool (sync), a task (async), a promise (TS). A stream is
+  observed and saved when its iteration ends; a `.stream()` helper's raw stream likewise.
+- Never raises for memory: a missing key, an outage, a refusal (401, 402, ...) or a hook that throws logs one
+  warning per kind on the `alexein` logger / `console.warn`, and the call goes on. A bad `user_id` raises where
+  it is given. An `AsyncMemory` with a sync client is a `TypeError`.
+- Without a memory client, one for the process (one per event loop for async) is made on first use:
+  `fail_open=True`, `integration="wrap"`, 10 s.
 
 ### `alexein-cli` / `@alexein/cli`
 

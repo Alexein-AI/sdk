@@ -52,12 +52,28 @@ builder.add_node("remember", memory.remember)  # the turn, saved
 
 Or let the CLI wire it into a project you have: `uvx alexein-cli init langgraph`, `npx @alexein/cli init langgraph`.
 
+## Memory without tool calls
+
+Wrap the model client you already use: memory is read before each call and each exchange saved, with no tool
+for the model to decide to call.
+
+```python
+from alexein.wrap import wrap_anthropic, wrap_openai
+
+claude = wrap_anthropic(Anthropic(), memory, user_id="dana")   # or wrap_openai(OpenAI(), ...)
+```
+
+```ts
+import { wrapAnthropic, wrapOpenAI } from "@alexein/sdk/wrap";
+import { alexeinMiddleware } from "@alexein/sdk/ai-sdk"; // wrapLanguageModel({ model, middleware })
+```
+
 ## Packages
 
 | Folder | Package | What it is |
 | --- | --- | --- |
-| [`python`](python) | [`alexein`](https://pypi.org/project/alexein/) | The Python client, sync and async; `alexein.langgraph`, `alexein.openai_agents`, `alexein.crewai` |
-| [`typescript`](typescript) | [`@alexein/sdk`](https://www.npmjs.com/package/@alexein/sdk) | The TypeScript client; `@alexein/sdk/langgraph`, `@alexein/sdk/openai-agents` |
+| [`python`](python) | [`alexein`](https://pypi.org/project/alexein/) | The Python client, sync and async; `alexein.langgraph`, `alexein.openai_agents`, `alexein.crewai`, `alexein.wrap` |
+| [`typescript`](typescript) | [`@alexein/sdk`](https://www.npmjs.com/package/@alexein/sdk) | The TypeScript client; `@alexein/sdk/langgraph`, `@alexein/sdk/openai-agents`, `@alexein/sdk/wrap`, `@alexein/sdk/ai-sdk` |
 | [`integrations/cli-python`](integrations/cli-python) | `alexein-cli` | `uvx alexein-cli init langgraph \| crewai \| openai-agents`, `create`, `doctor` |
 | [`integrations/cli-js`](integrations/cli-js) | `@alexein/cli` | `npx @alexein/cli init langgraph \| openai-agents`, `create`, `doctor` |
 | [`integrations/livekit`](integrations/livekit) | `alexein-livekit` | Memory for LiveKit voice agents: recalled before each reply, every turn saved |
