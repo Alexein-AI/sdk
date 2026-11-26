@@ -9,6 +9,9 @@
  * Alexein AI plugin, the plugin goes in instead: the same server, and the guidance on when to
  * search and save. Nothing is replaced that is already there, short of `--force`.
  *
+ * `--remove` takes out what this adds - the plugin, the `alexein` server, or its entry in a file -
+ * through the tool's own command where it has one, and leaves anything else named for Alexein.
+ *
  * The tools sign in to Alexein themselves, so no key is written anywhere. `--key` is for where
  * nobody is there to sign in: then each gets the key in a header, and no plugin.
  */
@@ -73,6 +76,10 @@ export interface ConnectOptions {
   force: boolean;
   list: boolean;
   dryRun: boolean;
+  /** Take out what `connect` added, instead of adding it. */
+  remove?: boolean;
+  /** With `list`: the same, as JSON. */
+  json?: boolean;
 }
 
 /** What a tool is told, in one of the ways `Client.add` knows. */
@@ -92,6 +99,10 @@ interface Client {
   plan(host: Host, o: ConnectOptions): Plan | undefined;
   /** Edits a settings file instead of running a command. */
   write?(host: Host, o: ConnectOptions): string;
+  /** The commands that take out what `plan` added, of what is here; undefined when none is. */
+  removal?(host: Host): Plan | undefined;
+  /** Takes the `alexein` entry out of a settings file; undefined when it has none by that name. */
+  unwrite?(host: Host): string | undefined;
   /** A sign-in run from the terminal, when the tool has one. */
   login?(o: ConnectOptions): [string, string[]];
   /** Where the person signs in otherwise. */
@@ -102,6 +113,9 @@ const headers = (key: string) => ({ Authorization: `Bearer ${key}`, "X-Alexein-U
 const headerFlags = (flag: string, key: string) =>
   Object.entries(headers(key)).flatMap(([k, v]) => [flag, `${k}: ${v}`]);
 const mentions = (out: string) => /\balexein(-ai)?\b/i.test(out);
+/** What steps run, by each command's first words: `claude plugin uninstall`. */
+const commands = (steps: [string, string[]][]) =>
+  steps.map(([command, args]) => [command, ...args.slice(0, 2)].join(" ")).join(", ");
 
 /** A JSON settings file, or `{}` when it is not there; undefined when it is not JSON. */
 function readSettings(path: string): Record<string, unknown> | undefined {
@@ -132,6 +146,21 @@ function mergeServer(path: string, field: string, entry: Record<string, unknown>
   if (existsSync(path)) copyFileSync(path, `${path}.bak`);
   else mkdirSync(dirname(path), { recursive: true });
   settings[field] = { ...servers(path, field), [NAME]: entry };
+  writeFileSync(path, JSON.stringify(settings, null, 2) + "\n");
+  return path;
+}
+
+/**
+ * `NAME` taken out from under `field`, the rest of the file as it was, and a copy kept; undefined
+ * when there is no server by that name - one under another name was not added by `connect`.
+ */
+function dropServer(path: string, field: string): string | undefined {
+  const settings = readSettings(path);
+  if (!settings) throw new Error(`${path} is not valid JSON; take alexein out by hand`);
+  const kept = servers(path, field);
+  if (!(NAME in kept)) return undefined;
+  copyFileSync(path, `${path}.bak`);
+  settings[field] = Object.fromEntries(Object.entries(kept).filter(([name]) => name !== NAME));
   writeFileSync(path, JSON.stringify(settings, null, 2) + "\n");
   return path;
 }
@@ -195,6 +224,15 @@ export const CLIENTS: Client[] = [
           },
     login: (o) => ["claude", ["mcp", "login", o.plugins && !o.key ? CLAUDE_PLUGIN_SERVER : NAME]],
     signIn: "run /mcp in Claude Code and sign in",
+    // The plugin, and the server at the user scope `plan` adds it at: never a project's own.
+    removal: (host) => {
+      const steps: [string, string[]][] = [];
+      if (/alexein@alexein/.test(host.run("claude", ["plugin", "list"]).out))
+        steps.push(["claude", ["plugin", "uninstall", "alexein@alexein"]]);
+      if (host.run("claude", ["mcp", "get", NAME]).code === 0)
+        steps.push(["claude", ["mcp", "remove", "--scope", "user", NAME]]);
+      return steps.length ? { how: commands(steps), steps } : undefined;
+    },
   },
   {
     id: "cursor",
@@ -208,6 +246,7 @@ export const CLIENTS: Client[] = [
         ...(o.key ? { headers: headers(o.key) } : {}),
       }),
     signIn: "open Cursor Settings › MCP and select Connect on alexein",
+    unwrite: (host) => dropServer(cursorSettings(host), "mcpServers"),
   },
   {
     id: "vscode",
@@ -232,6 +271,8 @@ export const CLIENTS: Client[] = [
       ],
     }),
     signIn: "run MCP: List Servers, start alexein and allow the sign-in",
+    // `code` adds a server but has no command that takes one out: its file is edited instead.
+    unwrite: (host) => dropServer(vscodeSettings(host), "servers"),
   },
   {
     id: "copilot",
@@ -265,6 +306,14 @@ export const CLIENTS: Client[] = [
             ],
           },
     signIn: "run /mcp in copilot and authenticate",
+    // The plugin's server goes with the plugin: `mcp remove` refuses it.
+    removal: (host) =>
+      mentions(host.run("copilot", ["plugin", "list"]).out)
+        ? {
+            how: "copilot plugin uninstall",
+            steps: [["copilot", ["plugin", "uninstall", "alexein-ai@alexein-ai"]]],
+          }
+        : { how: "copilot mcp remove", steps: [["copilot", ["mcp", "remove", NAME]]] },
   },
   {
     id: "codex",
@@ -277,6 +326,7 @@ export const CLIENTS: Client[] = [
         : { how: "codex mcp add", steps: [["codex", ["mcp", "add", NAME, "--url", URL]]] },
     login: () => ["codex", ["mcp", "login", NAME]],
     signIn: "run codex mcp login alexein",
+    removal: () => ({ how: "codex mcp remove", steps: [["codex", ["mcp", "remove", NAME]]] }),
   },
   {
     id: "gemini",
@@ -303,6 +353,11 @@ export const CLIENTS: Client[] = [
       ],
     }),
     signIn: "start Gemini CLI; it opens the sign-in (or run /mcp auth alexein)",
+    // The user scope `plan` adds it at: without one, `gemini mcp remove` looks in the project's.
+    removal: () => ({
+      how: "gemini mcp remove",
+      steps: [["gemini", ["mcp", "remove", "--scope", "user", NAME]]],
+    }),
   },
   {
     id: "antigravity",
@@ -326,6 +381,15 @@ export const CLIENTS: Client[] = [
             ],
           },
     signIn: "open /plugin in Antigravity, expand alexein-ai and choose Sign in",
+    // The plugin, by its name. A server alone is taken out in Antigravity's settings: its CLI
+    // documents no command for that.
+    removal: (host) =>
+      mentions(host.run("agy", ["plugin", "list"]).out)
+        ? {
+            how: "agy plugin uninstall",
+            steps: [["agy", ["plugin", "uninstall", "alexein-ai"]]],
+          }
+        : undefined,
   },
   {
     id: "devin",
@@ -343,6 +407,16 @@ export const CLIENTS: Client[] = [
         ...(o.key ? { headers: headers(o.key) } : {}),
       }),
     signIn: "open Customize › MCPs and select Authenticate on alexein",
+    // Its CLI where it has it, at the user scope `plan` adds it at: that writes the file `present`
+    // reads, which is edited instead without the CLI.
+    removal: (host) =>
+      host.has("devin") && NAME in servers(devinSettings(host), "mcpServers")
+        ? {
+            how: "devin mcp remove",
+            steps: [["devin", ["mcp", "remove", "-s", "user", NAME]]],
+          }
+        : undefined,
+    unwrite: (host) => dropServer(devinSettings(host), "mcpServers"),
   },
 ];
 
@@ -367,6 +441,17 @@ export async function connect(
   }
   const asked = CLIENTS.filter((c) => !o.only?.length || o.only.includes(c.id));
   const found = asked.filter((c) => c.found(host));
+  if (o.json) {
+    const present = new Set(found.filter((c) => c.present(host)).map((c) => c.id));
+    const tools = asked.map((c) => ({
+      id: c.id,
+      name: c.name,
+      found: found.includes(c),
+      added: found.includes(c) ? present.has(c.id) : null,
+    }));
+    console.line(JSON.stringify({ tools }, null, 2));
+    return 0;
+  }
   console.line(`@alexein/cli ${VERSION} - Alexein AI for the AI tools on this computer`);
   console.line();
   if (!found.length) {
@@ -379,6 +464,13 @@ export async function connect(
   for (const c of asked.filter((c) => !found.includes(c))) console.step("missing", c.name);
   console.line();
   if (o.list) return 0;
+  if (o.remove)
+    return remove(
+      found.filter((c) => present.has(c.id)),
+      o,
+      console,
+      host,
+    );
 
   const todo = found.filter((c) => o.force || !present.has(c.id));
   if (!todo.length) {
@@ -445,6 +537,71 @@ export async function connect(
   }
   console.line();
   console.line(`  ${ELSEWHERE}: ${DOCS}`);
+  return failed ? 1 : 0;
+}
+
+/**
+ * `--remove`: what `connect` added taken out of each tool in `todo`, the ones that have Alexein -
+ * the plugin, the `alexein` server, or its settings entry. A server under another name was not
+ * added here and is left, with a line saying so. Memory and the tool's sign-in are untouched.
+ */
+async function remove(
+  todo: Client[],
+  o: ConnectOptions,
+  console: Console,
+  host: Host,
+): Promise<number> {
+  if (!todo.length) {
+    console.line("  No tool found has Alexein: nothing to take out.");
+    return 0;
+  }
+  const names = todo.map((c) => c.name).join(", ");
+  if (!o.dryRun && !(await console.confirm(`Take Alexein AI out of ${names}?`))) {
+    console.line(
+      console.interactive
+        ? "  Nothing changed."
+        : "  Nothing changed: run it at a terminal, or pass --yes.",
+    );
+    return 1;
+  }
+  const byHand = (c: Client) =>
+    console.step("skipped", `${c.name}: take Alexein out in its own settings`);
+  let failed = 0;
+  for (const c of todo) {
+    try {
+      const plan = c.removal?.(host);
+      if (!plan && !c.unwrite) {
+        byHand(c);
+        continue;
+      }
+      if (o.dryRun) {
+        console.step(
+          "would",
+          `remove ${c.name}, with ${plan ? plan.steps.map(([cmd, args]) => shown(cmd, args)).join(" && ") : "its alexein entry taken out of its settings"}`,
+        );
+        continue;
+      }
+      let how: string | undefined;
+      if (plan) {
+        for (const [command, args] of plan.steps) {
+          const done = host.run(command, args);
+          if (done.code !== 0)
+            throw new Error(lastLine(done.out) || `${command} ${args[0]} failed`);
+        }
+        how = plan.how;
+      } else how = c.unwrite!(host)?.replace(host.home, "~");
+      if (how === undefined) byHand(c);
+      else console.step("removed", `${c.name} (${how})`);
+    } catch (error) {
+      failed++;
+      console.step("failed", `${c.name}: ${(error as Error).message}`);
+    }
+  }
+  if (o.dryRun) return 0;
+  console.line();
+  console.line(
+    "  Your memory is as it was. To end a tool's sign-in too, disconnect it in My memory.",
+  );
   return failed ? 1 : 0;
 }
 

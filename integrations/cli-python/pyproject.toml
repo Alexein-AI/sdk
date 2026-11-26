@@ -1,13 +1,13 @@
 [project]
 name = "alexein-cli"
 version = "0.3.1"
-description = "Add memory from Alexein to a LangGraph project, a CrewAI crew or an OpenAI Agents SDK agent, as a short file you own: uvx alexein-cli init langgraph | crewai | openai-agents."
+description = "Add memory from Alexein to a LangGraph project, a CrewAI crew or an OpenAI Agents SDK agent, as a short file you own: uvx alexein-cli init langgraph | crewai | openai-agents. And to Claude Code, Cursor, VS Code and other AI tools: uvx alexein-cli connect."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Alexein AI" }]
-keywords = ["memory", "llm", "agents", "langgraph", "crewai", "openai-agents", "cli"]
+keywords = ["memory", "llm", "agents", "langgraph", "crewai", "openai-agents", "cli", "mcp", "claude-code", "cursor"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -25,6 +25,7 @@ dependencies = ["alexein>=0.3"]
 
 [project.scripts]
 alexein-cli = "alexein_cli:main"
+alexein = "alexein_cli:main"
 
 [project.urls]
 Homepage = "https://alexein.ai"

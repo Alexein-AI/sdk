@@ -8,11 +8,13 @@
  *     npx @alexein/cli create <framework> X    a new project with memory wired in
  *     npx @alexein/cli doctor                  whether a project is set up for memory
  *     npx @alexein/cli connect                 Alexein AI in the AI tools on this computer
+ *     npx @alexein/cli connect --remove        ... and out of them again
  *
  * Node's standard library and `@alexein/sdk` only. Never an installer of anything but the
  * packages the written files import, and never a writer of a key it was not given.
  */
 
+import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
 import { connect } from "./connect.js";
@@ -28,7 +30,7 @@ OpenAI Agents SDK, wired in as code you own
 Usage:
   npx @alexein/cli init <framework> [options]          write memory.ts into this project
   npx @alexein/cli create <framework> <name> [options] a new project with memory wired in
-  npx @alexein/cli doctor                              check this project is set up for memory
+  npx @alexein/cli doctor [--json]                     check this project is set up for memory
   npx @alexein/cli connect [options]                   add Alexein AI to Claude Code, Cursor,
                                                        VS Code, Copilot CLI, Codex, Gemini CLI,
                                                        Antigravity and Devin Desktop
@@ -40,6 +42,8 @@ connect only:
                         codex, gemini, antigravity, devin
   --no-plugin           add the server alone, not Alexein AI's plugin where a tool has one
   --list                say which tools are here and which have Alexein; change nothing
+  --json                with --list (or doctor): the same, as JSON
+  --remove              take out what connect added: the plugin, the server or its entry
   --key <key>           send this key in a header instead of signing in (for CI), no plugins
   --force               add it again where Alexein is already
 
@@ -49,7 +53,8 @@ What the wiring uses:
   --fast                searches skip the relevance check: free and quicker
 
 The key (all of it can be skipped, and done later):
-  --key <key>           your API key, written into .env as ALEXEIN_API_KEY and checked
+  --key <key>           your API key, written into .env as ALEXEIN_API_KEY and checked;
+                        --key - reads it from stdin, so it stays out of your shell history
   --base-url <url>      memory's address, written into .env as ALEXEIN_API_URL
   --skip-key            do not ask for a key
 
@@ -88,12 +93,37 @@ const FLAGS = {
   only: { type: "string" },
   "no-plugin": { type: "boolean" },
   list: { type: "boolean" },
+  json: { type: "boolean" },
+  remove: { type: "boolean" },
   sdk: { type: "string" },
   version: { type: "boolean" },
   help: { type: "boolean", short: "h" },
 } as const;
 
-export async function main(argv: string[], given?: Console): Promise<number> {
+/**
+ * The key `--key` gives: `-` reads it from the first line of stdin, so it is in no shell's history.
+ * Throws when `-` brings nothing.
+ */
+export function keyFrom(
+  given: string | undefined,
+  read: () => string | undefined,
+): string | undefined {
+  if (given !== "-") return given;
+  const key = read()?.split("\n")[0]?.trim();
+  if (!key) throw new Error("--key - reads the key from stdin, and none came: pipe it in");
+  return key;
+}
+
+/** What was piped in; nothing at a terminal, where reading would wait for the key, echoed. */
+function readStdin(): string | undefined {
+  return process.stdin.isTTY ? undefined : readFileSync(0, "utf8");
+}
+
+export async function main(
+  argv: string[],
+  given?: Console,
+  stdin: () => string | undefined = readStdin,
+): Promise<number> {
   let parsed;
   try {
     parsed = parseArgs({ args: argv, options: FLAGS, allowPositionals: true, strict: true });
@@ -112,9 +142,25 @@ export async function main(argv: string[], given?: Console): Promise<number> {
     return command || v.help ? 0 : 2;
   }
   const cwd = process.cwd();
-  if (command === "doctor") return doctor(cwd, given ?? Console.forTerminal(true));
+  if (v.json && command !== "doctor" && !(command === "connect" && v.list)) {
+    (given ?? new Console()).fail("--json is for doctor and connect --list");
+    return 2;
+  }
+  if (command === "doctor")
+    return doctor(cwd, given ?? Console.forTerminal(true), undefined, Boolean(v.json));
   const console = given ?? Console.forTerminal(Boolean(v.yes));
+  let key: string | undefined;
+  try {
+    key = keyFrom(v.key, stdin);
+  } catch (error) {
+    console.fail((error as Error).message);
+    return 2;
+  }
   if (command === "connect") {
+    if (v.remove && (v.key || v["no-plugin"] || v.force || v.list)) {
+      console.fail("--remove goes with --only, --dry-run and --yes");
+      return 2;
+    }
     const only = v.only
       ?.split(",")
       .map((id) => id.trim())
@@ -122,11 +168,13 @@ export async function main(argv: string[], given?: Console): Promise<number> {
     return connect(
       {
         only,
-        key: v.key,
+        key,
         plugins: !v["no-plugin"],
         force: Boolean(v.force),
         list: Boolean(v.list),
         dryRun: Boolean(v["dry-run"]),
+        remove: Boolean(v.remove),
+        json: Boolean(v.json),
       },
       console,
     );
@@ -145,7 +193,7 @@ export async function main(argv: string[], given?: Console): Promise<number> {
     install: !v["no-install"],
     parts,
     fast: Boolean(v.fast),
-    key: v.key,
+    key,
     baseUrl: v["base-url"],
     skipKey: Boolean(v["skip-key"] || v.yes),
     sdk: v.sdk,

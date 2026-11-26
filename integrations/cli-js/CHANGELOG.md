@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- `connect --remove` takes out what `connect` added: through each tool's own command, at the scope
+  `connect` uses (Claude Code's and Copilot CLI's plugin or server, Codex's and Gemini CLI's server,
+  Antigravity's plugin, Devin Desktop's server), and by taking the `alexein` entry out of Cursor's and
+  VS Code's files, with a `.bak` copy kept. A server named anything but `alexein`, or added to
+  Antigravity without its plugin, is left, with a line saying to take it out in the tool's settings.
+  Memory and the tools' sign-ins are untouched.
+- `doctor --json` and `connect --list --json` give the same as one JSON object, for CI and agents;
+  the exit codes are unchanged.
+- `--key -` reads the key from stdin, so it is in no shell's history.
+- The command is also installed as `alexein`, beside `alexein-cli`. `npx @alexein/cli` is unchanged:
+  both names run the same file, which npx runs whichever it picks.
+- `alexein-cli` (Python) has `connect` too, tool for tool the same.
+
 ## 0.4.1 - 2026-11-20
 
 - The key check names the key as the console does, by its organisation's and project's names (their ids

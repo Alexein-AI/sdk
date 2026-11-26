@@ -13,7 +13,11 @@ uvx alexein-cli create langgraph my-agent      # a new one, with memory wired in
 uvx alexein-cli create crewai my-crew
 uvx alexein-cli create openai-agents my-agent
 uvx alexein-cli doctor                         # is it all set up?
+uvx alexein-cli connect                        # Alexein AI in Claude Code, Cursor, VS Code, ...
+uvx alexein-cli connect --remove               # ... and out of them again
 ```
+
+The command it installs is `alexein-cli`, also called `alexein`.
 
 The file is yours: edit the settings, rename things, move it. What it imports - recall, saving,
 the tools, failing open - comes from `alexein.langgraph`, `alexein.openai_agents` or
@@ -33,19 +37,22 @@ with `--force`.
 Then it writes `memory.py`, adds `alexein[langgraph]>=0.3` (or `[openai-agents]`, `[crewai]`)
 where the project does not depend on it with that extra yet - with the project's own tool: uv,
 poetry, pdm, or a line in `requirements.txt` - and sets up the key: `--key tm_...`, or asked for
-at a terminal. Enter skips it, and an empty `ALEXEIN_API_KEY=` waits in `.env`. A key it is given
-is checked, and a key that only reads is called out.
+at a terminal. Enter skips it, and an empty `ALEXEIN_API_KEY=` waits in `.env`. `--key -` reads it
+from stdin (`op read op://dev/alexein/key | uvx alexein-cli init langgraph --key - --yes`), so it is
+never in your shell's history; an `ALEXEIN_API_KEY` already in the environment is used as it is. A
+key it is given is checked, and a key that only reads is called out.
 
 | Flag                         | What it does                                                 |
 | ---------------------------- | ------------------------------------------------------------ |
 | `--fast`                     | `FAST = True`: searches skip the relevance check, free and quicker |
 | `--key`, `--base-url`        | the key and memory's address, written into `.env`            |
+| `--key -`                    | the key from stdin, kept out of your shell's history         |
 | `--skip-key`                 | do not ask for a key                                         |
 | `--dir`, `--file`, `--graph` | where the file goes, and what it is called                   |
 | `--force`                    | replace a file already there                                 |
 | `--no-install`               | print the install command instead of running it              |
 | `--dry-run`                  | make every check, say what would happen, change nothing      |
-| `--yes`                      | ask nothing                                                  |
+| `--yes`                      | ask nothing - not for the key either: give it with `--key`   |
 
 Every file holds the same four settings, at the top:
 
@@ -177,6 +184,52 @@ Checks the memory file, that `alexein` is a dependency with the framework's extr
 versions, that the integration module imports in the project's own `.venv`, `ALEXEIN_API_KEY`
 and `ALEXEIN_API_URL` (in `.env` or the environment), the key (with `memory.me()`, which is free)
 and that `.env` is not committed. Each failure says how to fix it.
+
+`doctor --json` gives the same checks as one JSON object, for CI or an agent to read:
+`{"ok": false, "root": "...", "checks": [{"ok": false, "what": "...", "fix": "..."}]}`. A check's
+`ok` is `null` when it could not be made. The exit code is the same: 0 when all pass.
+
+## `connect`
+
+Alexein AI in the AI tools you already use, in one command - the same as `npx @alexein/cli
+connect`, with no Node needed:
+
+```bash
+uvx alexein-cli connect
+```
+
+It finds Claude Code, Cursor, VS Code, GitHub Copilot CLI, Codex, Gemini CLI, Antigravity and Devin
+Desktop on this computer, says which have Alexein already, and asks before adding it to the rest.
+Each tool is told through its own command where it has one (`claude mcp add`, `code --add-mcp`,
+`codex mcp add`, ...), so it writes its own settings. Cursor's `~/.cursor/mcp.json`, and Devin
+Desktop's file when its CLI is not installed, get the `alexein` entry alone, everything else kept,
+and a copy of the file beside it (`.bak`). Claude Code, Copilot CLI and Antigravity get Alexein AI's
+plugin, which adds the same server and tells the agent when to search and save.
+
+Then you sign in to Alexein from each tool, and keep **Read and save** so it can save: `connect`
+says where, and starts the sign-in itself where a tool can from the terminal (Codex, Claude Code).
+No key is written anywhere. claude.ai, Claude Desktop and ChatGPT are added from the app: see the
+[docs](https://docs.alexein.ai/mcp).
+
+`connect --remove` takes out what `connect` added, through each tool's own command and at the scope
+it was added at (`claude plugin uninstall`, `claude mcp remove --scope user`, `copilot plugin
+uninstall`, `codex mcp remove`, `gemini mcp remove --scope user`, `agy plugin uninstall`, `devin mcp
+remove -s user`), and by taking the `alexein` entry out of Cursor's and VS Code's files, with a `.bak`
+copy kept. It leaves a server named anything but `alexein`, and a server added to Antigravity without
+its plugin, and says to take those out in the tool's own settings. Your memory is untouched, and so
+is each tool's sign-in: disconnect a tool in My memory to end that too.
+
+| Flag             | What it does                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| `--only <tools>` | just these: `claude-code`, `cursor`, `vscode`, `copilot`, `codex`, `gemini`, `antigravity`, `devin` |
+| `--no-plugin`    | the server alone, not the plugin                                                                    |
+| `--list`         | which tools are here and which have Alexein; change nothing                                         |
+| `--json`         | with `--list`: the same as JSON, `{"tools": [{"id", "name", "found", "added"}]}`                    |
+| `--remove`       | take out what `connect` added; goes with `--only`, `--dry-run` and `--yes`                          |
+| `--key <key>`    | send this key in a header instead of signing in, for CI; no plugins. `--key -` reads it from stdin  |
+| `--force`        | add it again where Alexein is already                                                               |
+| `--dry-run`      | say what it would run or write, change nothing                                                      |
+| `--yes`          | ask nothing                                                                                         |
 
 ## License
 

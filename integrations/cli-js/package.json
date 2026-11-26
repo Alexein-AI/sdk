@@ -31,7 +31,8 @@
     "node": ">=20"
   },
   "bin": {
-    "alexein-cli": "dist/bin.js"
+    "alexein-cli": "dist/bin.js",
+    "alexein": "dist/bin.js"
   },
   "files": [
     "dist",

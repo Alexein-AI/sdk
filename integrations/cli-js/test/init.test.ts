@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { main } from "../src/cli.js";
+import { keyFrom, main } from "../src/cli.js";
 import * as env from "../src/env.js";
 import { Project, quiet, said } from "./helpers.js";
 import { VERSION } from "../src/version.js";
@@ -419,6 +419,27 @@ describe("the command line", () => {
 
   it("refuses both --nodes-only and --tools-only", async () => {
     expect(await main(["init", "langgraph", "--nodes-only", "--tools-only"], quiet())).toBe(2);
+  });
+
+  it("reads --key - from stdin, and refuses it when nothing comes", async () => {
+    expect(keyFrom("-", () => "tm_piped\nignored\n")).toBe("tm_piped");
+    expect(keyFrom("tm_given", () => "tm_piped")).toBe("tm_given");
+    expect(keyFrom(undefined, () => "tm_piped")).toBeUndefined();
+    expect(() => keyFrom("-", () => undefined)).toThrow("none came");
+    expect(() => keyFrom("-", () => "\n")).toThrow("none came");
+    const console = quiet();
+    expect(await main(["init", "langgraph", "--key", "-"], console, () => undefined)).toBe(2);
+    expect(said(console)).toContain("--key - reads the key from stdin");
+  });
+
+  it("takes --json only for doctor and connect --list, and --remove only with what fits it", async () => {
+    expect(await main(["init", "langgraph", "--json"], quiet())).toBe(2);
+    expect(await main(["connect", "--json"], quiet())).toBe(2);
+    for (const flag of ["--key=tm_x", "--no-plugin", "--force", "--list"]) {
+      const console = quiet();
+      expect(await main(["connect", "--remove", flag], console), flag).toBe(2);
+      expect(said(console)).toContain("--remove goes with --only, --dry-run and --yes");
+    }
   });
 
   it("says its version, and shows help", async () => {

@@ -437,4 +437,39 @@ describe("doctor", () => {
     projects.push(p);
     expect(await doctor(p.root, quiet(), good)).toBe(1);
   });
+
+  it("gives the same checks as one JSON object with --json, and nothing else", async () => {
+    vi.stubEnv(env.BASE_URL, "");
+    const p = healthy();
+    const console = quiet();
+    expect(await doctor(p.root, console, good, true)).toBe(0);
+    expect(console.said).toHaveLength(1);
+    const report = JSON.parse(console.said[0]!);
+    expect(report.ok).toBe(true);
+    expect(report.root).toBe(p.root);
+    expect(report.checks).toContainEqual({
+      ok: true,
+      what: "key: scratch/demo, reads and writes",
+    });
+
+    const failing = quiet();
+    p.installed({ "@alexein/sdk": "0.2.1" });
+    expect(await doctor(p.root, failing, good, true)).toBe(1);
+    const failed = JSON.parse(failing.said[0]!);
+    expect(failed.ok).toBe(false);
+    expect(failed.checks).toContainEqual({
+      ok: false,
+      what: "@alexein/sdk 0.2.1 is older than 0.3",
+      fix: "upgrade it to >=0.3",
+    });
+
+    const outside = Project.scratch();
+    projects.push(outside);
+    const nowhere = quiet();
+    expect(await doctor(outside.root, nowhere, good, true)).toBe(1);
+    expect(JSON.parse(nowhere.said[0]!)).toEqual({
+      ok: false,
+      error: "no JavaScript project here; run it from your project.",
+    });
+  });
 });

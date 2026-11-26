@@ -243,12 +243,14 @@ def test_the_import_check_runs_in_the_projects_python(
     python.write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n')
     os.chmod(python, 0o755)
     console = quiet()
-    assert checking._importable(root, ["langgraph"], console)  # pyright: ignore[reportPrivateUsage]
+    report = checking._Report(console)  # pyright: ignore[reportPrivateUsage]
+    assert checking._importable(root, ["langgraph"], report)  # pyright: ignore[reportPrivateUsage]
     assert "✓ alexein.langgraph imports" in said(console)
     python.write_text("#!/bin/sh\necho 'ImportError: nope' >&2\nexit 1\n")
     os.chmod(python, 0o755)
     console = quiet()
-    assert not checking._importable(root, ["crewai"], console)  # pyright: ignore[reportPrivateUsage]
+    report = checking._Report(console)  # pyright: ignore[reportPrivateUsage]
+    assert not checking._importable(root, ["crewai"], report)  # pyright: ignore[reportPrivateUsage]
     assert "✗ alexein.crewai does not import: ImportError: nope" in said(console)
 
 
@@ -269,6 +271,38 @@ def test_doctor_catches_an_old_version_and_a_bad_key(
 
 def test_doctor_outside_a_project(tmp_path: Path) -> None:
     assert doctor(tmp_path, quiet()) == 1
+
+
+def test_doctor_gives_the_same_checks_as_one_json_object(
+    tmp_path: Path, checked: list[env.Check]
+) -> None:
+    (tmp_path / "project").mkdir()
+    root = healthy(tmp_path / "project")
+    console = quiet()
+    assert doctor(root, console, as_json=True) == 0
+    assert len(console.said) == 1
+    report = json.loads(console.said[0])
+    assert report["ok"] is True and report["root"] == str(root)
+    assert {"ok": True, "what": "alexein.langgraph imports"} in report["checks"]
+
+    checked[0] = env.Check(False, None, "the service does not know this key")
+    failing = quiet()
+    assert doctor(root, failing, as_json=True) == 1
+    failed = json.loads(failing.said[0])
+    assert failed["ok"] is False
+    assert {
+        "ok": False,
+        "what": f"key at {default_address()}: the service does not know this key",
+        "fix": f"check {env.KEY} and {env.BASE_URL}",
+    } in failed["checks"]
+
+    nowhere = quiet()
+    (tmp_path / "outside").mkdir()
+    assert doctor(tmp_path / "outside", nowhere, as_json=True) == 1
+    assert json.loads(nowhere.said[0]) == {
+        "ok": False,
+        "error": "no Python project here; run it from your project.",
+    }
 
 
 # --------------------------------------------------------------------------------- create --

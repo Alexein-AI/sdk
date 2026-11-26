@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- `connect` adds Alexein AI's memory server to the AI tools on this computer - Claude Code, Cursor,
+  VS Code, GitHub Copilot CLI, Codex, Gemini CLI, Antigravity and Devin Desktop - as
+  `@alexein/cli connect` does, tool for tool, so it needs no Node. `--only`, `--no-plugin`,
+  `--list`, `--key`, `--force`, `--dry-run` and `--yes` as there.
+- `connect --remove` takes out what `connect` added: through each tool's own command, at the scope
+  `connect` uses (Claude Code's and Copilot CLI's plugin or server, Codex's and Gemini CLI's server,
+  Antigravity's plugin, Devin Desktop's server), and by taking the `alexein` entry out of Cursor's and
+  VS Code's files, with a `.bak` copy kept. A server named anything but `alexein`, or added to
+  Antigravity without its plugin, is left, with a line saying to take it out in the tool's settings.
+  Memory and the tools' sign-ins are untouched.
+- `doctor --json` and `connect --list --json` give the same as one JSON object, for CI and agents;
+  the exit codes are unchanged.
+- `--key -` reads the key from stdin, so it is in no shell's history.
+- The command is also installed as `alexein`, beside `alexein-cli`; `uvx alexein-cli` is unchanged.
+
 ## 0.3.1 - 2026-11-20
 
 - The key check says when the key is a personal key, and that each user id names a collection in one
