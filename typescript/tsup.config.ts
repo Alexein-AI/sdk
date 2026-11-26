@@ -11,6 +11,8 @@ export default defineConfig({
     index: "src/index.ts",
     langgraph: "src/langgraph/index.ts",
     "openai-agents": "src/openai-agents/index.ts",
+    wrap: "src/wrap/index.ts",
+    "ai-sdk": "src/ai-sdk/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
@@ -18,5 +20,5 @@ export default defineConfig({
   clean: true,
   sourcemap: false,
   target: "node20",
-  external: [/^@langchain\//, /^@openai\//, "zod"],
+  external: [/^@langchain\//, /^@openai\//, /^@ai-sdk\//, "zod"],
 });

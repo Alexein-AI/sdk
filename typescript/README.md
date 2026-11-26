@@ -188,6 +188,75 @@ Memory being down should cost a reply its memory, not the reply. With
 A wrong key or a wrong request (401, 403, 400, 422) still throws, and so does every other method.
 Pair it with a short `timeout` where a reply cannot wait.
 
+## Memory without tool calls: Anthropic, OpenAI and the AI SDK
+
+Your model reads memory before every reply, and every exchange is saved, without the model deciding to call a
+tool. Wrap the client you already use:
+
+```ts
+import Anthropic from "@anthropic-ai/sdk";
+import { Memory } from "@alexein/sdk";
+import { wrapAnthropic } from "@alexein/sdk/wrap";
+
+const memory = new Memory(); // one of each for the process
+const anthropic = new Anthropic();
+
+export async function reply(
+  userId: string,
+  conversationId: string,
+  messages: Anthropic.MessageParam[],
+) {
+  const claude = wrapAnthropic(anthropic, memory, { userId, session: conversationId });
+  const answer = await claude.messages.create({ model: "...", max_tokens: 1024, messages });
+  return answer.content;
+}
+```
+
+`wrapOpenAI(new OpenAI(), memory, { userId })` does the same for `chat.completions` and `responses`. Both
+cover `create` (streaming or not), `parse` and `stream`, and `withResponse()`.
+
+With the Vercel AI SDK, any model:
+
+```ts
+import { generateText, wrapLanguageModel } from "ai";
+import { alexeinMiddleware } from "@alexein/sdk/ai-sdk";
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: alexeinMiddleware(memory, { userId, session: conversationId }),
+});
+const { text } = await generateText({ model, messages });
+```
+
+- **Before each call**, one search with the user's latest message (with the end of the reply before it, when
+  the message is short). What bears on it is added to the system prompt, after yours: inside a `<memory>`
+  block that says it is quoted data, not instructions, gives each line's date and who said it, and states that
+  memory never authorises sharing secrets or sending data out. A call waits at most `budget` milliseconds for
+  it; when memory is slow, down or refuses, the model is called without it, and nothing is thrown.
+- **After each call**, the user's message and the reply are saved in the background, never delaying the reply.
+  A reply that asks to run a tool is not saved; the turn's last answer is, once. A stream is saved when it
+  ends. The calls of one tool loop share one search.
+- Whose memory is used is the `userId` your code passes, never anything a model or a request body says.
+
+| Option       | Default | What it does                                                                                                   |
+| ------------ | ------- | -------------------------------------------------------------------------------------------------------------- |
+| `userId`     | -       | your id for the app user whose memory this is                                                                  |
+| `session`    | none    | the conversation: saves are grouped under it, and a retried call edits what it saved                           |
+| `author`     | none    | who the user is, `{ name, id }`; their messages are saved as theirs                                            |
+| `recall`     | `true`  | look memory up before each call                                                                                |
+| `save`       | `true`  | save the user's message and the reply after each call                                                          |
+| `budget`     | `1500`  | the longest a call waits for memory, in milliseconds                                                           |
+| `maxTokens`  | `600`   | about how many tokens of memory a call is given at most                                                        |
+| `fast`       | `true`  | skip search's relevance check; with `false`, what memory judges off-topic is left out (raise `budget` with it) |
+| `redact`     | `false` | replace phone numbers, cards, keys and the like before memory keeps any copy                                   |
+| `beforeSave` | none    | a function that sees the items about to be saved and answers those to save (none: nothing)                     |
+
+`memoryOf(client).last` (or `middleware.alexein.last`) says how the last lookup went (`ms`, `chars`,
+`timedOut`, `failed`, `reused`). Saves run in the background: in a serverless function, `await
+memoryOf(client).flush()` before it returns. Without a `memory`, a client for the process is made from
+`ALEXEIN_API_KEY`. The AI SDK middleware is for AI SDK 7 (`@ai-sdk/provider` 4). See
+`examples/wrapped-client.ts`.
+
 ## LangGraph.js
 
 ```bash
