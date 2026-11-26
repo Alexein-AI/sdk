@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.5 - 2026-11-26
 
 - `@alexein/sdk/wrap`: `wrapAnthropic(client, memory, { userId })` and `wrapOpenAI(...)`; `@alexein/sdk/ai-sdk`: `alexeinMiddleware(memory, { userId })` for `wrapLanguageModel`: memory without tool calls. Before each call, what memory holds about the user's latest message
   goes into the system prompt as quoted data, within a time budget and a token cap; after it, the message and
