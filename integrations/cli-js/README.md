@@ -12,6 +12,7 @@ npx @alexein/cli create langgraph my-agent      # a new one, with memory wired i
 npx @alexein/cli doctor                         # is it all set up?
 npx @alexein/cli connect                        # Alexein AI in Claude Code, Cursor, VS Code, ...
 npx @alexein/cli connect --remove               # ... and out of them again
+npx @alexein/cli search "where does dana live"  # memory itself, once you have logged in
 ```
 
 The command it installs is `alexein-cli`, also called `alexein`.
@@ -61,6 +62,50 @@ is each tool's sign-in: disconnect a tool in My memory to end that too.
 | `--force`        | add it again where Alexein is already                                                               |
 | `--dry-run`      | say what it would run or write, change nothing                                                      |
 | `--yes`          | ask nothing                                                                                         |
+
+## Memory from the shell
+
+The memory itself, from a terminal or an AI agent's shell: search it, save to it, read one memory
+whole, forget, export. `npx @alexein/cli <command>`, or `alexein <command>` once installed (`npm install -g @alexein/cli`).
+
+```bash
+alexein login                                  # asks for the key; or --key - and pipe it in
+alexein whoami                                 # which key, from where, and whose memory
+alexein search "where does dana live"
+alexein add "I moved to Lisbon." --self --role user
+alexein latest --json                          # the API's JSON, as it came
+```
+
+`login` checks the key, then keeps it in the system's keychain - macOS's, or the keyring through
+`secret-tool` on Linux - and only what is not secret in `~/.config/alexein/credentials.json`. With
+no keychain, or with `--insecure-storage`, the key goes in that file, readable only by you. A login
+with either Alexein CLI, Python's or TypeScript's, serves both; `logout` takes it out.
+
+The key is `--key`, else `ALEXEIN_API_KEY`, else your login's. Whose memory is `--user`, else
+`ALEXEIN_USER`, else the app user you logged in with (`login --user`), else, for a personal key,
+`me`: your own memory, the one your connected apps and AI assistants share. A project's key has no
+default - its app users are the project's - so name one.
+
+| Command               | What it does                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `search <question>`   | what memory holds for a question; `--after`, `--before`, `--provider`, `--source`, `--fast`             |
+| `latest`              | the most recent memories, newest first; `--limit`                                                       |
+| `open <ref>`          | one memory whole: an excerpt in full, or a fact and what it came from                                   |
+| `subject <name>`      | one person or thing: its values, facts and relations                                                    |
+| `summary`             | what this memory holds, in brief                                                                        |
+| `history <subject>`   | every value it was said to have, and since when                                                         |
+| `add <text>`, `add -` | save something, `-` from stdin; `--id`, `--session`, `--role`, `--author`, `--self`, `--kind`, `--wait` |
+| `status <item id>...` | how far added items have got                                                                            |
+| `forget`              | erase `--item`, `--session` or `--ref` for good; it asks first, or takes `--yes`                        |
+| `export`              | everything, as JSON lines; `--out <file>` writes a file only you can read                               |
+
+Every command takes `--user`, `--key`, `--base-url` and `--json`; `alexein <command> --help` lists
+the rest. It exits 0 when done, 1 when memory refused or could not be reached, 2 when it was given
+wrongly.
+
+`alexein skill` prints a guide for an AI agent with a shell - when to search, when to save, what to
+leave to you - to keep as its skill:
+`mkdir -p ~/.claude/skills/alexein && alexein skill > ~/.claude/skills/alexein/SKILL.md`.
 
 ## `init`
 

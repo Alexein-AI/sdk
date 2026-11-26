@@ -9,6 +9,7 @@ into it.
     alexein-cli create <framework> X      a new project with memory wired in
     alexein-cli doctor                    whether a project is set up for memory
     alexein-cli connect                   Alexein AI in the AI tools on this computer
+    alexein search "where does dana live"  memory itself: search, add, forget, export ...
 
 The standard library and the `alexein` client only; it never imports a framework. Never an
 installer of anything but the package the written files import, and never a writer of a key it
@@ -26,11 +27,16 @@ from pathlib import Path
 # function here would hide the module of the same name from `alexein_cli.create`.
 from alexein_cli import connect as connecting
 from alexein_cli import create as creating
-from alexein_cli import create_crewai
+from alexein_cli import create_crewai, memory
 from alexein_cli import doctor as checking
 from alexein_cli._version import __version__
+from alexein_cli.credentials import key_from
+from alexein_cli.render import TEMPLATES
 from alexein_cli.scaffold import MINIMUMS, Options, init
 from alexein_cli.ui import Console
+
+# What `alexein skill` prints: the same file as `@alexein/cli skill`'s.
+SKILL = TEMPLATES / "skill" / "SKILL.md"
 
 
 def _setup_flags(parser: argparse.ArgumentParser) -> None:
@@ -65,7 +71,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="alexein-cli",
         description="Memory from Alexein for LangGraph, CrewAI and the OpenAI Agents SDK, "
-        "as code you own - and in the AI tools on this computer.",
+        "as code you own; in the AI tools on this computer; and from here.",
     )
     parser.add_argument("--version", action="version", version=f"alexein-cli {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -128,19 +134,16 @@ def _parser() -> argparse.ArgumentParser:
     tools.add_argument(
         "--dry-run", action="store_true", help="say what would happen, change nothing"
     )
+    memory.register(commands.add_parser)
+    commands.add_parser(
+        "skill",
+        help="the guide for an AI agent to use these commands, to save as its skill: "
+        "alexein skill > ~/.claude/skills/alexein/SKILL.md",
+    )
     return parser
 
 
-def key_from(given: str | None, read: Callable[[], str | None]) -> str | None:
-    """The key `--key` gives: `-` reads it from the first line of stdin, so it is in no shell's
-    history. Raises when `-` brings nothing."""
-    if given != "-":
-        return given
-    lines = (read() or "").splitlines()
-    key = lines[0].strip() if lines else ""
-    if not key:
-        raise ValueError("--key - reads the key from stdin, and none came: pipe it in")
-    return key
+__all__ = ["key_from", "main"]
 
 
 def _read_stdin() -> str | None:
@@ -195,6 +198,12 @@ def main(
     cwd = Path.cwd()
     if args.command == "doctor":
         return checking.doctor(cwd, console or Console.for_terminal(yes=True), as_json=args.json)
+    if args.command == "skill":
+        (console or Console.for_terminal(yes=True)).line(SKILL.read_text().rstrip())
+        return 0
+    if args.command in memory.NAMES:
+        yes = bool(getattr(args, "yes", False))
+        return memory.run(args, console or Console.for_terminal(yes=yes), stdin)
     console = console or Console.for_terminal(yes=args.yes)
     try:
         args.key = key_from(args.key, stdin)

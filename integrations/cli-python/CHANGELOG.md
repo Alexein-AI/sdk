@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Memory from the shell: `search`, `latest`, `open`, `subject`, `summary`, `history`, `add`, `status`,
+  `forget` and `export`, each one route of the memory API, printed to read or with `--json` as the API
+  answered. `forget` asks first unless `--yes`; `export` writes JSON lines, to a file only its owner
+  can read with `--out`.
+- `login`, `logout` and `whoami`: `login` checks a key and keeps it in the system's keychain (macOS's
+  `security`, Linux's `secret-tool`), else in `~/.config/alexein/credentials.json` with mode 0600;
+  `--insecure-storage` asks for the file. Both Alexein CLIs read and write the same login. The key is
+  `--key`, `ALEXEIN_API_KEY` or the login's; the app user is `--user`, `ALEXEIN_USER`, the login's,
+  or `me` - the person's own memory - for a personal key.
+- `skill` prints a guide for an AI agent to use these commands, to keep as its skill.
+- Needs `alexein` 0.3.3 or newer, for `subject` and `add`'s `id`.
 - `connect` adds Alexein AI's memory server to the AI tools on this computer - Claude Code, Cursor,
   VS Code, GitHub Copilot CLI, Codex, Gemini CLI, Antigravity and Devin Desktop - as
   `@alexein/cli connect` does, tool for tool, so it needs no Node. `--only`, `--no-plugin`,

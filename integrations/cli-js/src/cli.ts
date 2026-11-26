@@ -9,6 +9,7 @@
  *     npx @alexein/cli doctor                  whether a project is set up for memory
  *     npx @alexein/cli connect                 Alexein AI in the AI tools on this computer
  *     npx @alexein/cli connect --remove        ... and out of them again
+ *     alexein search "where does dana live"    memory itself: search, add, forget, export ...
  *
  * Node's standard library and `@alexein/sdk` only. Never an installer of anything but the
  * packages the written files import, and never a writer of a key it was not given.
@@ -19,13 +20,18 @@ import { parseArgs } from "node:util";
 
 import { connect } from "./connect.js";
 import { create, DEFAULT_MODEL } from "./create.js";
+import { keyFrom } from "./credentials.js";
 import { doctor } from "./doctor.js";
+import { memoryMain, NAMES, summaries } from "./memory.js";
+import { TEMPLATES } from "./render.js";
 import { init, MINIMUMS, options, PARTS, type Part } from "./scaffold.js";
 import { Console } from "./ui.js";
 import { VERSION } from "./version.js";
 
+export { keyFrom };
+
 const HELP = `@alexein/cli ${VERSION} - memory from Alexein for LangGraph.js and the
-OpenAI Agents SDK, wired in as code you own
+OpenAI Agents SDK, wired in as code you own; in the AI tools on this computer; and from here
 
 Usage:
   npx @alexein/cli init <framework> [options]          write memory.ts into this project
@@ -71,7 +77,12 @@ create only:
   --yes, -y             answer yes; ask nothing
   --no-install          print install commands instead of running them
   --dry-run             check everything, say what would happen, change nothing
-  --version, --help`;
+  --version, --help
+
+Memory, for the key you log in with (alexein <command> --help for its options):
+${summaries().join("\n")}
+  alexein skill                  The guide for an AI agent to use these commands, to save as its
+                                 skill: alexein skill > ~/.claude/skills/alexein/SKILL.md`;
 
 // `sdk` is for development only: it installs @alexein/sdk from a path or tarball instead of npm,
 // and `--help` leaves it out. Its note sits here, not beside it, so the bundle does not carry it.
@@ -100,20 +111,6 @@ const FLAGS = {
   help: { type: "boolean", short: "h" },
 } as const;
 
-/**
- * The key `--key` gives: `-` reads it from the first line of stdin, so it is in no shell's history.
- * Throws when `-` brings nothing.
- */
-export function keyFrom(
-  given: string | undefined,
-  read: () => string | undefined,
-): string | undefined {
-  if (given !== "-") return given;
-  const key = read()?.split("\n")[0]?.trim();
-  if (!key) throw new Error("--key - reads the key from stdin, and none came: pipe it in");
-  return key;
-}
-
 /** What was piped in; nothing at a terminal, where reading would wait for the key, echoed. */
 function readStdin(): string | undefined {
   return process.stdin.isTTY ? undefined : readFileSync(0, "utf8");
@@ -124,6 +121,13 @@ export async function main(
   given?: Console,
   stdin: () => string | undefined = readStdin,
 ): Promise<number> {
+  const [first, ...rest] = argv;
+  if (first !== undefined && NAMES.has(first))
+    return memoryMain(first, rest, { console: given, stdin });
+  if (first === "skill" && !rest.length) {
+    (given ?? new Console()).line(readFileSync(`${TEMPLATES}skill/SKILL.md`, "utf8").trimEnd());
+    return 0;
+  }
   let parsed;
   try {
     parsed = parseArgs({ args: argv, options: FLAGS, allowPositionals: true, strict: true });

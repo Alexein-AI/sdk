@@ -21,7 +21,7 @@ classifiers = [
 ]
 # The client, for the key's check; everything else is the standard library. The CLI never
 # imports a framework: the files it writes do, through the client's extras.
-dependencies = ["alexein>=0.3"]
+dependencies = ["alexein>=0.3.3"]
 
 [project.scripts]
 alexein-cli = "alexein_cli:main"
