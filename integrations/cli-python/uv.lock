@@ -284,7 +284,7 @@ openai-agents = [{ name = "openai-agents", specifier = ">=0.24" }]
 
 [[package]]
 name = "alexein-cli"
-version = "0.3.1"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "alexein" },

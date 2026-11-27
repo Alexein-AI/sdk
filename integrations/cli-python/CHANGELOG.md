@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-11-27
 
 - `install` puts the `alexein` command on PATH for good, with `uv tool install alexein-cli`, and
   `uv tool update-shell` where uv's folder for commands is not on PATH. `login`, `connect`, `init`
