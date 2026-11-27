@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 - 2026-11-27
 
 - Fix: a key typed or pasted at the terminal, when `init`, `create` or `login` asks for it, is no
   longer shown as it is typed. On recent Node versions readline ignored the way the prompt hid it; the
