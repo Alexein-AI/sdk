@@ -11,7 +11,12 @@ npx @alexein/cli init openai-agents             # ... or an OpenAI Agents SDK on
 npx @alexein/cli create langgraph my-agent      # a new one, with memory wired in
 npx @alexein/cli doctor                         # is it all set up?
 npx @alexein/cli connect                        # Alexein AI in Claude Code, Cursor, VS Code, ...
+npx @alexein/cli connect --remove               # ... and out of them again
+npx @alexein/cli search "where does dana live"  # memory itself, once you have logged in
+npx @alexein/cli install                        # alexein on your PATH: type alexein ... from then on
 ```
+
+The command it installs is `alexein-cli`, also called `alexein`.
 
 Node 20 or newer; LangGraph.js 1.0 or newer, or `@openai/agents` 0.21 or newer. For Python, see the
 [docs](https://docs.alexein.ai/integrations/langgraph). The OpenAI Agents SDK has its own section,
@@ -39,15 +44,73 @@ says where, and starts the sign-in itself where a tool can from the terminal (Co
 No key is written anywhere. claude.ai, Claude Desktop and ChatGPT are added from the app: see the
 [docs](https://docs.alexein.ai/mcp).
 
+`connect --remove` takes out what `connect` added, through each tool's own command and at the scope
+it was added at (`claude plugin uninstall`, `claude mcp remove --scope user`, `copilot plugin
+uninstall`, `codex mcp remove`, `gemini mcp remove --scope user`, `agy plugin uninstall`, `devin mcp
+remove -s user`), and by taking the `alexein` entry out of Cursor's and VS Code's files, with a `.bak`
+copy kept. It leaves a server named anything but `alexein`, and a server added to Antigravity without
+its plugin, and says to take those out in the tool's own settings. Your memory is untouched, and so
+is each tool's sign-in: disconnect a tool in My memory to end that too.
+
 | Flag             | What it does                                                                                        |
 | ---------------- | --------------------------------------------------------------------------------------------------- |
 | `--only <tools>` | just these: `claude-code`, `cursor`, `vscode`, `copilot`, `codex`, `gemini`, `antigravity`, `devin` |
 | `--no-plugin`    | the server alone, not the plugin                                                                    |
 | `--list`         | which tools are here and which have Alexein; change nothing                                         |
-| `--key <key>`    | send this key in a header instead of signing in, for CI; no plugins                                 |
+| `--json`         | with `--list`: the same as JSON, `{ tools: [{ id, name, found, added }] }`                          |
+| `--remove`       | take out what `connect` added; goes with `--only`, `--dry-run` and `--yes`                          |
+| `--key <key>`    | send this key in a header instead of signing in, for CI; no plugins. `--key -` reads it from stdin  |
 | `--force`        | add it again where Alexein is already                                                               |
 | `--dry-run`      | say what it would run or write, change nothing                                                      |
 | `--yes`          | ask nothing                                                                                         |
+
+## Memory from the shell
+
+The memory itself, from a terminal or an AI agent's shell: search it, save to it, read one memory
+whole, forget, export. `npx @alexein/cli <command>` runs them, and so does `alexein <command>` once
+the command is installed. `npx @alexein/cli install` puts it on your PATH, with
+`npm install -g @alexein/cli`; `login`, `connect`, `init` and `create` offer to, once, the first time they
+run at a terminal.
+Upgrade it with `npm update -g @alexein/cli`.
+
+```bash
+alexein login                                  # asks for the key; or --key - and pipe it in
+alexein whoami                                 # which key, from where, and whose memory
+alexein search "where does dana live"
+alexein add "I moved to Lisbon." --self --role user
+alexein latest --json                          # the API's JSON, as it came
+```
+
+`login` checks the key, then keeps it in the system's keychain - macOS's, or the keyring through
+`secret-tool` on Linux - and only what is not secret in `~/.config/alexein/credentials.json`. With
+no keychain, or with `--insecure-storage`, the key goes in that file, readable only by you. A login
+with either Alexein CLI, Python's or TypeScript's, serves both; `logout` takes it out.
+
+The key is `--key`, else `ALEXEIN_API_KEY`, else your login's. Whose memory is `--user`, else
+`ALEXEIN_USER`, else the app user you logged in with (`login --user`), else, for a personal key,
+`me`: your own memory, the one your connected apps and AI assistants share. A project's key has no
+default - its app users are the project's - so name one.
+
+| Command               | What it does                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `search <question>`   | what memory holds for a question; `--after`, `--before`, `--provider`, `--source`, `--fast`             |
+| `latest`              | the most recent memories, newest first; `--limit`                                                       |
+| `open <ref>`          | one memory whole: an excerpt in full, or a fact and what it came from                                   |
+| `subject <name>`      | one person or thing: its values, facts and relations                                                    |
+| `summary`             | what this memory holds, in brief                                                                        |
+| `history <subject>`   | every value it was said to have, and since when                                                         |
+| `add <text>`, `add -` | save something, `-` from stdin; `--id`, `--session`, `--role`, `--author`, `--self`, `--kind`, `--wait` |
+| `status <item id>...` | how far added items have got                                                                            |
+| `forget`              | erase `--item`, `--session` or `--ref` for good; it asks first, or takes `--yes`                        |
+| `export`              | everything, as JSON lines; `--out <file>` writes a file only you can read                               |
+
+Every command takes `--user`, `--key`, `--base-url` and `--json`; `alexein <command> --help` lists
+the rest. It exits 0 when done, 1 when memory refused or could not be reached, 2 when it was given
+wrongly.
+
+`alexein skill` prints a guide for an AI agent with a shell - when to search, when to save, what to
+leave to you - to keep as its skill:
+`mkdir -p ~/.claude/skills/alexein && alexein skill > ~/.claude/skills/alexein/SKILL.md`.
 
 ## `init`
 
@@ -61,20 +124,23 @@ Then it writes `memory.ts` beside the graph (else into `src/`, else the root), a
 `@langchain/langgraph`, `@langchain/core` and `zod` to the project's dependencies where they are
 missing, with the project's own tool (npm, pnpm, yarn or bun, by its lock file or
 `packageManager`), and sets up the key: `--key tm_...`, or asked for at a terminal - Enter skips it,
-and an empty `ALEXEIN_API_KEY=` waits in `.env`. A key it is given is checked, and a key that only
-reads is called out when the wiring saves.
+and an empty `ALEXEIN_API_KEY=` waits in `.env`. `--key -` reads it from stdin
+(`op read op://dev/alexein/key | npx @alexein/cli init langgraph --key - --yes`), so it is never in
+your shell's history; an `ALEXEIN_API_KEY` already in the environment is used as it is. A key it is
+given is checked, and a key that only reads is called out when the wiring saves.
 
 | Flag                           | What it does                                                 |
 | ------------------------------ | ------------------------------------------------------------ |
 | `--nodes-only`, `--tools-only` | the wiring it shows uses only the nodes, or only the tools   |
 | `--fast`                       | `FAST = true`: searches skip the relevance check             |
 | `--key`, `--base-url`          | `ALEXEIN_API_KEY` and `ALEXEIN_API_URL`, written into `.env` |
+| `--key -`                      | the key from stdin, kept out of your shell's history         |
 | `--skip-key`                   | do not ask for a key                                         |
 | `--dir`, `--file`, `--graph`   | where the file goes, and what it is called                   |
 | `--force`                      | replace a file already there                                 |
 | `--no-install`                 | print the install command instead of running it              |
 | `--dry-run`                    | make every check, say what would happen, change nothing      |
-| `--yes`                        | ask nothing                                                  |
+| `--yes`                        | ask nothing - not for the key either: give it with `--key`   |
 
 What it writes, all of it yours to edit:
 
@@ -139,6 +205,10 @@ Checks the memory file, that `@alexein/sdk` and the framework's packages are dep
 installed new enough, where `ALEXEIN_API_KEY` and `ALEXEIN_API_URL` come from (`.env`, else the
 environment), the key itself with `memory.me()` (one free request), and that `.env` is not
 committed. Each failure says how to fix it.
+
+`doctor --json` gives the same checks as one JSON object, for CI or an agent to read:
+`{ "ok": false, "root": "...", "checks": [{ "ok": false, "what": "...", "fix": "..." }] }`. A
+check's `ok` is `null` when it could not be made. The exit code is the same: 0 when all pass.
 
 ## The OpenAI Agents SDK
 

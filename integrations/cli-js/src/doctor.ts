@@ -14,57 +14,82 @@ import { DEFAULT_BASE_URL } from "@alexein/sdk";
 import * as env from "./env.js";
 import * as project from "./project.js";
 import { MINIMUMS } from "./scaffold.js";
-import type { Console } from "./ui.js";
+import { Console } from "./ui.js";
 import { VERSION } from "./version.js";
 
-function mark(console: Console, ok: boolean | undefined, what: string, fix = ""): boolean {
-  console.line(`  ${ok === undefined ? "-" : ok ? "✓" : "✗"} ${what}`);
-  if (ok === false && fix) console.line(`      ${fix}`);
+/** One check as `--json` gives it: passed, failed or not made (null), and the fix for a failure. */
+export interface Mark {
+  ok: boolean | null;
+  what: string;
+  fix?: string;
+}
+
+/** Where the checks' lines go, and each one kept as it is printed, for `--json`. */
+interface Report {
+  console: Console;
+  marks: Mark[];
+}
+
+function mark(report: Report, ok: boolean | undefined, what: string, fix = ""): boolean {
+  report.marks.push({ ok: ok ?? null, what, ...(ok === false && fix ? { fix } : {}) });
+  report.console.line(`  ${ok === undefined ? "-" : ok ? "✓" : "✗"} ${what}`);
+  if (ok === false && fix) report.console.line(`      ${fix}`);
   return ok !== false;
 }
 
-/** 0 when every check passes, 1 when any fails. */
+/**
+ * 0 when every check passes, 1 when any fails. With `json`, one JSON object instead of the lines:
+ * `{ ok, root, checks: [{ ok, what, fix? }] }`, or `{ ok: false, error }` outside a project.
+ */
 export async function doctor(
   cwd: string,
   console: Console,
   check: env.Checker = env.check,
+  json = false,
 ): Promise<number> {
   const root = project.findRoot(cwd);
+  const failure = "no JavaScript project here; run it from your project.";
   if (!root) {
-    console.fail("no JavaScript project here; run it from your project.");
+    if (json) console.line(JSON.stringify({ ok: false, error: failure }, null, 2));
+    else console.fail(failure);
     return 1;
   }
-  console.line(`@alexein/cli ${VERSION} - checking ${root}`);
-  const written = memoryFiles(root, console);
+  const report: Report = { console: json ? new Console({ out: () => {} }) : console, marks: [] };
+  report.console.line(`@alexein/cli ${VERSION} - checking ${root}`);
+  const written = memoryFiles(root, report);
   const minimums = minimumsFor(
     root,
     written.map(([, framework]) => framework),
   );
   const results = [
     written.length > 0,
-    dependencies(root, minimums, console),
-    versions(root, minimums, console),
+    dependencies(root, minimums, report),
+    versions(root, minimums, report),
   ];
-  results.push(await key(root, console, saves(root), check));
-  console.line();
+  results.push(await key(root, report, saves(root), check));
   const good = results.every(Boolean);
+  if (json) {
+    console.line(JSON.stringify({ ok: good, root, checks: report.marks }, null, 2));
+    return good ? 0 : 1;
+  }
+  console.line();
   console.line(good ? "All good." : "Fix what is marked ✗, then run doctor again.");
   return good ? 0 : 1;
 }
 
 /** The memory files `init` wrote here, each with its framework, and marked. */
-function memoryFiles(root: string, console: Console): [string, string][] {
+function memoryFiles(root: string, report: Report): [string, string][] {
   const found: [string, string][] = [];
   for (const path of project.sources(root)) {
     const match = project.GENERATED.exec(readFileSync(path, "utf8").slice(0, 2000));
     if (match) {
       if (match[1]! in MINIMUMS) found.push([path, match[1]!]);
-      mark(console, true, `memory file ${relative(root, path)} (written by ${match[2]})`);
+      mark(report, true, `memory file ${relative(root, path)} (written by ${match[2]})`);
     }
   }
   if (!found.length) {
     const commands = Object.keys(MINIMUMS).map((f) => `\`npx @alexein/cli init ${f}\``);
-    mark(console, false, "no memory file", `run ${commands.join(" or ")}`);
+    mark(report, false, "no memory file", `run ${commands.join(" or ")}`);
   }
   return found;
 }
@@ -96,7 +121,7 @@ function minimumsFor(root: string, frameworks: string[]): Record<string, string>
   return Object.assign({}, ...[...new Set(chosen)].map((f) => MINIMUMS[f]));
 }
 
-function dependencies(root: string, minimums: Record<string, string>, console: Console): boolean {
+function dependencies(root: string, minimums: Record<string, string>, report: Report): boolean {
   const missing = Object.keys(minimums).filter((name) => !project.declares(root, name));
   if (missing.length) {
     const add = project
@@ -105,56 +130,55 @@ function dependencies(root: string, minimums: Record<string, string>, console: C
         missing.map((n) => `'${n}@>=${minimums[n]}'`),
       )
       .command.join(" ");
-    return mark(console, false, `not dependencies: ${missing.join(", ")}`, add);
+    return mark(report, false, `not dependencies: ${missing.join(", ")}`, add);
   }
-  return mark(console, true, `dependencies: ${Object.keys(minimums).join(", ")}`);
+  return mark(report, true, `dependencies: ${Object.keys(minimums).join(", ")}`);
 }
 
-function versions(root: string, minimums: Record<string, string>, console: Console): boolean {
+function versions(root: string, minimums: Record<string, string>, report: Report): boolean {
   let ok = true;
   for (const [name, minimum] of Object.entries(minimums)) {
     const version = project.installed(root, name);
     if (version === undefined)
       ok =
-        mark(console, false, `${name} is not installed`, "install the project's dependencies") &&
-        ok;
+        mark(report, false, `${name} is not installed`, "install the project's dependencies") && ok;
     else if (project.older(version, minimum))
       ok =
         mark(
-          console,
+          report,
           false,
           `${name} ${version} is older than ${minimum}`,
           `upgrade it to >=${minimum}`,
         ) && ok;
-    else mark(console, true, `${name} ${version}`);
+    else mark(report, true, `${name} ${version}`);
   }
   return ok;
 }
 
 async function key(
   root: string,
-  console: Console,
+  report: Report,
   saves: boolean,
   check: env.Checker,
 ): Promise<boolean> {
   const { key, baseUrl, keyFrom, baseUrlFrom } = env.resolveKey(root);
   if (!key)
     return mark(
-      console,
+      report,
       false,
       `no ${env.KEY}, in .env or the environment`,
       `put a key in .env as ${env.KEY}= (console, under API keys)`,
     );
-  mark(console, true, `${env.KEY} from ${keyFrom}`);
+  mark(report, true, `${env.KEY} from ${keyFrom}`);
   if (baseUrl && !/^https?:\/\/[^/\s]+/.test(baseUrl))
     return mark(
-      console,
+      report,
       false,
       `${env.BASE_URL} from ${baseUrlFrom} is not an address: ${JSON.stringify(baseUrl)}`,
       `set it to the API's host, like ${DEFAULT_BASE_URL}, or leave it out`,
     );
   mark(
-    console,
+    report,
     true,
     baseUrl
       ? `${env.BASE_URL} from ${baseUrlFrom}: ${baseUrl}`
@@ -164,22 +188,22 @@ async function key(
   const keptOut =
     keyFrom !== ".env" ||
     env.ignored(root) ||
-    mark(console, false, ".env is not in .gitignore", "add .env to .gitignore");
+    mark(report, false, ".env is not in .gitignore", "add .env to .gitignore");
   const checked = await check(key, baseUrl);
   if (!checked.ok)
     return mark(
-      console,
+      report,
       false,
       `key${where}: ${checked.detail}`,
       `check ${env.KEY} and ${env.BASE_URL}`,
     );
   if (saves && checked.writes === false) {
     return mark(
-      console,
+      report,
       false,
       `key${where} only reads, and the project saves: memory.remember and memory_add will be refused`,
       "use a key that writes (console, under API keys)",
     );
   }
-  return mark(console, true, `key${where}: ${checked.detail}`) && keptOut;
+  return mark(report, true, `key${where}: ${checked.detail}`) && keptOut;
 }

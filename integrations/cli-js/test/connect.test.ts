@@ -219,6 +219,114 @@ describe("connect", () => {
     expect(bare.attached).toEqual([`claude mcp login ${NAME}`]);
   });
 
+  it("takes out what it added with --remove: the plugin, the user server, the entries", async () => {
+    const other = { url: "https://x.test/mcp" };
+    const computer = new Computer(["claude", "code"], {
+      "claude plugin": "alexein@alexein  enabled",
+      "claude mcp": "alexein:\n  Scope: User config",
+    })
+      .file(".cursor/mcp.json", JSON.stringify({ mcpServers: { [NAME]: { url: URL }, other } }))
+      .file(".config/Code/User/mcp.json", JSON.stringify({ servers: { [NAME]: { url: URL } } }));
+    const { code, said } = await run(computer, { remove: true });
+    expect(code).toBe(0);
+    expect(computer.ran).toEqual([
+      "claude plugin uninstall alexein@alexein",
+      `claude mcp remove --scope user ${NAME}`,
+    ]);
+    expect(computer.json(".cursor/mcp.json")).toEqual({ mcpServers: { other } });
+    expect(existsSync(join(computer.home, ".cursor/mcp.json.bak"))).toBe(true);
+    expect(computer.json(".config/Code/User/mcp.json")).toEqual({ servers: {} });
+    expect(said).toContain("removed  Claude Code (claude plugin uninstall, claude mcp remove)");
+    expect(said).toContain("removed  Cursor (~/.cursor/mcp.json)");
+    expect(said).toContain("disconnect it in My memory");
+  });
+
+  it("takes Alexein out of the other tools with their own commands, at the scope it added it", async () => {
+    const computer = new Computer(["copilot", "codex", "gemini", "agy", "devin"], {
+      "copilot plugin": "alexein-ai@alexein-ai",
+      "copilot mcp": "alexein-ai (plugin)",
+      "codex mcp": "alexein  https://api.alexein.ai/v1/mcp",
+      "gemini mcp": "alexein (http)",
+      "agy plugin": "alexein-ai",
+    }).file(
+      ".config/devin/mcp_config.json",
+      JSON.stringify({ mcpServers: { [NAME]: { url: URL } } }),
+    );
+    const { code } = await run(computer, { remove: true });
+    expect(code).toBe(0);
+    expect(computer.ran).toEqual([
+      "copilot plugin uninstall alexein-ai@alexein-ai",
+      `codex mcp remove ${NAME}`,
+      `gemini mcp remove --scope user ${NAME}`,
+      "agy plugin uninstall alexein-ai",
+      `devin mcp remove -s user ${NAME}`,
+    ]);
+
+    const servers = new Computer(["copilot", "agy"], {
+      "copilot mcp": "alexein (http)",
+      "agy mcp": "alexein",
+    }).file(
+      ".config/devin/mcp_config.json",
+      JSON.stringify({ mcpServers: { [NAME]: { url: URL } } }),
+    );
+    const { said } = await run(servers, { remove: true });
+    expect(servers.ran).toEqual([`copilot mcp remove ${NAME}`]);
+    expect(said).toContain("skipped  Antigravity: take Alexein out in its own settings");
+    expect(servers.json(".config/devin/mcp_config.json")).toEqual({ mcpServers: {} });
+  });
+
+  it("leaves a server it did not add, under another name, and says so", async () => {
+    const theirs = JSON.stringify({ mcpServers: { "alexein-ai": { url: URL } } });
+    const computer = new Computer([]).file(".cursor/mcp.json", theirs);
+    const { code, said } = await run(computer, { remove: true });
+    expect(code).toBe(0);
+    expect(readFileSync(join(computer.home, ".cursor/mcp.json"), "utf8")).toBe(theirs);
+    expect(said).toContain("skipped  Cursor: take Alexein out in its own settings");
+  });
+
+  it("changes nothing with --remove --dry-run, and has nothing to take from a tool without it", async () => {
+    const computer = new Computer(["claude"], { "claude mcp": "alexein:" }).file(
+      ".cursor/mcp.json",
+      JSON.stringify({ mcpServers: { [NAME]: { url: URL } } }),
+    );
+    const { said } = await run(computer, { remove: true, dryRun: true });
+    expect(computer.ran).toEqual([]);
+    expect(computer.json(".cursor/mcp.json").mcpServers[NAME]).toEqual({ url: URL });
+    expect(said).toMatch(/would\s+remove Claude Code, with claude mcp remove --scope user alexein/);
+    expect(said).toMatch(/would\s+remove Cursor/);
+
+    const bare = new Computer(["gemini"]);
+    const nothing = await run(bare, { remove: true });
+    expect(nothing.code).toBe(0);
+    expect(bare.ran).toEqual([]);
+    expect(nothing.said).toContain("nothing to take out");
+  });
+
+  it("asks before taking anything out", async () => {
+    const computer = new Computer(["claude"], { "claude mcp": "alexein:" });
+    const { code, said } = await run(computer, { remove: true }, ["n"]);
+    expect(code).toBe(1);
+    expect(computer.ran).toEqual([]);
+    expect(said).toContain("Take Alexein AI out of Claude Code?");
+  });
+
+  it("lists the tools as JSON with --list --json, and runs nothing", async () => {
+    const computer = new Computer(["claude"], { "claude mcp": "alexein:" });
+    const { code, said } = await run(computer, {
+      list: true,
+      json: true,
+      only: ["claude-code", "gemini"],
+    });
+    expect(code).toBe(0);
+    expect(computer.ran).toEqual([]);
+    expect(JSON.parse(said)).toEqual({
+      tools: [
+        { id: "claude-code", name: "Claude Code", found: true, added: true },
+        { id: "gemini", name: "Gemini CLI", found: false, added: null },
+      ],
+    });
+  });
+
   it("finds nothing on a bare computer and points at the chat apps", async () => {
     const { code, said } = await run(new Computer([]));
     expect(code).toBe(0);

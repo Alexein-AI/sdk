@@ -8,30 +8,42 @@
  *     npx @alexein/cli create <framework> X    a new project with memory wired in
  *     npx @alexein/cli doctor                  whether a project is set up for memory
  *     npx @alexein/cli connect                 Alexein AI in the AI tools on this computer
+ *     npx @alexein/cli connect --remove        ... and out of them again
+ *     alexein search "where does dana live"    memory itself: search, add, forget, export ...
  *
  * Node's standard library and `@alexein/sdk` only. Never an installer of anything but the
  * packages the written files import, and never a writer of a key it was not given.
  */
 
+import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
 import { connect } from "./connect.js";
 import { create, DEFAULT_MODEL } from "./create.js";
+import { keyFrom } from "./credentials.js";
 import { doctor } from "./doctor.js";
+import { install, offerInstall } from "./install.js";
+import { memoryMain, NAMES, summaries } from "./memory.js";
+import { TEMPLATES } from "./render.js";
 import { init, MINIMUMS, options, PARTS, type Part } from "./scaffold.js";
 import { Console } from "./ui.js";
 import { VERSION } from "./version.js";
 
+export { keyFrom };
+
 const HELP = `@alexein/cli ${VERSION} - memory from Alexein for LangGraph.js and the
-OpenAI Agents SDK, wired in as code you own
+OpenAI Agents SDK, wired in as code you own; in the AI tools on this computer; and from here
 
 Usage:
   npx @alexein/cli init <framework> [options]          write memory.ts into this project
   npx @alexein/cli create <framework> <name> [options] a new project with memory wired in
-  npx @alexein/cli doctor                              check this project is set up for memory
+  npx @alexein/cli doctor [--json]                     check this project is set up for memory
   npx @alexein/cli connect [options]                   add Alexein AI to Claude Code, Cursor,
                                                        VS Code, Copilot CLI, Codex, Gemini CLI,
                                                        Antigravity and Devin Desktop
+  npx @alexein/cli install                             put the alexein command on your PATH, to
+                                                       type alexein ... from then on (login,
+                                                       connect, init and create offer it once)
 
   <framework> is langgraph or openai-agents.
 
@@ -40,6 +52,8 @@ connect only:
                         codex, gemini, antigravity, devin
   --no-plugin           add the server alone, not Alexein AI's plugin where a tool has one
   --list                say which tools are here and which have Alexein; change nothing
+  --json                with --list (or doctor): the same, as JSON
+  --remove              take out what connect added: the plugin, the server or its entry
   --key <key>           send this key in a header instead of signing in (for CI), no plugins
   --force               add it again where Alexein is already
 
@@ -49,7 +63,8 @@ What the wiring uses:
   --fast                searches skip the relevance check: free and quicker
 
 The key (all of it can be skipped, and done later):
-  --key <key>           your API key, written into .env as ALEXEIN_API_KEY and checked
+  --key <key>           your API key, written into .env as ALEXEIN_API_KEY and checked;
+                        --key - reads it from stdin, so it stays out of your shell history
   --base-url <url>      memory's address, written into .env as ALEXEIN_API_URL
   --skip-key            do not ask for a key
 
@@ -66,7 +81,12 @@ create only:
   --yes, -y             answer yes; ask nothing
   --no-install          print install commands instead of running them
   --dry-run             check everything, say what would happen, change nothing
-  --version, --help`;
+  --version, --help
+
+Memory, for the key you log in with (alexein <command> --help for its options):
+${summaries().join("\n")}
+  alexein skill                  The guide for an AI agent to use these commands, to save as its
+                                 skill: alexein skill > ~/.claude/skills/alexein/SKILL.md`;
 
 // `sdk` is for development only: it installs @alexein/sdk from a path or tarball instead of npm,
 // and `--help` leaves it out. Its note sits here, not beside it, so the bundle does not carry it.
@@ -88,12 +108,41 @@ const FLAGS = {
   only: { type: "string" },
   "no-plugin": { type: "boolean" },
   list: { type: "boolean" },
+  json: { type: "boolean" },
+  remove: { type: "boolean" },
   sdk: { type: "string" },
   version: { type: "boolean" },
   help: { type: "boolean", short: "h" },
 } as const;
 
-export async function main(argv: string[], given?: Console): Promise<number> {
+/** What was piped in; nothing at a terminal, where reading would wait for the key, echoed. */
+function readStdin(): string | undefined {
+  return process.stdin.isTTY ? undefined : readFileSync(0, "utf8");
+}
+
+/** A setup command's exit code, after offering once to install `alexein` where it did its work. */
+async function offered(code: number, console: Console, offer: boolean): Promise<number> {
+  if (code === 0 && offer) await offerInstall(console);
+  return code;
+}
+
+export async function main(
+  argv: string[],
+  given?: Console,
+  stdin: () => string | undefined = readStdin,
+): Promise<number> {
+  const [first, ...rest] = argv;
+  if (first === "login") {
+    const console = given ?? Console.forTerminal(false);
+    return offered(await memoryMain(first, rest, { console, stdin }), console, true);
+  }
+  if (first !== undefined && NAMES.has(first))
+    return memoryMain(first, rest, { console: given, stdin });
+  if (first === "install" && !rest.length) return install(given ?? new Console());
+  if (first === "skill" && !rest.length) {
+    (given ?? new Console()).line(readFileSync(`${TEMPLATES}skill/SKILL.md`, "utf8").trimEnd());
+    return 0;
+  }
   let parsed;
   try {
     parsed = parseArgs({ args: argv, options: FLAGS, allowPositionals: true, strict: true });
@@ -112,24 +161,43 @@ export async function main(argv: string[], given?: Console): Promise<number> {
     return command || v.help ? 0 : 2;
   }
   const cwd = process.cwd();
-  if (command === "doctor") return doctor(cwd, given ?? Console.forTerminal(true));
+  if (v.json && command !== "doctor" && !(command === "connect" && v.list)) {
+    (given ?? new Console()).fail("--json is for doctor and connect --list");
+    return 2;
+  }
+  if (command === "doctor")
+    return doctor(cwd, given ?? Console.forTerminal(true), undefined, Boolean(v.json));
   const console = given ?? Console.forTerminal(Boolean(v.yes));
+  let key: string | undefined;
+  try {
+    key = keyFrom(v.key, stdin);
+  } catch (error) {
+    console.fail((error as Error).message);
+    return 2;
+  }
   if (command === "connect") {
+    if (v.remove && (v.key || v["no-plugin"] || v.force || v.list)) {
+      console.fail("--remove goes with --only, --dry-run and --yes");
+      return 2;
+    }
     const only = v.only
       ?.split(",")
       .map((id) => id.trim())
       .filter(Boolean);
-    return connect(
+    const code = await connect(
       {
         only,
-        key: v.key,
+        key,
         plugins: !v["no-plugin"],
         force: Boolean(v.force),
         list: Boolean(v.list),
         dryRun: Boolean(v["dry-run"]),
+        remove: Boolean(v.remove),
+        json: Boolean(v.json),
       },
       console,
     );
+    return offered(code, console, !(v.list || v.json || v["dry-run"] || v.remove));
   }
   if (v["nodes-only"] && v["tools-only"]) {
     console.fail("--nodes-only and --tools-only: pick one");
@@ -145,13 +213,13 @@ export async function main(argv: string[], given?: Console): Promise<number> {
     install: !v["no-install"],
     parts,
     fast: Boolean(v.fast),
-    key: v.key,
+    key,
     baseUrl: v["base-url"],
     skipKey: Boolean(v["skip-key"] || v.yes),
     sdk: v.sdk,
     dryRun: Boolean(v["dry-run"]),
   });
-  if (command === "init") return init(cwd, o, console);
+  if (command === "init") return offered(await init(cwd, o, console), console, !v["dry-run"]);
   if (command === "create") {
     if (!framework || !(framework in MINIMUMS)) {
       const known = Object.keys(MINIMUMS).join(", ");
@@ -165,7 +233,7 @@ export async function main(argv: string[], given?: Console): Promise<number> {
       return 2;
     }
     const model = v.model ?? (framework === "langgraph" ? DEFAULT_MODEL : "");
-    return create(name, cwd, model, o, console);
+    return offered(await create(name, cwd, model, o, console), console, !v["dry-run"]);
   }
   console.fail(`no command ${JSON.stringify(command)}: init, create, doctor or connect`);
   return 2;

@@ -37,7 +37,7 @@ export class Console {
   }
 
   step(verb: string, what: string): void {
-    this.line(`  ${verb.padEnd(9)}${what}`);
+    this.line(`  ${verb.padEnd(8)} ${what}`);
   }
 
   fail(why: string): void {
@@ -50,30 +50,22 @@ export class Console {
       this.said.push(prompt + (secret && reply ? "***" : reply));
       return reply;
     }
+    if (secret && process.stdin.isTTY) return hidden(prompt);
     const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-    if (secret) {
-      // Echo nothing of what is typed: the prompt is written once, keystrokes never.
-      const quiet = rl as unknown as { _writeToOutput: (s: string) => void };
-      let shown = false;
-      quiet._writeToOutput = (s: string) => {
-        if (!shown) process.stdout.write(s);
-        shown = true;
-      };
-    }
     try {
       return await rl.question(prompt);
     } finally {
-      if (secret) process.stdout.write("\n");
       rl.close();
     }
   }
 
-  /** Yes with `--yes`; asked at a terminal; no otherwise. */
-  async confirm(question: string): Promise<boolean> {
+  /** Yes with `--yes`; asked at a terminal, where Enter answers `byDefault`; no otherwise. */
+  async confirm(question: string, byDefault = false): Promise<boolean> {
     if (this.yes) return true;
     if (!this.interactive) return false;
-    const reply = await this.#reply(`  ${question} [y/N] `, false);
-    return ["y", "yes"].includes(reply.trim().toLowerCase());
+    const reply = await this.#reply(`  ${question} ${byDefault ? "[Y/n]" : "[y/N]"} `, false);
+    const said = reply.trim().toLowerCase();
+    return said ? ["y", "yes"].includes(said) : byDefault;
   }
 
   /** A key, typed without echo; empty when skipped or when nobody can answer. */
@@ -91,4 +83,51 @@ export class Console {
     if (Number.isInteger(n) && n >= 1 && n <= options.length) return options[n - 1];
     return options.includes(reply) ? reply : undefined;
   }
+}
+
+/**
+ * A line typed at the terminal with nothing of it shown: the terminal in raw mode, each key read as it
+ * comes, so no echo - the terminal's or readline's - can print a key. Enter ends it, Backspace takes a
+ * character back, Ctrl-C stops the command as it does anywhere, and escape sequences (arrows) are
+ * dropped. readline cannot be told to be quiet: Node 26 no longer writes through the `_writeToOutput`
+ * an older version of this file replaced, and typed keys were shown.
+ */
+function hidden(prompt: string): Promise<string> {
+  const input = process.stdin;
+  process.stdout.write(prompt);
+  input.setRawMode(true);
+  input.setEncoding("utf8");
+  input.resume();
+  return new Promise((resolve) => {
+    let typed = "";
+    let escaping = false;
+    const finish = () => {
+      input.off("data", read);
+      input.setRawMode(false);
+      input.pause();
+      process.stdout.write("\n");
+    };
+    const read = (chunk: string) => {
+      for (const key of chunk) {
+        if (escaping) {
+          escaping = !/[A-Za-z~]/.test(key);
+        } else if (key === "\u001b") {
+          escaping = true;
+        } else if (key === "\r" || key === "\n" || key === "\u0004") {
+          finish();
+          resolve(typed);
+          return;
+        } else if (key === "\u0003") {
+          finish();
+          process.kill(process.pid, "SIGINT");
+          return;
+        } else if (key === "\u007f" || key === "\b") {
+          typed = typed.slice(0, -1);
+        } else if (key >= " ") {
+          typed += key;
+        }
+      }
+    };
+    input.on("data", read);
+  });
 }

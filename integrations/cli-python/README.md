@@ -13,7 +13,13 @@ uvx alexein-cli create langgraph my-agent      # a new one, with memory wired in
 uvx alexein-cli create crewai my-crew
 uvx alexein-cli create openai-agents my-agent
 uvx alexein-cli doctor                         # is it all set up?
+uvx alexein-cli connect                        # Alexein AI in Claude Code, Cursor, VS Code, ...
+uvx alexein-cli connect --remove               # ... and out of them again
+uvx alexein-cli search "where does dana live"  # memory itself, once you have logged in
+uvx alexein-cli install                        # alexein on your PATH: type alexein ... from then on
 ```
+
+The command it installs is `alexein-cli`, also called `alexein`.
 
 The file is yours: edit the settings, rename things, move it. What it imports - recall, saving,
 the tools, failing open - comes from `alexein.langgraph`, `alexein.openai_agents` or
@@ -33,19 +39,22 @@ with `--force`.
 Then it writes `memory.py`, adds `alexein[langgraph]>=0.3` (or `[openai-agents]`, `[crewai]`)
 where the project does not depend on it with that extra yet - with the project's own tool: uv,
 poetry, pdm, or a line in `requirements.txt` - and sets up the key: `--key tm_...`, or asked for
-at a terminal. Enter skips it, and an empty `ALEXEIN_API_KEY=` waits in `.env`. A key it is given
-is checked, and a key that only reads is called out.
+at a terminal. Enter skips it, and an empty `ALEXEIN_API_KEY=` waits in `.env`. `--key -` reads it
+from stdin (`op read op://dev/alexein/key | uvx alexein-cli init langgraph --key - --yes`), so it is
+never in your shell's history; an `ALEXEIN_API_KEY` already in the environment is used as it is. A
+key it is given is checked, and a key that only reads is called out.
 
 | Flag                         | What it does                                                 |
 | ---------------------------- | ------------------------------------------------------------ |
 | `--fast`                     | `FAST = True`: searches skip the relevance check, free and quicker |
 | `--key`, `--base-url`        | the key and memory's address, written into `.env`            |
+| `--key -`                    | the key from stdin, kept out of your shell's history         |
 | `--skip-key`                 | do not ask for a key                                         |
 | `--dir`, `--file`, `--graph` | where the file goes, and what it is called                   |
 | `--force`                    | replace a file already there                                 |
 | `--no-install`               | print the install command instead of running it              |
 | `--dry-run`                  | make every check, say what would happen, change nothing      |
-| `--yes`                      | ask nothing                                                  |
+| `--yes`                      | ask nothing - not for the key either: give it with `--key`   |
 
 Every file holds the same four settings, at the top:
 
@@ -177,6 +186,100 @@ Checks the memory file, that `alexein` is a dependency with the framework's extr
 versions, that the integration module imports in the project's own `.venv`, `ALEXEIN_API_KEY`
 and `ALEXEIN_API_URL` (in `.env` or the environment), the key (with `memory.me()`, which is free)
 and that `.env` is not committed. Each failure says how to fix it.
+
+`doctor --json` gives the same checks as one JSON object, for CI or an agent to read:
+`{"ok": false, "root": "...", "checks": [{"ok": false, "what": "...", "fix": "..."}]}`. A check's
+`ok` is `null` when it could not be made. The exit code is the same: 0 when all pass.
+
+## `connect`
+
+Alexein AI in the AI tools you already use, in one command - the same as `npx @alexein/cli
+connect`, with no Node needed:
+
+```bash
+uvx alexein-cli connect
+```
+
+It finds Claude Code, Cursor, VS Code, GitHub Copilot CLI, Codex, Gemini CLI, Antigravity and Devin
+Desktop on this computer, says which have Alexein already, and asks before adding it to the rest.
+Each tool is told through its own command where it has one (`claude mcp add`, `code --add-mcp`,
+`codex mcp add`, ...), so it writes its own settings. Cursor's `~/.cursor/mcp.json`, and Devin
+Desktop's file when its CLI is not installed, get the `alexein` entry alone, everything else kept,
+and a copy of the file beside it (`.bak`). Claude Code, Copilot CLI and Antigravity get Alexein AI's
+plugin, which adds the same server and tells the agent when to search and save.
+
+Then you sign in to Alexein from each tool, and keep **Read and save** so it can save: `connect`
+says where, and starts the sign-in itself where a tool can from the terminal (Codex, Claude Code).
+No key is written anywhere. claude.ai, Claude Desktop and ChatGPT are added from the app: see the
+[docs](https://docs.alexein.ai/mcp).
+
+`connect --remove` takes out what `connect` added, through each tool's own command and at the scope
+it was added at (`claude plugin uninstall`, `claude mcp remove --scope user`, `copilot plugin
+uninstall`, `codex mcp remove`, `gemini mcp remove --scope user`, `agy plugin uninstall`, `devin mcp
+remove -s user`), and by taking the `alexein` entry out of Cursor's and VS Code's files, with a `.bak`
+copy kept. It leaves a server named anything but `alexein`, and a server added to Antigravity without
+its plugin, and says to take those out in the tool's own settings. Your memory is untouched, and so
+is each tool's sign-in: disconnect a tool in My memory to end that too.
+
+| Flag             | What it does                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| `--only <tools>` | just these: `claude-code`, `cursor`, `vscode`, `copilot`, `codex`, `gemini`, `antigravity`, `devin` |
+| `--no-plugin`    | the server alone, not the plugin                                                                    |
+| `--list`         | which tools are here and which have Alexein; change nothing                                         |
+| `--json`         | with `--list`: the same as JSON, `{"tools": [{"id", "name", "found", "added"}]}`                    |
+| `--remove`       | take out what `connect` added; goes with `--only`, `--dry-run` and `--yes`                          |
+| `--key <key>`    | send this key in a header instead of signing in, for CI; no plugins. `--key -` reads it from stdin  |
+| `--force`        | add it again where Alexein is already                                                               |
+| `--dry-run`      | say what it would run or write, change nothing                                                      |
+| `--yes`          | ask nothing                                                                                         |
+
+## Memory from the shell
+
+The memory itself, from a terminal or an AI agent's shell: search it, save to it, read one memory
+whole, forget, export. `uvx alexein-cli <command>` runs them, and so does `alexein <command>` once
+the command is installed. `uvx alexein-cli install` puts it on your PATH, with
+`uv tool install alexein-cli`; `login`, `connect`, `init` and `create` offer to, once, the first time they
+run at a terminal.
+Upgrade it with `uv tool upgrade alexein-cli`.
+
+```bash
+alexein login                                  # asks for the key; or --key - and pipe it in
+alexein whoami                                 # which key, from where, and whose memory
+alexein search "where does dana live"
+alexein add "I moved to Lisbon." --self --role user
+alexein latest --json                          # the API's JSON, as it came
+```
+
+`login` checks the key, then keeps it in the system's keychain - macOS's, or the keyring through
+`secret-tool` on Linux - and only what is not secret in `~/.config/alexein/credentials.json`. With
+no keychain, or with `--insecure-storage`, the key goes in that file, readable only by you. A login
+with either Alexein CLI, Python's or TypeScript's, serves both; `logout` takes it out.
+
+The key is `--key`, else `ALEXEIN_API_KEY`, else your login's. Whose memory is `--user`, else
+`ALEXEIN_USER`, else the app user you logged in with (`login --user`), else, for a personal key,
+`me`: your own memory, the one your connected apps and AI assistants share. A project's key has no
+default - its app users are the project's - so name one.
+
+| Command                | What it does                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| `search <question>`    | what memory holds for a question; `--after`, `--before`, `--provider`, `--source`, `--fast`           |
+| `latest`               | the most recent memories, newest first; `--limit`                                                     |
+| `open <ref>`           | one memory whole: an excerpt in full, or a fact and what it came from                                 |
+| `subject <name>`       | one person or thing: its values, facts and relations                                                  |
+| `summary`              | what this memory holds, in brief                                                                      |
+| `history <subject>`    | every value it was said to have, and since when                                                       |
+| `add <text>`, `add -`  | save something, `-` from stdin; `--id`, `--session`, `--role`, `--author`, `--self`, `--kind`, `--wait` |
+| `status <item id>...`  | how far added items have got                                                                          |
+| `forget`               | erase `--item`, `--session` or `--ref` for good; it asks first, or takes `--yes`                      |
+| `export`               | everything, as JSON lines; `--out <file>` writes a file only you can read                             |
+
+Every command takes `--user`, `--key`, `--base-url` and `--json`; `alexein <command> --help` lists
+the rest. It exits 0 when done, 1 when memory refused or could not be reached, 2 when it was given
+wrongly.
+
+`alexein skill` prints a guide for an AI agent with a shell - when to search, when to save, what to
+leave to you - to keep as its skill:
+`mkdir -p ~/.claude/skills/alexein && alexein skill > ~/.claude/skills/alexein/SKILL.md`.
 
 ## License
 
